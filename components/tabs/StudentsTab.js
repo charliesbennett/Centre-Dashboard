@@ -4,7 +4,7 @@ import { B, MEALS, PROGRAMMES, uid, fmtDate } from "@/lib/constants";
 import { Fld, StatCard, TableWrap, IconBtn, IcPlus, IcTrash, IcSearch, inputStyle, thStyle, tdStyle, btnPrimary } from "@/components/ui";
 import * as XLSX from "xlsx";
 
-export default function StudentsTab({ groups, setGroups }) {
+export default function StudentsTab({ groups, setGroups, onDatesImported }) {
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState("");
   const [importMsg, setImportMsg] = useState(null);
@@ -21,6 +21,21 @@ export default function StudentsTab({ groups, setGroups }) {
     setShowAdd(false);
   };
 
+  // Helper to read a cell value, trying multiple possible positions
+  const cellVal = (ws, ...refs) => {
+    for (const ref of refs) {
+      const v = ws[ref]?.v;
+      if (v && String(v).trim() && !isLabel(String(v))) return String(v).trim();
+    }
+    return "";
+  };
+
+  // Check if value is just a template label
+  const isLabel = (v) => {
+    const labels = ["agent name", "agent 24hr", "group name", "group size", "centre", "flight details", "date", "time", "airport", "flight number", "arrival", "departure"];
+    return labels.some((l) => v.toLowerCase().trim().startsWith(l));
+  };
+
   // ── Excel Import ─────────────────────────────────────
   const handleImport = (e) => {
     const file = e.target.files[0];
@@ -31,50 +46,43 @@ export default function StudentsTab({ groups, setGroups }) {
       try {
         const wb = XLSX.read(evt.target.result, { type: "array", cellDates: true });
 
-        // Find the group sheet (skip Guidance, Tables, Test)
+        // Find the group sheet
         const groupSheet = wb.SheetNames.find(
           (n) => n.toLowerCase().includes("group") || n === "Sheet1"
         ) || wb.SheetNames[0];
         const ws = wb.Sheets[groupSheet];
 
-        // Parse header info (rows 2-4)
-        const agentName = ws["B2"]?.v || "";
-        const agentEmerg = ws["B3"]?.v || "";
-        const groupName = ws["K2"]?.v || "";
-        const groupSize = ws["K3"]?.v || "";
-        const centre = ws["L4"]?.v || "";
+        // ── Header info ──────────────────────────────
+        // Template layout: B2-C2 = "Agent Name" (label), D2 = value
+        // Or: B2 contains the actual agent name (if label was overwritten)
+        const agentName = cellVal(ws, "D2", "B2", "C2");
+        const agentEmerg = cellVal(ws, "D3", "B3", "C3");
+        const groupName = cellVal(ws, "L2", "M2", "K2");
+        const centre = cellVal(ws, "L4", "M4", "K4");
 
-        // Flight details
-        const arrDate = ws["G3"]?.v || ws["G3"]?.w || "";
+        // Flight details - dates in G, times in H, airports in I, flights in J
+        const arrDate = ws["G3"]?.v || "";
         const arrTime = ws["H3"]?.v || ws["H3"]?.w || "";
         const arrAirport = ws["I3"]?.v || "";
         const arrFlight = ws["J3"]?.v || "";
-        const depDate = ws["G4"]?.v || ws["G4"]?.w || "";
+        const depDate = ws["G4"]?.v || "";
         const depTime = ws["H4"]?.v || ws["H4"]?.w || "";
         const depAirport = ws["I4"]?.v || "";
         const depFlight = ws["J4"]?.v || "";
 
-        // Parse students (rows 9-58, columns A-W)
+        // ── Parse students (rows 9-58) ───────────────
         const students = [];
         for (let r = 9; r <= 58; r++) {
           const firstName = ws[`C${r}`]?.v;
           const surname = ws[`D${r}`]?.v;
           if (!firstName && !surname) continue;
 
-          const dobRaw = ws[`E${r}`]?.v;
-          let dob = "";
-          if (dobRaw instanceof Date) {
-            dob = dobRaw.toISOString().split("T")[0];
-          } else if (dobRaw) {
-            dob = String(dobRaw);
-          }
-
           students.push({
             id: uid(),
             type: "student",
             firstName: String(firstName || "").trim(),
             surname: String(surname || "").trim(),
-            dob,
+            dob: formatExcelDate(ws[`E${r}`]?.v),
             age: ws[`F${r}`]?.v || "",
             sex: ws[`G${r}`]?.v || "",
             passport: ws[`H${r}`]?.v || "",
@@ -96,7 +104,7 @@ export default function StudentsTab({ groups, setGroups }) {
           });
         }
 
-        // Parse group leaders (rows 61-66)
+        // ── Parse group leaders (rows 61-66) ─────────
         const leaders = [];
         for (let r = 61; r <= 66; r++) {
           const firstName = ws[`B${r}`]?.v;
@@ -121,39 +129,32 @@ export default function StudentsTab({ groups, setGroups }) {
           });
         }
 
-        // Determine common nationality
+        // ── Derive group-level data ──────────────────
         const nats = students.map((s) => s.nationality).filter(Boolean);
-        const topNat = nats.length > 0
-          ? nats.sort((a, b) => nats.filter((v) => v === a).length - nats.filter((v) => v === b).length).pop()
-          : "";
+        const topNat = nats.length > 0 ? mode(nats) : "";
 
-        // Determine arrival/departure from students or flights
-        const allArrivals = students.map((s) => s.arrDate).filter(Boolean);
-        const allDepartures = students.map((s) => s.depDate).filter(Boolean);
-        const earliestArr = allArrivals.sort()[0] || formatExcelDate(arrDate);
-        const latestDep = allDepartures.sort().pop() || formatExcelDate(depDate);
+        const allArrivals = students.map((s) => s.arrDate).filter(Boolean).sort();
+        const allDepartures = students.map((s) => s.depDate).filter(Boolean).sort();
+        const earliestArr = allArrivals[0] || formatExcelDate(arrDate);
+        const latestDep = allDepartures[allDepartures.length - 1] || formatExcelDate(depDate);
 
-        // Determine programme from specialism
         const specs = students.map((s) => s.specialism1).filter(Boolean);
-        const topSpec = specs.length > 0
-          ? specs.sort((a, b) => specs.filter((v) => v === a).length - specs.filter((v) => v === b).length).pop()
-          : "Multi-Activity";
-        const prog = topSpec.includes("Multi") ? "Multi-Activity"
-          : topSpec.includes("Intensive") ? "Intensive English"
-          : topSpec.includes("Perform") ? "Performing Arts"
-          : topSpec.includes("Football") ? "Football"
-          : topSpec.includes("Dance") ? "Dance"
-          : topSpec.includes("Drama") ? "Drama"
-          : topSpec.includes("Leader") ? "Leadership"
+        const topSpec = specs.length > 0 ? mode(specs) : "Multi-Activity";
+        const prog = topSpec.toLowerCase().includes("multi") ? "Multi-Activity"
+          : topSpec.toLowerCase().includes("intensive") ? "Intensive English"
+          : topSpec.toLowerCase().includes("perform") ? "Performing Arts"
+          : topSpec.toLowerCase().includes("football") ? "Football"
+          : topSpec.toLowerCase().includes("dance") ? "Dance"
+          : topSpec.toLowerCase().includes("drama") ? "Drama"
+          : topSpec.toLowerCase().includes("leader") ? "Leadership"
           : "Multi-Activity";
 
-        // Create group entry
         const newGroup = {
           id: uid(),
-          agent: String(agentName).trim(),
-          agentEmergency: String(agentEmerg).trim(),
-          group: String(groupName).trim() || `${agentName} Group`,
-          nat: String(topNat).trim(),
+          agent: agentName,
+          agentEmergency: agentEmerg,
+          group: groupName || `${agentName} Group`,
+          nat: topNat,
           stu: students.length,
           gl: leaders.length,
           arr: earliestArr,
@@ -161,20 +162,24 @@ export default function StudentsTab({ groups, setGroups }) {
           firstMeal: "Dinner",
           lastMeal: "Packed Lunch",
           prog,
-          centre: String(centre).trim(),
-          // Flight info
-          arrAirport: String(arrAirport).trim(),
-          arrFlight: String(arrFlight).trim(),
-          arrTime: String(arrTime).trim(),
-          depAirport: String(depAirport).trim(),
-          depFlight: String(depFlight).trim(),
-          depTime: String(depTime).trim(),
-          // Individual records
+          centre: centre,
+          arrAirport: String(arrAirport || "").trim(),
+          arrFlight: String(arrFlight || "").trim(),
+          arrTime: String(arrTime || "").trim(),
+          depAirport: String(depAirport || "").trim(),
+          depFlight: String(depFlight || "").trim(),
+          depTime: String(depTime || "").trim(),
           students,
           leaders,
         };
 
         setGroups((prev) => [...prev, newGroup]);
+
+        // Auto-adjust programme dates if this group falls outside current range
+        if (onDatesImported && earliestArr && latestDep) {
+          onDatesImported(earliestArr, latestDep);
+        }
+
         setImportMsg({
           type: "success",
           text: `Imported "${newGroup.group}" — ${students.length} students, ${leaders.length} GLs from ${agentName}`,
@@ -186,7 +191,6 @@ export default function StudentsTab({ groups, setGroups }) {
         setTimeout(() => setImportMsg(null), 6000);
       }
 
-      // Reset file input
       if (fileRef.current) fileRef.current.value = "";
     };
     reader.readAsArrayBuffer(file);
@@ -198,8 +202,6 @@ export default function StudentsTab({ groups, setGroups }) {
   const totalStu = groups.reduce((s, x) => s + (x.stu || 0), 0);
   const totalGL = groups.reduce((s, x) => s + (x.gl || 0), 0);
   const fi = inputStyle;
-
-  // ── Expanded row state ───────────────────────────────
   const [expanded, setExpanded] = useState(null);
 
   return (
@@ -318,6 +320,11 @@ export default function StudentsTab({ groups, setGroups }) {
                               <span style={{ fontWeight: 700, color: B.textMuted }}>Departure:</span> {x.depAirport} · {x.depFlight} {x.depTime ? `at ${x.depTime}` : ""}
                             </div>
                           )}
+                          {x.centre && (
+                            <div style={{ fontSize: 10 }}>
+                              <span style={{ fontWeight: 700, color: B.textMuted }}>Centre:</span> {x.centre}
+                            </div>
+                          )}
                         </div>
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, background: B.white, borderRadius: 6, overflow: "hidden" }}>
                           <thead>
@@ -344,7 +351,7 @@ export default function StudentsTab({ groups, setGroups }) {
                                 <td style={{ ...tdStyle, fontSize: 9 }}>{s.swimming ? s.swimming.slice(0, 15) : "—"}</td>
                               </tr>
                             ))}
-                            {(x.leaders || []).map((gl, i) => (
+                            {(x.leaders || []).map((gl) => (
                               <tr key={gl.id} style={{ borderBottom: `1px solid ${B.borderLight}`, background: "#f0f4ff" }}>
                                 <td style={{ ...tdStyle, fontSize: 9, color: "#7c3aed" }}>GL</td>
                                 <td style={{ ...tdStyle, fontWeight: 700, color: "#7c3aed" }}>{gl.firstName} {gl.surname}</td>
@@ -372,20 +379,24 @@ export default function StudentsTab({ groups, setGroups }) {
         </TableWrap>
       </div>
       <div style={{ padding: "0 20px 8px", fontSize: 10, color: B.success, fontWeight: 600 }}>
-        ✓ Groups auto-flow to Programmes, Catering &amp; Transfers · Import reads agent template format
+        ✓ Groups auto-flow to Programmes, Catering &amp; Transfers · Import reads UKLC agent template
       </div>
     </div>
   );
 }
 
-// Helper to handle Excel date values
 function formatExcelDate(val) {
   if (!val) return "";
   if (val instanceof Date) return val.toISOString().split("T")[0];
   if (typeof val === "number") {
-    // Excel serial date
     const d = new Date((val - 25569) * 86400000);
     return d.toISOString().split("T")[0];
   }
   return String(val);
+}
+
+function mode(arr) {
+  const freq = {};
+  arr.forEach((v) => { freq[v] = (freq[v] || 0) + 1; });
+  return Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0];
 }
