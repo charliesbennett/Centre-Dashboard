@@ -23,9 +23,22 @@ export default function Dashboard() {
   const [transfers, setTransfers] = useState([]);
   const [excDays, setExcDays] = useState({});
 
+  // Auto-adjust date range when groups are imported
+  const handleDatesImported = (arrDate, depDate) => {
+    if (!arrDate || !depDate) return;
+    setProgStart((prev) => {
+      const newStart = arrDate < prev ? arrDate : prev;
+      return newStart;
+    });
+    setProgEnd((prev) => {
+      const newEnd = depDate > prev ? depDate : prev;
+      return newEnd;
+    });
+  };
+
   const renderTab = () => {
     switch (tab) {
-      case "students": return <StudentsTab groups={groups} setGroups={setGroups} />;
+      case "students": return <StudentsTab groups={groups} setGroups={setGroups} onDatesImported={handleDatesImported} />;
       case "rota": return <RotaTab staff={staff} progStart={progStart} />;
       case "programmes": return <ProgrammesTab groups={groups} progStart={progStart} progEnd={progEnd} centre={centre} excDays={excDays} setExcDays={setExcDays} />;
       case "catering": return <CateringTab groups={groups} staff={staff} progStart={progStart} progEnd={progEnd} excDays={excDays} />;
