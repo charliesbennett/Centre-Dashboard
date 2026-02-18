@@ -30,7 +30,7 @@ export default function Dashboard() {
   const renderTab = () => {
     switch (tab) {
       case "students": return <StudentsTab groups={groups} setGroups={setGroups} onDatesImported={handleDatesImported} />;
-      case "rota": return <RotaTab staff={staff} progStart={progStart} progEnd={progEnd} excDays={excDays} />;
+      case "rota": return <RotaTab staff={staff} progStart={progStart} progEnd={progEnd} excDays={excDays} groups={groups} />;
       case "programmes": return <ProgrammesTab groups={groups} progStart={progStart} progEnd={progEnd} centre={centre} excDays={excDays} setExcDays={setExcDays} />;
       case "catering": return <CateringTab groups={groups} staff={staff} progStart={progStart} progEnd={progEnd} excDays={excDays} />;
       case "transfers": return <TransfersTab groups={groups} transfers={transfers} setTransfers={setTransfers} />;
