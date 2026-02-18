@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { B, CENTRES, TABS } from "@/lib/constants";
 import StudentsTab from "@/components/tabs/StudentsTab";
 import RotaTab from "@/components/tabs/RotaTab";
@@ -14,22 +14,46 @@ import ContactsTab from "@/components/tabs/ContactsTab";
 export default function Dashboard() {
   const [tab, setTab] = useState("students");
   const [centre, setCentre] = useState("");
-  const [progStart, setProgStart] = useState("2026-07-04");
-  const [progEnd, setProgEnd] = useState("2026-08-05");
+  const [manualStart, setManualStart] = useState("2026-07-04");
+  const [manualEnd, setManualEnd] = useState("2026-08-05");
   const [groups, setGroups] = useState([]);
   const [staff, setStaff] = useState([]);
   const [transfers, setTransfers] = useState([]);
   const [excDays, setExcDays] = useState({});
 
-  const handleDatesImported = (arrDate, depDate) => {
-    if (!arrDate || !depDate) return;
-    setProgStart((prev) => arrDate < prev ? arrDate : prev);
-    setProgEnd((prev) => depDate > prev ? depDate : prev);
-  };
+  // Auto-detect date range: use earliest arr and latest dep from groups + staff
+  // Falls back to manual dates if no groups/staff
+  const { progStart, progEnd } = useMemo(() => {
+    const allDates = [];
+
+    groups.forEach((g) => {
+      if (g.arr) allDates.push({ d: g.arr, type: "start" });
+      if (g.dep) allDates.push({ d: g.dep, type: "end" });
+    });
+
+    staff.forEach((s) => {
+      if (s.arr) allDates.push({ d: s.arr, type: "start" });
+      if (s.dep) allDates.push({ d: s.dep, type: "end" });
+    });
+
+    if (allDates.length === 0) return { progStart: manualStart, progEnd: manualEnd };
+
+    const starts = allDates.filter((x) => x.type === "start").map((x) => x.d).sort();
+    const ends = allDates.filter((x) => x.type === "end").map((x) => x.d).sort();
+
+    const earliest = starts[0] || manualStart;
+    const latest = ends[ends.length - 1] || manualEnd;
+
+    // Use whichever is wider: auto-detected or manual
+    const finalStart = earliest < manualStart ? earliest : manualStart;
+    const finalEnd = latest > manualEnd ? latest : manualEnd;
+
+    return { progStart: finalStart, progEnd: finalEnd };
+  }, [groups, staff, manualStart, manualEnd]);
 
   const renderTab = () => {
     switch (tab) {
-      case "students": return <StudentsTab groups={groups} setGroups={setGroups} onDatesImported={handleDatesImported} />;
+      case "students": return <StudentsTab groups={groups} setGroups={setGroups} />;
       case "rota": return <RotaTab staff={staff} progStart={progStart} progEnd={progEnd} excDays={excDays} groups={groups} />;
       case "programmes": return <ProgrammesTab groups={groups} progStart={progStart} progEnd={progEnd} centre={centre} excDays={excDays} setExcDays={setExcDays} />;
       case "catering": return <CateringTab groups={groups} staff={staff} progStart={progStart} progEnd={progEnd} excDays={excDays} />;
@@ -56,9 +80,12 @@ export default function Dashboard() {
           </select>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>DATES</span>
-            <input type="date" value={progStart} onChange={(e) => setProgStart(e.target.value)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", padding: "4px 8px", borderRadius: 4, fontSize: 11, fontFamily: "inherit" }} />
+            <input type="date" value={manualStart} onChange={(e) => setManualStart(e.target.value)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", padding: "4px 8px", borderRadius: 4, fontSize: 11, fontFamily: "inherit" }} />
             <span style={{ color: "rgba(255,255,255,0.3)" }}>{"\u2192"}</span>
-            <input type="date" value={progEnd} onChange={(e) => setProgEnd(e.target.value)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", padding: "4px 8px", borderRadius: 4, fontSize: 11, fontFamily: "inherit" }} />
+            <input type="date" value={manualEnd} onChange={(e) => setManualEnd(e.target.value)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", padding: "4px 8px", borderRadius: 4, fontSize: 11, fontFamily: "inherit" }} />
+            {(progStart !== manualStart || progEnd !== manualEnd) && (
+              <span style={{ fontSize: 8, color: "#86efac", fontWeight: 700 }}>Auto: {progStart.slice(5)} {"\u2192"} {progEnd.slice(5)}</span>
+            )}
           </div>
         </div>
       </header>
