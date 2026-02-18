@@ -5,130 +5,129 @@ import { StatCard, IcWand, thStyle, tdStyle, btnPrimary } from "@/components/ui"
 
 const SLOTS = ["AM", "PM", "Eve"];
 
-// Role day patterns: each entry = { work: [slot1, slot2], acts: [act1, act2], off: slotOff }
+// Role day patterns: { work: [slot1,slot2], acts: [act1,act2], off: slotOff }
 const ROLE_DAYS = {
   TAL: {
     weekday: [
-      { work: ["AM", "PM"], acts: ["Lessons", "Activities"], off: "Eve" },
-      { work: ["PM", "Eve"], acts: ["Activities", "Eve Ents"], off: "AM" },
+      { work: ["AM","PM"], acts: ["Lessons","Activities"], off: "Eve" },
+      { work: ["PM","Eve"], acts: ["Activities","Eve Ents"], off: "AM" },
     ],
     weekend: [
-      { work: ["AM", "PM"], acts: ["Excursion", "Excursion"], off: "Eve" },
-      { work: ["AM", "Eve"], acts: ["Excursion", "Eve Ents"], off: "PM" },
+      { work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" },
+      { work: ["AM","Eve"], acts: ["Excursion","Eve Ents"], off: "PM" },
     ],
     halfExc: [
-      { work: ["AM", "PM"], acts: ["Lessons", "Half Exc"], off: "Eve" },
-      { work: ["PM", "Eve"], acts: ["Half Exc", "Eve Ents"], off: "AM" },
+      { work: ["AM","PM"], acts: ["Lessons","Half Exc"], off: "Eve" },
+      { work: ["PM","Eve"], acts: ["Half Exc","Eve Ents"], off: "AM" },
     ],
     fullExc: [
-      { work: ["AM", "PM"], acts: ["Excursion", "Excursion"], off: "Eve" },
-      { work: ["AM", "Eve"], acts: ["Excursion", "Eve Ents"], off: "PM" },
+      { work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" },
+      { work: ["AM","Eve"], acts: ["Excursion","Eve Ents"], off: "PM" },
     ],
-    sessPerFn: 22, countsForRatio: true,
+    sessPerFn: 22,
   },
   FTT: {
-    weekday: [{ work: ["AM", "PM"], acts: ["Lessons", "Lessons"], off: "Eve" }],
-    weekend: [{ work: ["AM", "PM"], acts: ["Excursion", "Excursion"], off: "Eve" }],
-    halfExc: [{ work: ["AM", "PM"], acts: ["Lessons", "Lessons"], off: "Eve" }],
-    fullExc: [{ work: ["AM", "PM"], acts: ["Excursion", "Excursion"], off: "Eve" }],
-    sessPerFn: 22, weekendDayOff: true, countsForRatio: true,
+    weekday: [{ work: ["AM","PM"], acts: ["Lessons","Lessons"], off: "Eve" }],
+    weekend: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }],
+    halfExc: [{ work: ["AM","PM"], acts: ["Lessons","Lessons"], off: "Eve" }],
+    fullExc: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }],
+    sessPerFn: 22, weekendDayOff: true,
   },
   FTT5: {
-    weekday: [{ work: ["AM", "PM"], acts: ["Lessons", "Lessons"], off: "Eve" }],
-    weekend: [], halfExc: [{ work: ["AM", "PM"], acts: ["Lessons", "Lessons"], off: "Eve" }], fullExc: [],
-    sessPerFn: 20, weekendFullOff: true, countsForRatio: true,
+    weekday: [{ work: ["AM","PM"], acts: ["Lessons","Lessons"], off: "Eve" }],
+    weekend: [], halfExc: [{ work: ["AM","PM"], acts: ["Lessons","Lessons"], off: "Eve" }], fullExc: [],
+    sessPerFn: 20, weekendFullOff: true,
   },
   EAL: {
     weekday: [
-      { work: ["AM", "PM"], acts: ["Lessons", "Activities"], off: "Eve" },
-      { work: ["PM", "Eve"], acts: ["Activities", "Eve Ents"], off: "AM" },
+      { work: ["AM","PM"], acts: ["Lessons","Activities"], off: "Eve" },
+      { work: ["PM","Eve"], acts: ["Activities","Eve Ents"], off: "AM" },
     ],
     weekend: [
-      { work: ["AM", "PM"], acts: ["Excursion", "Excursion"], off: "Eve" },
-      { work: ["AM", "Eve"], acts: ["Excursion", "Eve Ents"], off: "PM" },
+      { work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" },
+      { work: ["AM","Eve"], acts: ["Excursion","Eve Ents"], off: "PM" },
     ],
     halfExc: [
-      { work: ["AM", "PM"], acts: ["Lessons", "Half Exc"], off: "Eve" },
-      { work: ["PM", "Eve"], acts: ["Half Exc", "Eve Ents"], off: "AM" },
+      { work: ["AM","PM"], acts: ["Lessons","Half Exc"], off: "Eve" },
+      { work: ["PM","Eve"], acts: ["Half Exc","Eve Ents"], off: "AM" },
     ],
     fullExc: [
-      { work: ["AM", "PM"], acts: ["Excursion", "Excursion"], off: "Eve" },
-      { work: ["AM", "Eve"], acts: ["Excursion", "Eve Ents"], off: "PM" },
+      { work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" },
+      { work: ["AM","Eve"], acts: ["Excursion","Eve Ents"], off: "PM" },
     ],
-    sessPerFn: 24, countsForRatio: true,
+    sessPerFn: 24,
   },
   EAC: {
     weekday: [
-      { work: ["AM", "PM"], acts: ["Activities", "Activities"], off: "Eve" },
-      { work: ["PM", "Eve"], acts: ["Activities", "Eve Ents"], off: "AM" },
+      { work: ["AM","PM"], acts: ["Activities","Activities"], off: "Eve" },
+      { work: ["PM","Eve"], acts: ["Activities","Eve Ents"], off: "AM" },
     ],
     weekend: [
-      { work: ["AM", "PM"], acts: ["Excursion", "Excursion"], off: "Eve" },
-      { work: ["AM", "Eve"], acts: ["Excursion", "Eve Ents"], off: "PM" },
+      { work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" },
+      { work: ["AM","Eve"], acts: ["Excursion","Eve Ents"], off: "PM" },
     ],
-    halfExc: [{ work: ["AM", "PM"], acts: ["Activities", "Half Exc"], off: "Eve" }],
-    fullExc: [{ work: ["AM", "PM"], acts: ["Excursion", "Excursion"], off: "Eve" }],
-    sessPerFn: 24, countsForRatio: true,
+    halfExc: [{ work: ["AM","PM"], acts: ["Activities","Half Exc"], off: "Eve" }],
+    fullExc: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }],
+    sessPerFn: 24,
   },
   SAI: {
     weekday: [
-      { work: ["AM", "PM"], acts: ["Activities", "Activities"], off: "Eve" },
-      { work: ["PM", "Eve"], acts: ["Activities", "Eve Ents"], off: "AM" },
+      { work: ["AM","PM"], acts: ["Activities","Activities"], off: "Eve" },
+      { work: ["PM","Eve"], acts: ["Activities","Eve Ents"], off: "AM" },
     ],
     weekend: [
-      { work: ["AM", "PM"], acts: ["Excursion", "Excursion"], off: "Eve" },
-      { work: ["AM", "Eve"], acts: ["Excursion", "Eve Ents"], off: "PM" },
+      { work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" },
+      { work: ["AM","Eve"], acts: ["Excursion","Eve Ents"], off: "PM" },
     ],
-    halfExc: [{ work: ["AM", "PM"], acts: ["Activities", "Half Exc"], off: "Eve" }],
-    fullExc: [{ work: ["AM", "PM"], acts: ["Excursion", "Excursion"], off: "Eve" }],
-    sessPerFn: 24, countsForRatio: true,
+    halfExc: [{ work: ["AM","PM"], acts: ["Activities","Half Exc"], off: "Eve" }],
+    fullExc: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }],
+    sessPerFn: 24,
   },
   SC: {
     weekday: [
-      { work: ["AM", "PM"], acts: ["Activities", "Activities"], off: "Eve" },
-      { work: ["PM", "Eve"], acts: ["Activities", "Eve Ents"], off: "AM" },
+      { work: ["AM","PM"], acts: ["Activities","Activities"], off: "Eve" },
+      { work: ["PM","Eve"], acts: ["Activities","Eve Ents"], off: "AM" },
     ],
     weekend: [
-      { work: ["AM", "PM"], acts: ["Excursion", "Excursion"], off: "Eve" },
-      { work: ["AM", "Eve"], acts: ["Excursion", "Eve Ents"], off: "PM" },
+      { work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" },
+      { work: ["AM","Eve"], acts: ["Excursion","Eve Ents"], off: "PM" },
     ],
-    halfExc: [{ work: ["AM", "PM"], acts: ["Activities", "Half Exc"], off: "Eve" }],
-    fullExc: [{ work: ["AM", "PM"], acts: ["Excursion", "Excursion"], off: "Eve" }],
-    sessPerFn: 24, countsForRatio: true,
+    halfExc: [{ work: ["AM","PM"], acts: ["Activities","Half Exc"], off: "Eve" }],
+    fullExc: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }],
+    sessPerFn: 24,
   },
   DRAMA: {
     weekday: [
-      { work: ["AM", "PM"], acts: ["Lessons", "Activities"], off: "Eve" },
-      { work: ["PM", "Eve"], acts: ["Activities", "Eve Ents"], off: "AM" },
+      { work: ["AM","PM"], acts: ["Lessons","Activities"], off: "Eve" },
+      { work: ["PM","Eve"], acts: ["Activities","Eve Ents"], off: "AM" },
     ],
-    weekend: [{ work: ["AM", "PM"], acts: ["Excursion", "Excursion"], off: "Eve" }],
-    halfExc: [{ work: ["AM", "PM"], acts: ["Lessons", "Half Exc"], off: "Eve" }],
-    fullExc: [{ work: ["AM", "PM"], acts: ["Excursion", "Excursion"], off: "Eve" }],
-    sessPerFn: 22, countsForRatio: true,
+    weekend: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }],
+    halfExc: [{ work: ["AM","PM"], acts: ["Lessons","Half Exc"], off: "Eve" }],
+    fullExc: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }],
+    sessPerFn: 22,
   },
   DANCE: {
     weekday: [
-      { work: ["AM", "PM"], acts: ["Lessons", "Activities"], off: "Eve" },
-      { work: ["PM", "Eve"], acts: ["Activities", "Eve Ents"], off: "AM" },
+      { work: ["AM","PM"], acts: ["Lessons","Activities"], off: "Eve" },
+      { work: ["PM","Eve"], acts: ["Activities","Eve Ents"], off: "AM" },
     ],
-    weekend: [{ work: ["AM", "PM"], acts: ["Excursion", "Excursion"], off: "Eve" }],
-    halfExc: [{ work: ["AM", "PM"], acts: ["Lessons", "Half Exc"], off: "Eve" }],
-    fullExc: [{ work: ["AM", "PM"], acts: ["Excursion", "Excursion"], off: "Eve" }],
-    sessPerFn: 22, countsForRatio: true,
+    weekend: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }],
+    halfExc: [{ work: ["AM","PM"], acts: ["Lessons","Half Exc"], off: "Eve" }],
+    fullExc: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }],
+    sessPerFn: 22,
   },
-  CM:  { weekday: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], weekend: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], halfExc: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], fullExc: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }], sessPerFn: 34, countsForRatio: false },
-  EAM: { weekday: [{ work: ["AM","PM"], acts: ["Floating","Activities"], off: "Eve" }], weekend: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }], halfExc: [{ work: ["AM","PM"], acts: ["Floating","Half Exc"], off: "Eve" }], fullExc: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }], sessPerFn: 34, countsForRatio: true },
-  CD:  { weekday: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], weekend: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], halfExc: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], fullExc: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }], sessPerFn: 28, countsForRatio: false },
-  SWC: { weekday: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], weekend: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], halfExc: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], fullExc: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }], sessPerFn: 28, countsForRatio: false },
+  CM:  { weekday: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], weekend: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], halfExc: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], fullExc: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }], sessPerFn: 34 },
+  EAM: { weekday: [{ work: ["AM","PM"], acts: ["Floating","Activities"], off: "Eve" }], weekend: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }], halfExc: [{ work: ["AM","PM"], acts: ["Floating","Half Exc"], off: "Eve" }], fullExc: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }], sessPerFn: 34 },
+  CD:  { weekday: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], weekend: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], halfExc: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], fullExc: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }], sessPerFn: 28 },
+  SWC: { weekday: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], weekend: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], halfExc: [{ work: ["AM","PM"], acts: ["Floating","Floating"], off: "Eve" }], fullExc: [{ work: ["AM","PM"], acts: ["Excursion","Excursion"], off: "Eve" }], sessPerFn: 28 },
 };
 
-// ── Safeguarding ratios ─────────────────────────────────
-// 12+ → 1:20, 10-12 → 1:15, 8-10 → 1:10
-// We'll use 1:20 as default since most UKLC students are 13-16
-function calcRequiredStaff(studentCount, avgAge) {
+// Management roles get Day 0
+const MGMT_ROLES = ["CM", "CD", "EAM", "SWC"];
+
+function calcRequiredStaff(studentCount) {
   if (!studentCount || studentCount <= 0) return 0;
-  const ratio = avgAge && avgAge < 10 ? 10 : avgAge && avgAge < 12 ? 15 : 20;
-  return Math.ceil(studentCount / ratio);
+  return Math.ceil(studentCount / 20); // 1:20 for 12+ (default age group)
 }
 
 export default function RotaTab({ staff, progStart, progEnd, excDays, groups }) {
@@ -140,6 +139,13 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups }) 
     if (!progStart || !progEnd) return [];
     return genDates(progStart, progEnd);
   }, [progStart, progEnd]);
+
+  // Find the earliest group arrival date to determine when normal programme starts
+  const groupArrivalDate = useMemo(() => {
+    if (!groups || groups.length === 0) return null;
+    const arrivals = groups.map((g) => g.arr).filter(Boolean).sort();
+    return arrivals[0] || null;
+  }, [groups]);
 
   const parseTimeOff = (toStr) => {
     if (!toStr) return [];
@@ -169,50 +175,6 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups }) 
     return false;
   };
 
-  // ── Ratio calculations ────────────────────────────────
-  const ratioData = useMemo(() => {
-    if (!groups || groups.length === 0) return {};
-    const data = {};
-
-    dates.forEach((d) => {
-      const ds = dayKey(d);
-
-      // Count students on-site this day
-      let totalStudents = 0;
-      let totalGLs = 0;
-      const groupsOnSite = [];
-
-      groups.forEach((g) => {
-        if (!inRange(ds, g.arr, g.dep)) return;
-        // Skip arrival/departure days for activity ratios
-        if (g.arr && ds === dayKey(new Date(g.arr))) return;
-        if (g.dep && ds === dayKey(new Date(g.dep))) return;
-
-        totalStudents += g.stu || 0;
-        totalGLs += g.gl || 0;
-        groupsOnSite.push(g);
-      });
-
-      if (totalStudents === 0) return;
-
-      const required = calcRequiredStaff(totalStudents);
-
-      data[ds] = { students: totalStudents, gls: totalGLs, required, groupsOnSite };
-    });
-
-    return data;
-  }, [groups, dates]);
-
-  // Count staff working per slot per day (from grid)
-  const getStaffWorking = (ds, sl) => {
-    let count = 0;
-    staff.forEach((s) => {
-      const v = grid[s.id + "-" + ds + "-" + sl];
-      if (v && v !== "Day Off") count++;
-    });
-    return count;
-  };
-
   // ── Auto-generate ─────────────────────────────────────
   const autoGenerate = () => {
     const ng = {};
@@ -224,23 +186,51 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups }) 
       if (!rd) return;
 
       const tos = parseTimeOff(s.to);
+      const isMgmt = MGMT_ROLES.includes(s.role);
 
-      // Collect working dates
+      // Collect on-site dates
       const workingDates = [];
       dates.forEach((d) => {
         const ds = dayKey(d);
         if (inRange(ds, s.arr, s.dep)) workingDates.push({ date: d, ds });
       });
 
-      // Plan 1 day off per week
-      const totalWeeks = Math.ceil(workingDates.length / 7);
+      if (workingDates.length === 0) return;
+
+      // Determine induction days at start of contract:
+      // Day 1 (contract start) = Induction
+      // Day 2 = Setup
+      // Day 3+ = Normal programme (or when students arrive)
+      const contractStart = workingDates[0].ds;
+      const inductionDays = new Set();
+      const setupDays = new Set();
+
+      // Management: Day 0 = their arrival, Day 1 = Induction, Day 2 = Setup
+      // Regular staff: Day 1 = Induction, Day 2 = Setup
+      if (workingDates.length >= 1) inductionDays.add(workingDates[0].ds);
+      if (workingDates.length >= 2) setupDays.add(workingDates[1].ds);
+
+      // If there's a group arrival date and staff arrive well before,
+      // any remaining days before group arrival are also setup
+      if (groupArrivalDate && workingDates.length >= 3) {
+        for (let i = 2; i < workingDates.length; i++) {
+          if (workingDates[i].ds < groupArrivalDate) {
+            setupDays.add(workingDates[i].ds);
+          } else {
+            break;
+          }
+        }
+      }
+
+      // Plan 1 day off per week (starting from programme days, not induction)
+      const programmeDates = workingDates.filter((wd) => !inductionDays.has(wd.ds) && !setupDays.has(wd.ds));
+      const totalWeeks = Math.ceil(programmeDates.length / 7);
       const dayOffSet = new Set();
 
       if (rd.weekendDayOff) {
-        // FTT: Saturday off (prefer Sat, then Sun)
         let ws = 0;
         for (let w = 0; w < totalWeeks; w++) {
-          const week = workingDates.slice(ws, ws + 7);
+          const week = programmeDates.slice(ws, ws + 7);
           const sat = week.find((wd) => wd.date.getDay() === 6);
           const sun = week.find((wd) => wd.date.getDay() === 0);
           if (sat) dayOffSet.add(sat.ds);
@@ -249,21 +239,20 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups }) 
           ws += 7;
         }
       } else if (rd.weekendFullOff) {
-        workingDates.forEach((wd) => { if (isWeekend(wd.date)) dayOffSet.add(wd.ds); });
+        programmeDates.forEach((wd) => { if (isWeekend(wd.date)) dayOffSet.add(wd.ds); });
       } else {
-        // 1 day off per week, mid-week preferred
         let ws = 0;
-        const pref = [3, 4, 2, 5, 1]; // Wed, Thu, Tue, Fri, Mon
+        const pref = [3, 4, 2, 5, 1];
         for (let w = 0; w < totalWeeks; w++) {
-          const week = workingDates.slice(ws, ws + 7);
+          const week = programmeDates.slice(ws, ws + 7);
           let placed = false;
           for (const pd of pref) {
             const m = week.find((wd) => wd.date.getDay() === pd && !isFullDayOff(tos, wd.ds));
             if (m) { dayOffSet.add(m.ds); placed = true; break; }
           }
           if (!placed && week.length > 0) {
-            const fallback = week.find((wd) => !isFullDayOff(tos, wd.ds));
-            if (fallback) dayOffSet.add(fallback.ds);
+            const fb = week.find((wd) => !isFullDayOff(tos, wd.ds));
+            if (fb) dayOffSet.add(fb.ds);
           }
           ws += 7;
         }
@@ -276,22 +265,41 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups }) 
         const we = isWeekend(d);
         const fe = excDays && excDays[ds] === "Full";
         const he = excDays && excDays[ds] === "Half";
-        const isFirst = s.arr && ds === dayKey(new Date(s.arr));
         const isLast = s.dep && ds === dayKey(new Date(s.dep));
 
-        if (isFirst) { ng[s.id+"-"+ds+"-PM"] = "Airport"; dayIdx++; return; }
-        if (isLast) { ng[s.id+"-"+ds+"-AM"] = "Airport"; dayIdx++; return; }
+        // Induction day
+        if (inductionDays.has(ds)) {
+          ng[s.id+"-"+ds+"-AM"] = "Induction";
+          ng[s.id+"-"+ds+"-PM"] = "Induction";
+          dayIdx++; return;
+        }
 
+        // Setup day
+        if (setupDays.has(ds)) {
+          ng[s.id+"-"+ds+"-AM"] = "Setup";
+          ng[s.id+"-"+ds+"-PM"] = "Setup";
+          dayIdx++; return;
+        }
+
+        // Departure day
+        if (isLast) {
+          ng[s.id+"-"+ds+"-AM"] = "Airport";
+          dayIdx++; return;
+        }
+
+        // Time off (full day)
         if (isFullDayOff(tos, ds) || dayOffSet.has(ds)) {
           SLOTS.forEach((sl) => { ng[s.id+"-"+ds+"-"+sl] = "Day Off"; });
           dayIdx++; return;
         }
 
+        // FTT5 weekends off
         if (rd.weekendFullOff && we) {
           SLOTS.forEach((sl) => { ng[s.id+"-"+ds+"-"+sl] = "Day Off"; });
           dayIdx++; return;
         }
 
+        // Normal scheduling
         let patterns = fe ? rd.fullExc : he ? rd.halfExc : we ? rd.weekend : rd.weekday;
         if (!patterns || patterns.length === 0) {
           SLOTS.forEach((sl) => { ng[s.id+"-"+ds+"-"+sl] = "Day Off"; });
@@ -345,32 +353,48 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups }) 
     return { sess, offs };
   };
 
-  // Ratio alerts
+  // Ratio data
+  const ratioData = useMemo(() => {
+    if (!groups || groups.length === 0) return {};
+    const data = {};
+    dates.forEach((d) => {
+      const ds = dayKey(d);
+      let totalStudents = 0, totalGLs = 0;
+      groups.forEach((g) => {
+        if (!inRange(ds, g.arr, g.dep)) return;
+        if (g.arr && ds === dayKey(new Date(g.arr))) return;
+        if (g.dep && ds === dayKey(new Date(g.dep))) return;
+        totalStudents += g.stu || 0;
+        totalGLs += g.gl || 0;
+      });
+      if (totalStudents > 0) data[ds] = { students: totalStudents, gls: totalGLs, required: calcRequiredStaff(totalStudents) };
+    });
+    return data;
+  }, [groups, dates]);
+
+  const getStaffWorking = (ds, sl) => {
+    let count = 0;
+    staff.forEach((s) => {
+      const v = grid[s.id+"-"+ds+"-"+sl];
+      if (v && v !== "Day Off" && v !== "Induction" && v !== "Setup") count++;
+    });
+    return count;
+  };
+
   const ratioAlerts = useMemo(() => {
     if (!filled || !groups || groups.length === 0) return [];
     const alerts = [];
-
     dates.forEach((d) => {
       const ds = dayKey(d);
       const rd = ratioData[ds];
       if (!rd) return;
-
       SLOTS.forEach((sl) => {
-        const staffCount = getStaffWorking(ds, sl);
-        const totalSupervision = staffCount + rd.gls;
-        const shortfall = rd.required - totalSupervision;
-
-        if (shortfall > 0) {
-          alerts.push({
-            date: ds, slot: sl, students: rd.students,
-            staffWorking: staffCount, gls: rd.gls,
-            total: totalSupervision, required: rd.required,
-            shortfall,
-          });
-        }
+        const sw = getStaffWorking(ds, sl);
+        const total = sw + rd.gls;
+        const shortfall = rd.required - total;
+        if (shortfall > 0) alerts.push({ date: ds, slot: sl, students: rd.students, staffWorking: sw, gls: rd.gls, total, required: rd.required, shortfall });
       });
     });
-
     return alerts;
   }, [grid, ratioData, filled, dates, groups]);
 
@@ -383,15 +407,15 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups }) 
         <StatCard label="Days" value={dates.length} accent={B.textMuted} />
         <StatCard label="TALs" value={staff.filter((s) => s.role === "TAL").length} accent="#3b82f6" />
         <StatCard label="FTTs" value={staff.filter((s) => s.role === "FTT").length} accent="#0891b2" />
+        {groupArrivalDate && <span style={{ fontSize: 9, color: B.textMuted }}>Students arrive: <strong style={{ color: B.navy }}>{fmtDate(groupArrivalDate)}</strong></span>}
         <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-          <button onClick={() => setShowRatios(!showRatios)} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: "1px solid " + (showRatios ? B.navy : B.border), background: showRatios ? B.navy : B.white, color: showRatios ? B.white : B.textMuted }}>
+          <button onClick={() => setShowRatios(!showRatios)} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: "1px solid "+(showRatios ? B.navy : B.border), background: showRatios ? B.navy : B.white, color: showRatios ? B.white : B.textMuted }}>
             {"\ud83d\udee1\ufe0f"} Ratios {ratioAlerts.length > 0 && <span style={{ background: B.danger, color: B.white, borderRadius: 8, padding: "1px 5px", fontSize: 8, marginLeft: 4 }}>{ratioAlerts.length}</span>}
           </button>
           <button onClick={autoGenerate} style={{ ...btnPrimary, background: B.navy }}><IcWand /> {filled ? "Re-generate" : "Auto-Generate Rota"}</button>
         </div>
       </div>
 
-      {/* ── Safeguarding Ratio Panel ───────────────────── */}
       {showRatios && filled && (
         <div style={{ margin: "0 20px 8px" }}>
           {groups && groups.length > 0 ? (
@@ -425,7 +449,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups }) 
 
       {!filled && staff.length > 0 && (
         <div style={{ margin: "0 20px 8px", padding: "10px 14px", background: "#e0f2fe", borderRadius: 8, fontSize: 11, color: "#0369a1", fontWeight: 600 }}>
-          Add staff in Team tab (role, dates, time off) then click Auto-Generate. Click any cell to adjust.
+          Add staff in Team tab (role, dates, time off) then click Auto-Generate. First days auto-marked as Induction/Setup.
         </div>
       )}
 
@@ -434,10 +458,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups }) 
           <span key={n} style={{ background: c+"20", color: c, padding: "2px 6px", borderRadius: 3, fontSize: 8, fontWeight: 700 }}>{n}</span>
         ))}
         <span style={{ background: "#f59e0b20", color: "#f59e0b", padding: "2px 6px", borderRadius: 3, fontSize: 8, fontWeight: 700 }}>Day Off</span>
-        <span style={{ fontSize: 9, color: B.textMuted, marginLeft: 4 }}>2 sess/day · 1 day off/wk · Click to edit</span>
       </div>
 
-      {/* ── Ratio row in table ─────────────────────────── */}
       <div style={{ overflow: "auto", maxHeight: "calc(100vh - 260px)", padding: "0 4px 16px" }}>
         <table style={{ borderCollapse: "collapse", fontSize: 10, minWidth: tableMinWidth, background: B.white, borderRadius: 10, border: "1px solid "+B.border }}>
           <thead>
@@ -448,11 +470,13 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups }) 
               <th style={{ ...thStyle, width: 24, textAlign: "center", position: "sticky", left: 175, zIndex: 3, background: "#f8fafc", fontSize: 7 }}>Off</th>
               {dates.map((d) => {
                 const we = isWeekend(d); const ds = dayKey(d); const exc = excDays && excDays[ds];
+                const isArrDay = groupArrivalDate && ds === groupArrivalDate;
                 return (
-                  <th key={ds} colSpan={3} style={{ ...thStyle, textAlign: "center", borderLeft: "2px solid "+B.border, padding: "3px 0", minWidth: 66, background: exc ? "#fff7ed" : we ? "#fef2f2" : "#f8fafc" }}>
+                  <th key={ds} colSpan={3} style={{ ...thStyle, textAlign: "center", borderLeft: "2px solid "+B.border, padding: "3px 0", minWidth: 66, background: isArrDay ? "#dcfce7" : exc ? "#fff7ed" : we ? "#fef2f2" : "#f8fafc" }}>
                     <div style={{ fontSize: 7, color: B.textMuted }}>{fmtDate(d)}</div>
                     <div style={{ fontWeight: 800, fontSize: 8, color: we ? B.red : B.navy }}>{dayName(d)}</div>
                     {exc && <div style={{ fontSize: 6, color: "#ea580c", fontWeight: 800 }}>{exc === "Full" ? "FD" : "HD"}</div>}
+                    {isArrDay && <div style={{ fontSize: 5, color: B.success, fontWeight: 800 }}>ARRIVE</div>}
                   </th>
                 );
               })}
@@ -468,11 +492,10 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups }) 
             </tr>
           </thead>
           <tbody>
-            {/* Ratio summary row */}
             {filled && groups && groups.length > 0 && (
               <tr style={{ borderBottom: "2px solid "+B.border, background: "#f0fdf4" }}>
                 <td style={{ ...tdStyle, position: "sticky", left: 0, zIndex: 1, background: "#f0fdf4", fontSize: 7, fontWeight: 800, color: B.success }}>{"\ud83d\udee1\ufe0f"}</td>
-                <td style={{ ...tdStyle, position: "sticky", left: 42, zIndex: 1, background: "#f0fdf4", fontSize: 8, fontWeight: 700, color: B.navy }}>Staff / Need</td>
+                <td style={{ ...tdStyle, position: "sticky", left: 42, zIndex: 1, background: "#f0fdf4", fontSize: 8, fontWeight: 700, color: B.navy }}>Staff+GL / Need</td>
                 <td style={{ ...tdStyle, position: "sticky", left: 147, zIndex: 1, background: "#f0fdf4" }}></td>
                 <td style={{ ...tdStyle, position: "sticky", left: 175, zIndex: 1, background: "#f0fdf4" }}></td>
                 {dates.map((d) => {
@@ -485,9 +508,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups }) 
                     const ok = total >= rd.required;
                     return (
                       <td key={ds+"-"+sl} style={{ padding: "1px", borderLeft: sl === "AM" ? "2px solid "+B.border : "1px solid "+B.borderLight, textAlign: "center", background: ok ? "#f0fdf4" : "#fee2e2" }}>
-                        <div style={{ fontSize: 7, fontWeight: 800, color: ok ? B.success : B.danger, lineHeight: 1 }}>
-                          {total}/{rd.required}
-                        </div>
+                        <div style={{ fontSize: 7, fontWeight: 800, color: ok ? B.success : B.danger, lineHeight: 1 }}>{total}/{rd.required}</div>
                         <div style={{ fontSize: 6, color: B.textMuted }}>{rd.students}s</div>
                       </td>
                     );
@@ -501,18 +522,15 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups }) 
             ) : staff.map((s) => {
               const st = getStats(s.id);
               const rd = ROLE_DAYS[s.role];
-              const maxExpected = rd ? Math.ceil(rd.sessPerFn * (dates.length / 14)) : 999;
-              const over = st.sess > maxExpected;
+              const maxExp = rd ? Math.ceil(rd.sessPerFn * (dates.length / 14)) : 999;
+              const over = st.sess > maxExp;
 
               return (
                 <tr key={s.id} style={{ borderBottom: "1px solid "+B.borderLight }}>
                   <td style={{ ...tdStyle, position: "sticky", left: 0, background: B.white, zIndex: 1 }}>
                     <span style={{ background: "#dbeafe", color: "#1e40af", padding: "2px 5px", borderRadius: 3, fontSize: 8, fontWeight: 800 }}>{s.role}</span>
                   </td>
-                  <td style={{ ...tdStyle, fontWeight: 700, color: B.navy, fontSize: 9, position: "sticky", left: 42, background: B.white, zIndex: 1, whiteSpace: "nowrap" }}>
-                    {s.name}
-                    {s.acc !== "Residential" && <span style={{ fontSize: 7, color: B.textMuted, marginLeft: 3 }}>NR</span>}
-                  </td>
+                  <td style={{ ...tdStyle, fontWeight: 700, color: B.navy, fontSize: 9, position: "sticky", left: 42, background: B.white, zIndex: 1, whiteSpace: "nowrap" }}>{s.name}</td>
                   <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, fontSize: 9, position: "sticky", left: 147, background: B.white, zIndex: 1, color: over ? B.danger : B.navy }}>{st.sess}</td>
                   <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700, fontSize: 9, position: "sticky", left: 175, background: B.white, zIndex: 1, color: st.offs > 0 ? "#f59e0b" : B.textLight }}>{st.offs}</td>
                   {dates.map((d) => {
@@ -544,9 +562,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups }) 
           </tbody>
         </table>
       </div>
-      <div style={{ padding: "6px 20px", fontSize: 9, color: B.textMuted }}>
-        {"\ud83d\udee1\ufe0f"} Ratio row: staff+GLs / required (1:20 for 12+, 1:15 for 10-12, 1:10 for 8-10) · Red = shortfall
-      </div>
+      <div style={{ padding: "6px 20px", fontSize: 9, color: B.textMuted }}>Day 1 = Induction · Day 2+ before students = Setup · Then normal programme · 2 sess/day · 1 day off/wk</div>
     </div>
   );
 }
