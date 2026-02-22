@@ -21,41 +21,37 @@ export default function Dashboard() {
   const [transfers, setTransfers] = useState([]);
   const [excDays, setExcDays] = useState({});
 
-  // Auto-detect date range: use earliest arr and latest dep from groups + staff
-  // Falls back to manual dates if no groups/staff
+  // Lifted grid state so tabs don't lose data when switching
+  const [rotaGrid, setRotaGrid] = useState({});
+  const [progGrid, setProgGrid] = useState({});
+
+  // Auto-detect date range from groups + staff
   const { progStart, progEnd } = useMemo(() => {
     const allDates = [];
-
     groups.forEach((g) => {
       if (g.arr) allDates.push({ d: g.arr, type: "start" });
       if (g.dep) allDates.push({ d: g.dep, type: "end" });
     });
-
     staff.forEach((s) => {
       if (s.arr) allDates.push({ d: s.arr, type: "start" });
       if (s.dep) allDates.push({ d: s.dep, type: "end" });
     });
-
     if (allDates.length === 0) return { progStart: manualStart, progEnd: manualEnd };
-
     const starts = allDates.filter((x) => x.type === "start").map((x) => x.d).sort();
     const ends = allDates.filter((x) => x.type === "end").map((x) => x.d).sort();
-
     const earliest = starts[0] || manualStart;
     const latest = ends[ends.length - 1] || manualEnd;
-
-    // Use whichever is wider: auto-detected or manual
-    const finalStart = earliest < manualStart ? earliest : manualStart;
-    const finalEnd = latest > manualEnd ? latest : manualEnd;
-
-    return { progStart: finalStart, progEnd: finalEnd };
+    return {
+      progStart: earliest < manualStart ? earliest : manualStart,
+      progEnd: latest > manualEnd ? latest : manualEnd,
+    };
   }, [groups, staff, manualStart, manualEnd]);
 
   const renderTab = () => {
     switch (tab) {
       case "students": return <StudentsTab groups={groups} setGroups={setGroups} />;
-      case "rota": return <RotaTab staff={staff} progStart={progStart} progEnd={progEnd} excDays={excDays} groups={groups} />;
-      case "programmes": return <ProgrammesTab groups={groups} progStart={progStart} progEnd={progEnd} centre={centre} excDays={excDays} setExcDays={setExcDays} />;
+      case "rota": return <RotaTab staff={staff} progStart={progStart} progEnd={progEnd} excDays={excDays} groups={groups} rotaGrid={rotaGrid} setRotaGrid={setRotaGrid} />;
+      case "programmes": return <ProgrammesTab groups={groups} progStart={progStart} progEnd={progEnd} centre={centre} excDays={excDays} setExcDays={setExcDays} progGrid={progGrid} setProgGrid={setProgGrid} />;
       case "catering": return <CateringTab groups={groups} staff={staff} progStart={progStart} progEnd={progEnd} excDays={excDays} />;
       case "transfers": return <TransfersTab groups={groups} transfers={transfers} setTransfers={setTransfers} />;
       case "team": return <TeamTab staff={staff} setStaff={setStaff} />;
