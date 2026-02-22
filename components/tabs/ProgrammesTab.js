@@ -4,12 +4,13 @@ import { B, ACTIVITY_TYPES, LONDON_CENTRES, genDates, dayKey, dayName, isWeekend
 import { Fld, TableWrap, IcWand, thStyle, tdStyle, btnPrimary, inputStyle } from "@/components/ui";
 import { getProgrammesForCentre } from "@/lib/programmeData";
 
-export default function ProgrammesTab({ groups, progStart, progEnd, centre, excDays, setExcDays }) {
+export default function ProgrammesTab({ groups, progStart, progEnd, centre, excDays, setExcDays, progGrid, setProgGrid }) {
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
   const isLondon = LONDON_CENTRES.includes(centre);
   const [viewMode, setViewMode] = useState("all");
   const [selectedGroupId, setSelectedGroupId] = useState(null);
-  const [grid, setGrid] = useState({});
+  const grid = progGrid || {};
+  const setGrid = setProgGrid || (() => {});
   const centreProgs = useMemo(() => getProgrammesForCentre(centre), [centre]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const activeTemplate = selectedTemplate !== null ? centreProgs[selectedTemplate] : null;
