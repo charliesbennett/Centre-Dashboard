@@ -1,6 +1,7 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { B, CENTRES, TABS } from "@/lib/constants";
+import { useSupabase } from "@/lib/useSupabase";
 import StudentsTab from "@/components/tabs/StudentsTab";
 import RotaTab from "@/components/tabs/RotaTab";
 import ProgrammesTab from "@/components/tabs/ProgrammesTab";
@@ -13,26 +14,33 @@ import ContactsTab from "@/components/tabs/ContactsTab";
 
 export default function Dashboard() {
   const [tab, setTab] = useState("students");
-  const [centre, setCentre] = useState("");
+  const [centreId, setCentreId] = useState("");
+  const [centreName, setCentreName] = useState("");
   const [manualStart, setManualStart] = useState("2026-07-04");
   const [manualEnd, setManualEnd] = useState("2026-08-05");
-  const [groups, setGroups] = useState([]);
-  const [staff, setStaff] = useState([]);
-  const [transfers, setTransfers] = useState([]);
-  const [excDays, setExcDays] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState(null);
 
-  // Lifted grid state so tabs don't lose data when switching
-  const [rotaGrid, setRotaGrid] = useState({});
-  const [progGrid, setProgGrid] = useState({});
+  const db = useSupabase(centreId);
 
-  // Auto-detect date range from groups + staff
+  const handleCentreChange = (name) => {
+    setCentreName(name);
+    const c = db.centres.find((x) => x.name === name);
+    setCentreId(c ? c.id : "");
+  };
+
+  useEffect(() => {
+    if (db.settings.prog_start) setManualStart(db.settings.prog_start);
+    if (db.settings.prog_end) setManualEnd(db.settings.prog_end);
+  }, [db.settings]);
+
   const { progStart, progEnd } = useMemo(() => {
     const allDates = [];
-    groups.forEach((g) => {
+    db.groups.forEach((g) => {
       if (g.arr) allDates.push({ d: g.arr, type: "start" });
       if (g.dep) allDates.push({ d: g.dep, type: "end" });
     });
-    staff.forEach((s) => {
+    db.staff.forEach((s) => {
       if (s.arr) allDates.push({ d: s.arr, type: "start" });
       if (s.dep) allDates.push({ d: s.dep, type: "end" });
     });
@@ -45,17 +53,121 @@ export default function Dashboard() {
       progStart: earliest < manualStart ? earliest : manualStart,
       progEnd: latest > manualEnd ? latest : manualEnd,
     };
-  }, [groups, staff, manualStart, manualEnd]);
+  }, [db.groups, db.staff, manualStart, manualEnd]);
+
+  // Debounced auto-save for grids
+  const rotaSaveTimer = useRef(null);
+  const progSaveTimer = useRef(null);
+  const excSaveTimer = useRef(null);
+
+  const setRotaGrid = useCallback((updater) => {
+    db.setRotaGrid((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      clearTimeout(rotaSaveTimer.current);
+      rotaSaveTimer.current = setTimeout(async () => {
+        setSaving(true);
+        await db.saveRotaGrid(next);
+        setSaving(false);
+        setLastSaved(new Date());
+      }, 2000);
+      return next;
+    });
+  }, [db.saveRotaGrid]);
+
+  const setProgGrid = useCallback((updater) => {
+    db.setProgGrid((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      clearTimeout(progSaveTimer.current);
+      progSaveTimer.current = setTimeout(async () => {
+        setSaving(true);
+        await db.saveProgGrid(next);
+        setSaving(false);
+        setLastSaved(new Date());
+      }, 2000);
+      return next;
+    });
+  }, [db.saveProgGrid]);
+
+  const setExcDays = useCallback((updater) => {
+    db.setExcDays((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      clearTimeout(excSaveTimer.current);
+      excSaveTimer.current = setTimeout(async () => {
+        await db.saveExcDays(next);
+        setLastSaved(new Date());
+      }, 1000);
+      return next;
+    });
+  }, [db.saveExcDays]);
+
+  const setGroups = useCallback((updater) => {
+    db.setGroups((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      next.forEach((g) => {
+        const old = prev.find((p) => p.id === g.id);
+        if (!old || JSON.stringify(old) !== JSON.stringify(g)) db.saveGroup(g);
+      });
+      prev.forEach((p) => {
+        if (!next.find((g) => g.id === p.id)) db.deleteGroup(p.id);
+      });
+      setLastSaved(new Date());
+      return next;
+    });
+  }, [db.saveGroup, db.deleteGroup]);
+
+  const setStaff = useCallback((updater) => {
+    db.setStaff((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      next.forEach((s) => {
+        const old = prev.find((p) => p.id === s.id);
+        if (!old || JSON.stringify(old) !== JSON.stringify(s)) db.saveStaffMember(s);
+      });
+      prev.forEach((p) => {
+        if (!next.find((s) => s.id === p.id)) db.deleteStaffMember(p.id);
+      });
+      setLastSaved(new Date());
+      return next;
+    });
+  }, [db.saveStaffMember, db.deleteStaffMember]);
+
+  const setTransfers = useCallback((updater) => {
+    db.setTransfers((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      next.forEach((t) => {
+        const old = prev.find((p) => p.id === t.id);
+        if (!old || JSON.stringify(old) !== JSON.stringify(t)) db.saveTransfer(t);
+      });
+      prev.forEach((p) => {
+        if (!next.find((t) => t.id === p.id)) db.deleteTransfer(p.id);
+      });
+      return next;
+    });
+  }, [db.saveTransfer, db.deleteTransfer]);
+
+  const handleDateChange = (key, val) => {
+    if (key === "start") { setManualStart(val); db.saveSetting("prog_start", val); }
+    else { setManualEnd(val); db.saveSetting("prog_end", val); }
+  };
 
   const renderTab = () => {
+    if (!centreId) return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "50vh", color: B.textMuted, fontSize: 14, fontWeight: 600 }}>
+        {"\u2190"} Select a centre to get started
+      </div>
+    );
+    if (db.loading) return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "50vh", color: B.navy, fontSize: 13, fontWeight: 600 }}>
+        Loading {centreName}...
+      </div>
+    );
     switch (tab) {
-      case "students": return <StudentsTab groups={groups} setGroups={setGroups} />;
-      case "rota": return <RotaTab staff={staff} progStart={progStart} progEnd={progEnd} excDays={excDays} groups={groups} rotaGrid={rotaGrid} setRotaGrid={setRotaGrid} />;
-      case "programmes": return <ProgrammesTab groups={groups} progStart={progStart} progEnd={progEnd} centre={centre} excDays={excDays} setExcDays={setExcDays} progGrid={progGrid} setProgGrid={setProgGrid} />;
-      case "catering": return <CateringTab groups={groups} staff={staff} progStart={progStart} progEnd={progEnd} excDays={excDays} />;
-      case "transfers": return <TransfersTab groups={groups} transfers={transfers} setTransfers={setTransfers} />;
-      case "team": return <TeamTab staff={staff} setStaff={setStaff} />;
-      case "excursions": return <ExcursionsTab excDays={excDays} />;
+      case "students": return <StudentsTab groups={db.groups} setGroups={setGroups} />;
+      case "rota": return <RotaTab staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} groups={db.groups} rotaGrid={db.rotaGrid} setRotaGrid={setRotaGrid} />;
+      case "programmes": return <ProgrammesTab groups={db.groups} progStart={progStart} progEnd={progEnd} centre={centreName} excDays={db.excDays} setExcDays={setExcDays} progGrid={db.progGrid} setProgGrid={setProgGrid} />;
+      case "catering": return <CateringTab groups={db.groups} staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} />;
+      case "transfers": return <TransfersTab groups={db.groups} transfers={db.transfers} setTransfers={setTransfers} />;
+      case "team": return <TeamTab staff={db.staff} setStaff={setStaff} />;
+      case "excursions": return <ExcursionsTab excDays={db.excDays} />;
       case "pettycash": return <PettyCashTab />;
       case "contacts": return <ContactsTab />;
       default: return null;
@@ -68,17 +180,19 @@ export default function Dashboard() {
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: B.red, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, color: B.white }}>UK</div>
           <div style={{ fontSize: 14, fontWeight: 800, color: B.white }}>UKLC Centre Dashboard</div>
+          {saving && <span style={{ fontSize: 9, color: "#86efac", fontWeight: 600, marginLeft: 8 }}>Saving...</span>}
+          {!saving && lastSaved && <span style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", marginLeft: 8 }}>{"\u2713"} Saved</span>}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <select value={centre} onChange={(e) => setCentre(e.target.value)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", padding: "6px 10px", borderRadius: 5, fontSize: 11, fontFamily: "inherit", maxWidth: 220 }}>
+          <select value={centreName} onChange={(e) => handleCentreChange(e.target.value)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", padding: "6px 10px", borderRadius: 5, fontSize: 11, fontFamily: "inherit", maxWidth: 220 }}>
             <option value="" style={{ color: "#333" }}>Select Centre...</option>
-            {CENTRES.map((c) => <option key={c} value={c} style={{ color: "#333" }}>{c}</option>)}
+            {db.centres.map((c) => <option key={c.id} value={c.name} style={{ color: "#333" }}>{c.name}</option>)}
           </select>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>DATES</span>
-            <input type="date" value={manualStart} onChange={(e) => setManualStart(e.target.value)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", padding: "4px 8px", borderRadius: 4, fontSize: 11, fontFamily: "inherit" }} />
+            <input type="date" value={manualStart} onChange={(e) => handleDateChange("start", e.target.value)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", padding: "4px 8px", borderRadius: 4, fontSize: 11, fontFamily: "inherit" }} />
             <span style={{ color: "rgba(255,255,255,0.3)" }}>{"\u2192"}</span>
-            <input type="date" value={manualEnd} onChange={(e) => setManualEnd(e.target.value)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", padding: "4px 8px", borderRadius: 4, fontSize: 11, fontFamily: "inherit" }} />
+            <input type="date" value={manualEnd} onChange={(e) => handleDateChange("end", e.target.value)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", padding: "4px 8px", borderRadius: 4, fontSize: 11, fontFamily: "inherit" }} />
             {(progStart !== manualStart || progEnd !== manualEnd) && (
               <span style={{ fontSize: 8, color: "#86efac", fontWeight: 700 }}>Auto: {progStart.slice(5)} {"\u2192"} {progEnd.slice(5)}</span>
             )}
