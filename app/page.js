@@ -2,6 +2,8 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { B, CENTRES, TABS } from "@/lib/constants";
 import { useSupabase } from "@/lib/useSupabase";
+import { useAuth } from "@/lib/useAuth";
+import LoginPage from "@/components/LoginPage";
 import StudentsTab from "@/components/tabs/StudentsTab";
 import RotaTab from "@/components/tabs/RotaTab";
 import ProgrammesTab from "@/components/tabs/ProgrammesTab";
@@ -13,6 +15,7 @@ import PettyCashTab from "@/components/tabs/PettyCashTab";
 import ContactsTab from "@/components/tabs/ContactsTab";
 
 export default function Dashboard() {
+  const auth = useAuth();
   const [tab, setTab] = useState("students");
   const [centreId, setCentreId] = useState("");
   const [centreName, setCentreName] = useState("");
@@ -22,6 +25,27 @@ export default function Dashboard() {
   const [lastSaved, setLastSaved] = useState(null);
 
   const db = useSupabase(centreId);
+
+  // Auto-set centre for non-head-office users
+  useEffect(() => {
+    if (auth.profile && auth.userCentreId && !centreId) {
+      const c = db.centres.find((x) => x.id === auth.userCentreId);
+      if (c) {
+        setCentreId(c.id);
+        setCentreName(c.name);
+      }
+    }
+  }, [auth.profile, auth.userCentreId, db.centres, centreId]);
+
+  // Show loading
+  if (auth.loading) return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: B.navy, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <div style={{ color: "white", fontSize: 14, fontWeight: 600 }}>Loading...</div>
+    </div>
+  );
+
+  // Show login if not authenticated
+  if (!auth.isAuthenticated) return <LoginPage onLogin={auth.login} error={auth.error} />;
 
   const handleCentreChange = (name) => {
     setCentreName(name);
@@ -130,19 +154,18 @@ export default function Dashboard() {
     });
   }, [db.saveStaffMember, db.deleteStaffMember]);
 
+  const transfersSaveTimer = useRef(null);
   const setTransfers = useCallback((updater) => {
-    db.setTransfers((prev) => {
+    db.setTransfersData((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      next.forEach((t) => {
-        const old = prev.find((p) => p.id === t.id);
-        if (!old || JSON.stringify(old) !== JSON.stringify(t)) db.saveTransfer(t);
-      });
-      prev.forEach((p) => {
-        if (!next.find((t) => t.id === p.id)) db.deleteTransfer(p.id);
-      });
+      clearTimeout(transfersSaveTimer.current);
+      transfersSaveTimer.current = setTimeout(async () => {
+        await db.saveTransfersData(next);
+        setLastSaved(new Date());
+      }, 1000);
       return next;
     });
-  }, [db.saveTransfer, db.deleteTransfer]);
+  }, [db.saveTransfersData]);
 
   const excSaveTimer2 = useRef(null);
   const setExcursions = useCallback((updater) => {
@@ -156,6 +179,16 @@ export default function Dashboard() {
       return next;
     });
   }, [db.saveExcursions]);
+
+  const cateringSaveTimer = useRef(null);
+  const setCateringData = useCallback((newData) => {
+    db.setCateringData(newData);
+    clearTimeout(cateringSaveTimer.current);
+    cateringSaveTimer.current = setTimeout(async () => {
+      await db.saveCateringData(newData);
+      setLastSaved(new Date());
+    }, 1000);
+  }, [db.saveCateringData]);
 
   const handleDateChange = (key, val) => {
     if (key === "start") { setManualStart(val); db.saveSetting("prog_start", val); }
@@ -177,8 +210,8 @@ export default function Dashboard() {
       case "students": return <StudentsTab groups={db.groups} setGroups={setGroups} />;
       case "rota": return <RotaTab staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} groups={db.groups} rotaGrid={db.rotaGrid} setRotaGrid={setRotaGrid} />;
       case "programmes": return <ProgrammesTab groups={db.groups} progStart={progStart} progEnd={progEnd} centre={centreName} excDays={db.excDays} setExcDays={setExcDays} progGrid={db.progGrid} setProgGrid={setProgGrid} />;
-      case "catering": return <CateringTab groups={db.groups} staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} />;
-      case "transfers": return <TransfersTab groups={db.groups} transfers={db.transfers} setTransfers={setTransfers} />;
+      case "catering": return <CateringTab groups={db.groups} staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} cateringData={db.cateringData} setCateringData={setCateringData} />;
+      case "transfers": return <TransfersTab groups={db.groups} transfers={db.transfersData} setTransfers={setTransfers} />;
       case "team": return <TeamTab staff={db.staff} setStaff={setStaff} />;
       case "excursions": return <ExcursionsTab excDays={db.excDays} setExcDays={setExcDays} groups={db.groups} progStart={progStart} progEnd={progEnd} excursions={db.excursions} setExcursions={setExcursions} />;
       case "pettycash": return <PettyCashTab />;
@@ -197,10 +230,14 @@ export default function Dashboard() {
           {!saving && lastSaved && <span style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", marginLeft: 8 }}>{"\u2713"} Saved</span>}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <select value={centreName} onChange={(e) => handleCentreChange(e.target.value)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", padding: "6px 10px", borderRadius: 5, fontSize: 11, fontFamily: "inherit", maxWidth: 220 }}>
-            <option value="" style={{ color: "#333" }}>Select Centre...</option>
-            {db.centres.map((c) => <option key={c.id} value={c.name} style={{ color: "#333" }}>{c.name}</option>)}
-          </select>
+          {(auth.isHeadOffice || !auth.userCentreId) ? (
+            <select value={centreName} onChange={(e) => handleCentreChange(e.target.value)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", padding: "6px 10px", borderRadius: 5, fontSize: 11, fontFamily: "inherit", maxWidth: 220 }}>
+              <option value="" style={{ color: "#333" }}>Select Centre...</option>
+              {db.centres.map((c) => <option key={c.id} value={c.name} style={{ color: "#333" }}>{c.name}</option>)}
+            </select>
+          ) : (
+            <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.8)" }}>{centreName || "No centre assigned"}</span>
+          )}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>DATES</span>
             <input type="date" value={manualStart} onChange={(e) => handleDateChange("start", e.target.value)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", padding: "4px 8px", borderRadius: 4, fontSize: 11, fontFamily: "inherit" }} />
@@ -209,6 +246,17 @@ export default function Dashboard() {
             {(progStart !== manualStart || progEnd !== manualEnd) && (
               <span style={{ fontSize: 8, color: "#86efac", fontWeight: 700 }}>Auto: {progStart.slice(5)} {"\u2192"} {progEnd.slice(5)}</span>
             )}
+          </div>
+          <div style={{ borderLeft: "1px solid rgba(255,255,255,0.15)", paddingLeft: 10, display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.9)" }}>{auth.userName}</div>
+              <div style={{ fontSize: 8, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" }}>{auth.userRole.replace(/_/g, " ")}</div>
+            </div>
+            <button onClick={auth.logout} title="Sign out" style={{
+              background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)",
+              color: "rgba(255,255,255,0.6)", borderRadius: 5, padding: "5px 8px", cursor: "pointer",
+              fontSize: 10, fontFamily: "inherit", fontWeight: 600,
+            }}>Logout</button>
           </div>
         </div>
       </header>
