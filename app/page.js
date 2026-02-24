@@ -144,6 +144,19 @@ export default function Dashboard() {
     });
   }, [db.saveTransfer, db.deleteTransfer]);
 
+  const excSaveTimer2 = useRef(null);
+  const setExcursions = useCallback((updater) => {
+    db.setExcursions((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      clearTimeout(excSaveTimer2.current);
+      excSaveTimer2.current = setTimeout(async () => {
+        await db.saveExcursions(next);
+        setLastSaved(new Date());
+      }, 1000);
+      return next;
+    });
+  }, [db.saveExcursions]);
+
   const handleDateChange = (key, val) => {
     if (key === "start") { setManualStart(val); db.saveSetting("prog_start", val); }
     else { setManualEnd(val); db.saveSetting("prog_end", val); }
@@ -167,7 +180,7 @@ export default function Dashboard() {
       case "catering": return <CateringTab groups={db.groups} staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} />;
       case "transfers": return <TransfersTab groups={db.groups} transfers={db.transfers} setTransfers={setTransfers} />;
       case "team": return <TeamTab staff={db.staff} setStaff={setStaff} />;
-      case "excursions": return <ExcursionsTab excDays={db.excDays} />;
+      case "excursions": return <ExcursionsTab excDays={db.excDays} setExcDays={setExcDays} groups={db.groups} progStart={progStart} progEnd={progEnd} excursions={db.excursions} setExcursions={setExcursions} />;
       case "pettycash": return <PettyCashTab />;
       case "contacts": return <ContactsTab />;
       default: return null;
