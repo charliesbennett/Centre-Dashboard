@@ -2,37 +2,6 @@
 import { useState } from "react";
 import { B } from "@/lib/constants";
 
-// Pink triangles decoration (top-left)
-function Triangles() {
-  const rows = [6, 5, 4, 3];
-  return (
-    <div style={{ position: "absolute", top: 28, left: 28 }}>
-      {rows.map((count, row) => (
-        <div key={row} style={{ display: "flex", gap: 10, marginBottom: 6, marginLeft: row * 12 }}>
-          {Array.from({ length: count }).map((_, i) => (
-            <div key={i} style={{ width: 0, height: 0, borderLeft: "10px solid transparent", borderRight: "10px solid transparent", borderTop: "16px solid #e8a0b4" }} />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Yellow diagonal stripes (bottom-right)
-function Stripes() {
-  return (
-    <div style={{ position: "absolute", bottom: 0, right: 0, width: 260, height: 260, overflow: "hidden" }}>
-      {[0, 1, 2].map((i) => (
-        <div key={i} style={{
-          position: "absolute", bottom: -40 + i * 36, right: -60 + i * 36,
-          width: 300, height: 22, background: "#d4e044",
-          transform: "rotate(-45deg)", transformOrigin: "center",
-        }} />
-      ))}
-    </div>
-  );
-}
-
 export default function LoginPage({ onLogin, error: authError }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -59,18 +28,19 @@ export default function LoginPage({ onLogin, error: authError }) {
       background: B.navy, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       position: "relative", overflow: "hidden",
     }}>
-      <Triangles />
-      <Stripes />
+      {/* Triangle grid — top left */}
+      <img src="/triangle_grid.svg" alt="" style={{ position: "absolute", top: 0, left: 0, width: 260, opacity: 0.9 }} />
+
+      {/* Diagonal stripes — bottom right */}
+      <img src="/diagonal_stripes.svg" alt="" style={{ position: "absolute", bottom: 0, right: 0, width: 300, opacity: 0.9 }} />
 
       <div style={{
         background: "#fff", borderRadius: 20, padding: "44px 40px 36px", width: 400,
         boxShadow: "0 25px 60px rgba(0,0,0,0.3)", position: "relative", zIndex: 1,
       }}>
         {/* UKLC Logo */}
-        <div style={{ textAlign: "center", marginBottom: 8 }}>
-          <span style={{ fontSize: 48, fontWeight: 900, letterSpacing: "-1px" }}>
-            <span style={{ color: B.navy }}>UK</span><span style={{ color: B.red }}>LC</span>
-          </span>
+        <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <img src="/logo-new.png" alt="UKLC" style={{ height: 70 }} />
         </div>
 
         <h1 style={{ textAlign: "center", fontSize: 22, fontWeight: 800, color: "#1a1a2e", margin: "0 0 4px" }}>Centre Dashboard</h1>
@@ -81,39 +51,24 @@ export default function LoginPage({ onLogin, error: authError }) {
         {/* Email */}
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: "block", fontSize: 15, fontWeight: 700, color: "#1a1a2e", marginBottom: 8 }}>Email</label>
-          <input
-            type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submit()}
-            placeholder="yourname@uklc.org" autoFocus
-            style={fieldStyle}
-          />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder="yourname@uklc.org" autoFocus style={fieldStyle} />
         </div>
 
         {/* Password */}
         <div style={{ marginBottom: 28 }}>
           <label style={{ display: "block", fontSize: 15, fontWeight: 700, color: "#1a1a2e", marginBottom: 8 }}>Password</label>
           <div style={{ position: "relative" }}>
-            <input
-              type={showPw ? "text" : "password"} value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submit()}
-              placeholder="Enter your password"
-              style={{ ...fieldStyle, paddingRight: 60 }}
-            />
-            <button type="button" onClick={() => setShowPw(!showPw)} style={{
-              position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)",
-              background: "none", border: "none", cursor: "pointer", fontSize: 13,
-              color: "#64748b", fontFamily: "inherit", fontWeight: 600,
-            }}>{showPw ? "Hide" : "Show"}</button>
+            <input type={showPw ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder="Enter your password" style={{ ...fieldStyle, paddingRight: 60 }} />
+            <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#64748b", fontFamily: "inherit", fontWeight: 600 }}>{showPw ? "Hide" : "Show"}</button>
           </div>
         </div>
 
-        {/* Sign In button */}
+        {/* Sign In */}
         <button onClick={submit} disabled={loading} style={{
           width: "100%", padding: "15px 0", borderRadius: 28,
           background: loading ? "#64748b" : B.navy, border: "none",
           color: "#fff", fontSize: 17, fontWeight: 700, fontFamily: "inherit",
-          cursor: loading ? "default" : "pointer", letterSpacing: "0.3px",
+          cursor: loading ? "default" : "pointer",
         }}>{loading ? "Signing in..." : "Sign in"}</button>
 
         <p style={{ textAlign: "center", marginTop: 24, fontSize: 12, color: "#94a3b8", lineHeight: 1.5 }}>
