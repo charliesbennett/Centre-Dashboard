@@ -15,7 +15,7 @@ const AIRPORTS = ["Heathrow", "Gatwick", "Stansted", "Luton", "Manchester", "Bir
 const TERMINALS = ["T1", "T2", "T3", "T4", "T5", "North", "South", "N/A"];
 const UKLC_OPTIONS = ["Yes", "No", "Arr Only", "Dep Only", "TBC"];
 
-export default function TransfersTab({ groups, transfers, setTransfers }) {
+export default function TransfersTab({ groups = [], transfers = [], setTransfers }) {
   const [view, setView] = useState("overview"); // overview | arrivals | departures | timeline
   const [editId, setEditId] = useState(null);
   const fi = inputStyle;
