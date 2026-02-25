@@ -39,7 +39,7 @@ export default function LoginPage({ onLogin, error: authError }) {
         boxShadow: "0 25px 60px rgba(0,0,0,0.3)", position: "relative", zIndex: 1,
       }}>
         {/* UKLC Logo */}
-        <div style={{ textAlign: "center", marginBottom: 16 }}>
+        <div style={{ textAlign: "center", marginBottom: 16, display: "flex", justifyContent: "center" }}>
           <img src="/logo-new.png" alt="UKLC" style={{ height: 70 }} />
         </div>
 
