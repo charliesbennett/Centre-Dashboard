@@ -29,10 +29,10 @@ export default function LoginPage({ onLogin, error: authError }) {
       position: "relative", overflow: "hidden",
     }}>
       {/* Triangle grid — top left */}
-      <img src="/triangle_grid.svg" alt="" style={{ position: "absolute", top: 0, left: 0, width: 260, opacity: 0.9 }} />
+      <img src="/triangle_grid.svg" alt="" style={{ position: "absolute", top: 0, left: 0, width: 260 }} />
 
       {/* Diagonal stripes — bottom right */}
-      <img src="/diagonal_stripes.svg" alt="" style={{ position: "absolute", bottom: 0, right: 0, width: 300, opacity: 0.9 }} />
+      <img src="/diagonal_stripes.svg" alt="" style={{ position: "absolute", bottom: 0, right: 0, width: 320 }} />
 
       <div style={{
         background: "#fff", borderRadius: 20, padding: "44px 40px 36px", width: 400,
