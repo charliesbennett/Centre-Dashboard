@@ -1,0 +1,35 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" id="Layer_2" data-name="Layer 2" viewBox="0 0 676.04 611.13" width="676.0399780273438" height="611.1300048828125">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fbdfe2;
+      }
+    </style>
+  </defs>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <g>
+      <polygon class="cls-1" points="0 0 44.01 76.23 88.02 0 0 0"/>
+      <polygon class="cls-1" points="147 0 191.01 76.23 235.03 0 147 0"/>
+      <polygon class="cls-1" points="294.01 0 338.02 76.23 382.03 0 294.01 0"/>
+      <polygon class="cls-1" points="441.01 0 485.02 76.23 529.03 0 441.01 0"/>
+      <polygon class="cls-1" points="632.02 76.23 676.04 0 588.01 0 632.02 76.23"/>
+      <polygon class="cls-1" points="44.01 254.53 88.02 178.3 0 178.3 44.01 254.53"/>
+      <polygon class="cls-1" points="191.01 254.53 235.03 178.3 147 178.3 191.01 254.53"/>
+      <polygon class="cls-1" points="338.02 254.53 382.03 178.3 294.01 178.3 338.02 254.53"/>
+      <polygon class="cls-1" points="485.02 254.53 529.03 178.3 441.01 178.3 485.02 254.53"/>
+      <polygon class="cls-1" points="632.02 254.53 676.03 178.3 588.01 178.3 632.02 254.53"/>
+      <polygon class="cls-1" points="44.01 432.83 88.02 356.6 0 356.6 44.01 432.83"/>
+      <polygon class="cls-1" points="147 356.6 191.01 432.83 235.03 356.6 147 356.6"/>
+      <polygon class="cls-1" points="338.02 432.83 382.03 356.6 294.01 356.6 338.02 432.83"/>
+      <polygon class="cls-1" points="485.02 432.83 529.03 356.6 441.01 356.6 485.02 432.83"/>
+      <polygon class="cls-1" points="588.01 356.6 632.02 432.83 676.04 356.6 588.01 356.6"/>
+      <polygon class="cls-1" points="44.01 611.13 88.02 534.9 0 534.9 44.01 611.13"/>
+      <polygon class="cls-1" points="191.01 611.13 235.03 534.9 147 534.9 191.01 611.13"/>
+      <polygon class="cls-1" points="338.02 611.13 382.03 534.9 294.01 534.9 338.02 611.13"/>
+      <polygon class="cls-1" points="485.02 611.13 529.03 534.9 441.01 534.9 485.02 611.13"/>
+      <polygon class="cls-1" points="632.02 611.13 676.03 534.9 588.01 534.9 632.02 611.13"/>
+    </g>
+  </g>
+</svg>
