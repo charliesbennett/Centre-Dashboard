@@ -37,16 +37,6 @@ export default function Dashboard() {
     }
   }, [auth.profile, auth.userCentreId, db.centres, centreId]);
 
-  // Show loading
-  if (auth.loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: B.navy, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      <div style={{ color: "white", fontSize: 14, fontWeight: 600 }}>Loading...</div>
-    </div>
-  );
-
-  // Show login if not authenticated
-  if (!auth.isAuthenticated) return <LoginPage onLogin={auth.login} error={auth.error} />;
-
   const handleCentreChange = (name) => {
     setCentreName(name);
     const c = db.centres.find((x) => x.name === name);
@@ -194,6 +184,14 @@ export default function Dashboard() {
     if (key === "start") { setManualStart(val); db.saveSetting("prog_start", val); }
     else { setManualEnd(val); db.saveSetting("prog_end", val); }
   };
+
+  // Auth gates — after all hooks
+  if (auth.loading) return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: B.navy, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <div style={{ color: "white", fontSize: 14, fontWeight: 600 }}>Loading...</div>
+    </div>
+  );
+  if (!auth.isAuthenticated) return <LoginPage onLogin={auth.login} error={auth.error} />;
 
   const renderTab = () => {
     if (!centreId) return (
