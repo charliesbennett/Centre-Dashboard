@@ -2,140 +2,123 @@
 import { useState } from "react";
 import { B } from "@/lib/constants";
 
+// Pink triangles decoration (top-left)
+function Triangles() {
+  const rows = [6, 5, 4, 3];
+  return (
+    <div style={{ position: "absolute", top: 28, left: 28 }}>
+      {rows.map((count, row) => (
+        <div key={row} style={{ display: "flex", gap: 10, marginBottom: 6, marginLeft: row * 12 }}>
+          {Array.from({ length: count }).map((_, i) => (
+            <div key={i} style={{ width: 0, height: 0, borderLeft: "10px solid transparent", borderRight: "10px solid transparent", borderTop: "16px solid #e8a0b4" }} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Yellow diagonal stripes (bottom-right)
+function Stripes() {
+  return (
+    <div style={{ position: "absolute", bottom: 0, right: 0, width: 260, height: 260, overflow: "hidden" }}>
+      {[0, 1, 2].map((i) => (
+        <div key={i} style={{
+          position: "absolute", bottom: -40 + i * 36, right: -60 + i * 36,
+          width: 300, height: 22, background: "#d4e044",
+          transform: "rotate(-45deg)", transformOrigin: "center",
+        }} />
+      ))}
+    </div>
+  );
+}
+
 export default function LoginPage({ onLogin, error: authError }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPw, setShowPw] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    if (!email.trim() || !password.trim()) {
-      setError("Please enter your email and password.");
-      return;
-    }
+  const submit = async () => {
+    if (!email.trim() || !password.trim()) return;
     setLoading(true);
-    const success = await onLogin(email.trim().toLowerCase(), password);
-    if (!success) setLoading(false);
+    const ok = await onLogin(email.trim().toLowerCase(), password);
+    if (!ok) setLoading(false);
   };
 
-  const displayError = error || authError;
+  const err = authError;
+  const fieldStyle = {
+    width: "100%", padding: "14px 18px", fontSize: 15, borderRadius: 24,
+    border: "1.5px solid #c8d0da", background: "#eef2f7", fontFamily: "inherit",
+    outline: "none", boxSizing: "border-box", color: "#334155",
+  };
 
   return (
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-      background: "linear-gradient(135deg, #0c1f3f 0%, #1a3a6b 50%, #2563eb 100%)",
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      background: B.navy, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      position: "relative", overflow: "hidden",
     }}>
+      <Triangles />
+      <Stripes />
+
       <div style={{
-        background: "white", borderRadius: 16, padding: "40px 36px", width: 380,
-        boxShadow: "0 25px 50px rgba(0,0,0,0.25)",
+        background: "#fff", borderRadius: 20, padding: "44px 40px 36px", width: 400,
+        boxShadow: "0 25px 60px rgba(0,0,0,0.3)", position: "relative", zIndex: 1,
       }}>
-        {/* Logo / Header */}
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: 12, background: B.navy,
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            marginBottom: 12,
-          }}>
-            <span style={{ color: "white", fontSize: 24, fontWeight: 900 }}>U</span>
-          </div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: B.navy, margin: "0 0 4px" }}>Centre Dashboard</h1>
-          <p style={{ fontSize: 12, color: B.textMuted, margin: 0 }}>Sign in with your UKLC account</p>
+        {/* UKLC Logo */}
+        <div style={{ textAlign: "center", marginBottom: 8 }}>
+          <span style={{ fontSize: 48, fontWeight: 900, letterSpacing: "-1px" }}>
+            <span style={{ color: B.navy }}>UK</span><span style={{ color: B.red }}>LC</span>
+          </span>
         </div>
 
-        {/* Error */}
-        {displayError && (
-          <div style={{
-            background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8,
-            padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "#dc2626",
-            fontWeight: 600,
-          }}>
-            {displayError}
-          </div>
-        )}
+        <h1 style={{ textAlign: "center", fontSize: 22, fontWeight: 800, color: "#1a1a2e", margin: "0 0 4px" }}>Centre Dashboard</h1>
+        <p style={{ textAlign: "center", fontSize: 13, color: "#7a8599", margin: "0 0 28px" }}>Sign in with your UKLC Account</p>
 
-        {/* Form */}
-        <div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: B.textMuted, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-              Email
-            </label>
+        {err && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "10px 16px", marginBottom: 18, fontSize: 13, color: "#dc2626", fontWeight: 600 }}>{err}</div>}
+
+        {/* Email */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: "block", fontSize: 15, fontWeight: 700, color: "#1a1a2e", marginBottom: 8 }}>Email</label>
+          <input
+            type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
+            placeholder="yourname@uklc.org" autoFocus
+            style={fieldStyle}
+          />
+        </div>
+
+        {/* Password */}
+        <div style={{ marginBottom: 28 }}>
+          <label style={{ display: "block", fontSize: 15, fontWeight: 700, color: "#1a1a2e", marginBottom: 8 }}>Password</label>
+          <div style={{ position: "relative" }}>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
-              placeholder="yourname@uklc.org"
-              autoComplete="email"
-              autoFocus
-              style={{
-                width: "100%", padding: "10px 14px", fontSize: 14, borderRadius: 8,
-                border: "1px solid " + B.border, fontFamily: "inherit",
-                outline: "none", boxSizing: "border-box",
-                transition: "border-color 0.15s",
-              }}
-              onFocus={(e) => e.target.style.borderColor = B.navy}
-              onBlur={(e) => e.target.style.borderColor = B.border}
+              type={showPw ? "text" : "password"} value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submit()}
+              placeholder="Enter your password"
+              style={{ ...fieldStyle, paddingRight: 60 }}
             />
+            <button type="button" onClick={() => setShowPw(!showPw)} style={{
+              position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)",
+              background: "none", border: "none", cursor: "pointer", fontSize: 13,
+              color: "#64748b", fontFamily: "inherit", fontWeight: 600,
+            }}>{showPw ? "Hide" : "Show"}</button>
           </div>
-
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: B.textMuted, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-              Password
-            </label>
-            <div style={{ position: "relative" }}>
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
-                placeholder="Enter your password"
-                autoComplete="current-password"
-                style={{
-                  width: "100%", padding: "10px 44px 10px 14px", fontSize: 14, borderRadius: 8,
-                  border: "1px solid " + B.border, fontFamily: "inherit",
-                  outline: "none", boxSizing: "border-box",
-                  transition: "border-color 0.15s",
-                }}
-                onFocus={(e) => e.target.style.borderColor = B.navy}
-                onBlur={(e) => e.target.style.borderColor = B.border}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-                  background: "none", border: "none", cursor: "pointer", fontSize: 12,
-                  color: B.textMuted, fontFamily: "inherit", padding: "4px",
-                }}
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            </div>
-          </div>
-
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            style={{
-              width: "100%", padding: "12px 0", borderRadius: 8,
-              background: loading ? "#94a3b8" : B.navy, border: "none",
-              color: "white", fontSize: 14, fontWeight: 700, fontFamily: "inherit",
-              cursor: loading ? "default" : "pointer",
-              transition: "background 0.15s",
-            }}
-          >
-            {loading ? "Signing in..." : "Sign In"}
-          </button>
         </div>
 
-        {/* Footer */}
-        <div style={{ textAlign: "center", marginTop: 24, fontSize: 10, color: B.textLight }}>
-          Contact Head Office if you need an account or forgot your password.
-        </div>
+        {/* Sign In button */}
+        <button onClick={submit} disabled={loading} style={{
+          width: "100%", padding: "15px 0", borderRadius: 28,
+          background: loading ? "#64748b" : B.navy, border: "none",
+          color: "#fff", fontSize: 17, fontWeight: 700, fontFamily: "inherit",
+          cursor: loading ? "default" : "pointer", letterSpacing: "0.3px",
+        }}>{loading ? "Signing in..." : "Sign in"}</button>
+
+        <p style={{ textAlign: "center", marginTop: 24, fontSize: 12, color: "#94a3b8", lineHeight: 1.5 }}>
+          Contact Head Office if you need an account or have forgotten<br />your password.
+        </p>
       </div>
     </div>
   );
