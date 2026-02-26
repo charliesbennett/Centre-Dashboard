@@ -187,7 +187,7 @@ export default function Dashboard() {
 
   // Auth gates — after all hooks
   if (auth.loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: B.navy, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: B.navy, fontFamily: "Open Sans, sans-serif" }}>
       <div style={{ color: "white", fontSize: 14, fontWeight: 600 }}>Loading...</div>
     </div>
   );
@@ -219,7 +219,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: B.bg, color: B.text, minHeight: "100vh", fontSize: 13, overflow: "hidden" }}>
+    <div style={{ fontFamily: "Open Sans, sans-serif", background: B.bg, color: B.text, minHeight: "100vh", fontSize: 13 }}>
       <header style={{ background: B.navy, padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 50 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: B.red, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, color: B.white }}>UK</div>
@@ -267,7 +267,7 @@ export default function Dashboard() {
           }}><span style={{ fontSize: 14 }}>{t.icon}</span>{t.label}</button>
         ))}
       </nav>
-      <div style={{ minHeight: "calc(100vh - 100px)" }}>{renderTab()}</div>
+      <div style={{ minHeight: "calc(100vh - 100px)", overflow: "hidden", maxWidth: "100vw" }}>{renderTab()}</div>
     </div>
   );
 }

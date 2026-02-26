@@ -178,7 +178,7 @@ export default function StudentsTab({ groups, setGroups }) {
 
       <div style={{ padding: "0 12px 16px", overflowX: "auto" }}>
         <TableWrap>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+          <table style={{ minWidth: 800, borderCollapse: "collapse", fontSize: 11 }}>
             <thead><tr>{["", "Agent", "Group", "Nat", "Stu", "GLs", "Total", "Wk1", "Prog", "Arr", "Dep", ""].map((h) => <th key={h} style={thStyle}>{h}</th>)}</tr></thead>
             <tbody>
               {filtered.length === 0 ? (
@@ -214,7 +214,8 @@ export default function StudentsTab({ groups, setGroups }) {
                           {x.centre && <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Centre:</span> {x.centre}</div>}
                           <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Wk1 Lessons:</span> {x.lessonSlot || "AM"} <span style={{ color: B.textLight }}>(Wk2 auto-flips to {x.lessonSlot === "AM" ? "PM" : "AM"})</span></div>
                         </div>
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, background: B.white, borderRadius: 6, overflow: "hidden" }}>
+                        <div style={{ overflowX: "auto", maxWidth: "calc(100vw - 60px)" }}>
+                        <table style={{ minWidth: 900, borderCollapse: "collapse", fontSize: 10, background: B.white, borderRadius: 6 }}>
                           <thead><tr style={{ background: "#f1f5f9" }}>{["#", "Name", "DOB", "Age", "Sex", "Nat", "Accomm", "Arr", "Dep", "Specialism", "Medical", "Swimming"].map((h) => <th key={h} style={{ ...thStyle, fontSize: 8, padding: "4px 5px" }}>{h}</th>)}</tr></thead>
                           <tbody>
                             {(x.students || []).map((s, i) => (
@@ -251,6 +252,7 @@ export default function StudentsTab({ groups, setGroups }) {
                             ))}
                           </tbody>
                         </table>
+                        </div>
                       </td>
                     </tr>
                   )}

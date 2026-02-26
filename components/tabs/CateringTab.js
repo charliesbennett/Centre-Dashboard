@@ -238,9 +238,9 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
 
       {/* ── GRID VIEW ──────────────────────────────────── */}
       {view === "grid" && (
-        <div style={{ padding: "0 8px 16px", overflowX: "auto" }} ref={printRef}>
+        <div style={{ padding: "0 8px 16px", overflowX: "auto", maxWidth: "100vw" }} ref={printRef}>
           <TableWrap>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
+            <table style={{ minWidth: 1200, borderCollapse: "collapse", fontSize: 10 }}>
               <thead>
                 <tr>
                   <th style={{ ...thStyle, width: 110, position: "sticky", left: 0, zIndex: 2, background: "#f8fafc" }}>Meal</th>

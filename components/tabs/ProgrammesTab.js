@@ -110,7 +110,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     )}
 
     {viewMode==="all" && <div style={{padding:"0 4px 16px",overflowX:"auto"}}>
-      <TableWrap><table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
+      <TableWrap><table style={{minWidth:1200,borderCollapse:"collapse",fontSize:10}}>
         <thead>
           <tr>
             <th style={{...thStyle,width:100,position:"sticky",left:0,zIndex:2,background:"#f8fafc"}}>Agent</th>
@@ -164,7 +164,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           <span><strong style={{color:B.navy}}>Arr:</strong> {fmtDate(selGroup.arr)}</span>
           <span><strong style={{color:B.navy}}>Dep:</strong> {fmtDate(selGroup.dep)}</span>
         </div>
-        <TableWrap><table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
+        <TableWrap><table style={{minWidth:1200,borderCollapse:"collapse",fontSize:10}}>
           <thead><tr><th style={{...thStyle,width:30}}></th>
             {dates.filter(d=>inRange(dayKey(d),selGroup.arr,selGroup.dep)).map(d=>{const s=dayKey(d),we=isWeekend(d),exc=excDays[s];return<th key={s} style={{...thStyle,textAlign:"center",minWidth:80,background:exc?"#fff7ed":we?"#fef2f2":"#f8fafc"}}>
               <div style={{fontSize:7,color:B.textMuted}}>{fmtDate(d)}</div>
@@ -196,7 +196,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         <div style={{padding:"8px 8px 4px",fontSize:10,color:B.textMuted}}>{activeTemplate.centre} {"\u00b7"} {activeTemplate.nights} {"\u00b7"} {activeTemplate.period}</div>
         {activeTemplate.weeks.map(wk=><div key={wk.week} style={{marginBottom:12}}>
           <div style={{padding:"6px 8px",fontWeight:800,fontSize:11,color:B.navy}}>Week {wk.week}</div>
-          <TableWrap><table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
+          <TableWrap><table style={{minWidth:1200,borderCollapse:"collapse",fontSize:10}}>
             <thead><tr><th style={{...thStyle,width:30}}></th>
               {wk.days.map((d,i)=><th key={i} style={{...thStyle,textAlign:"center",minWidth:100}}><div style={{fontWeight:800,fontSize:10,color:(d.day==="Saturday"||d.day==="Sunday")?B.red:B.navy}}>{d.day}</div></th>)}
             </tr></thead>
