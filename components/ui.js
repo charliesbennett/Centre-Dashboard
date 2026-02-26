@@ -40,7 +40,7 @@ export function IconBtn({ children, onClick, danger }) {
 
 export function TableWrap({ children }) {
   return (
-    <div style={{ background: B.white, borderRadius: 10, border: `1px solid ${B.border}`, overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+    <div style={{ background: B.white, borderRadius: 10, border: `1px solid ${B.border}`, overflow: "visible", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
       {children}
     </div>
   );
