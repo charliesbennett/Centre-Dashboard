@@ -219,7 +219,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: B.bg, color: B.text, minHeight: "100vh", fontSize: 13 }}>
+    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: B.bg, color: B.text, minHeight: "100vh", fontSize: 13, overflow: "hidden" }}>
       <header style={{ background: B.navy, padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 50 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: B.red, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, color: B.white }}>UK</div>
