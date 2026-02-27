@@ -247,7 +247,7 @@ export default function StudentsTab({ groups, setGroups }) {
                                 <td style={{ ...tdStyle, fontSize: 9 }}>{fmtDate(gl.depDate)}</td>
                                 <td style={{ ...tdStyle, fontSize: 9 }}>Group Leader</td>
                                 <td style={{ ...tdStyle, fontSize: 9, color: gl.medical ? B.danger : B.textLight }}>{gl.medical || "\u2014"}</td>
-                                <td style={{ ...tdStyle, fontSize: 9 }}>{gl.mobile || "\u2014"}</td>
+                                <td style={{ ...tdStyle, fontSize: 9 }}>{"\u2014"}</td>
                               </tr>
                             ))}
                           </tbody>
