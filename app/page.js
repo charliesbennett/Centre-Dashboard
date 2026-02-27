@@ -267,7 +267,7 @@ export default function Dashboard() {
           }}><span style={{ fontSize: 14 }}>{t.icon}</span>{t.label}</button>
         ))}
       </nav>
-      <div style={{ minHeight: "calc(100vh - 100px)", overflow: "hidden", maxWidth: "100vw" }}>{renderTab()}</div>
+      <div style={{ minHeight: "calc(100vh - 100px)", maxWidth: "100vw" }}>{renderTab()}</div>
     </div>
   );
 }
