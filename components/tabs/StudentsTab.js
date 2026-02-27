@@ -215,7 +215,7 @@ export default function StudentsTab({ groups, setGroups }) {
                           <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Wk1 Lessons:</span> {x.lessonSlot || "AM"} <span style={{ color: B.textLight }}>(Wk2 auto-flips to {x.lessonSlot === "AM" ? "PM" : "AM"})</span></div>
                         </div>
                         <div style={{ overflowX: "auto" }}>
-                        <table style={{ borderCollapse: "collapse", fontSize: 10, background: B.white, borderRadius: 6 }}>
+                        <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: 10, background: B.white, borderRadius: 6 }}>
                           <thead><tr style={{ background: "#f1f5f9" }}>{["#", "Name", "DOB", "Age", "Sex", "Nat", "Accomm", "Arr", "Dep", "Specialism", "Medical", "Swimming"].map((h) => <th key={h} style={{ ...thStyle, fontSize: 8, padding: "4px 5px" }}>{h}</th>)}</tr></thead>
                           <tbody>
                             {(x.students || []).map((s, i) => (
