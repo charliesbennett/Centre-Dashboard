@@ -207,14 +207,14 @@ export default function StudentsTab({ groups, setGroups }) {
                   </tr>
                   {expanded === x.id && x.students && (
                     <tr key={x.id + "-d"} style={{ borderBottom: "1px solid " + B.borderLight }}>
-                      <td colSpan={12} style={{ padding: "0 8px 12px", background: "#f8fafc", maxWidth: 1, overflow: "hidden" }}>
+                      <td colSpan={12} style={{ padding: "0 8px 12px", background: "#f8fafc", position: "relative" }}>
                         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", padding: "8px 12px" }}>
                           {x.arrFlight && <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Arrival:</span> {x.arrAirport} · {x.arrFlight} {x.arrTime ? "at " + x.arrTime : ""}</div>}
                           {x.depFlight && <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Departure:</span> {x.depAirport} · {x.depFlight} {x.depTime ? "at " + x.depTime : ""}</div>}
                           {x.centre && <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Centre:</span> {x.centre}</div>}
                           <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Wk1 Lessons:</span> {x.lessonSlot || "AM"} <span style={{ color: B.textLight }}>(Wk2 auto-flips to {x.lessonSlot === "AM" ? "PM" : "AM"})</span></div>
                         </div>
-                        <div style={{ overflowX: "auto", maxWidth: "calc(100vw - 60px)" }}>
+                        <div style={{ overflowX: "auto", width: "calc(100vw - 80px)", display: "block" }}>
                         <table style={{ minWidth: 900, borderCollapse: "collapse", fontSize: 10, background: B.white, borderRadius: 6 }}>
                           <thead><tr style={{ background: "#f1f5f9" }}>{["#", "Name", "DOB", "Age", "Sex", "Nat", "Accomm", "Arr", "Dep", "Specialism", "Medical", "Swimming"].map((h) => <th key={h} style={{ ...thStyle, fontSize: 8, padding: "4px 5px" }}>{h}</th>)}</tr></thead>
                           <tbody>
