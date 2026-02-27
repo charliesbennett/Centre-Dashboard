@@ -207,7 +207,7 @@ export default function StudentsTab({ groups, setGroups }) {
                   </tr>
                   {expanded === x.id && x.students && (
                     <tr key={x.id + "-d"} style={{ borderBottom: "1px solid " + B.borderLight }}>
-                      <td colSpan={12} style={{ padding: "0 8px 12px", background: "#f8fafc" }}>
+                      <td colSpan={12} style={{ padding: "0 8px 12px", background: "#f8fafc", maxWidth: 1, overflow: "hidden" }}>
                         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", padding: "8px 12px" }}>
                           {x.arrFlight && <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Arrival:</span> {x.arrAirport} · {x.arrFlight} {x.arrTime ? "at " + x.arrTime : ""}</div>}
                           {x.depFlight && <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Departure:</span> {x.depAirport} · {x.depFlight} {x.depTime ? "at " + x.depTime : ""}</div>}
