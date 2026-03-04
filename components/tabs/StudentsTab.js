@@ -125,19 +125,34 @@ export default function StudentsTab({ groups, setGroups }) {
   };
 
   const filtered = groups.filter((x) =>
-    !search || (x.agent + " " + x.group + " " + x.nat).toLowerCase().includes(search.toLowerCase())
+    (showArchived ? x.archived : !x.archived) &&
+    (!search || (x.agent + " " + x.group + " " + x.nat).toLowerCase().includes(search.toLowerCase()))
   );
-  const totalStu = groups.reduce((s, x) => s + (x.stu || 0), 0);
-  const totalGL = groups.reduce((s, x) => s + (x.gl || 0), 0);
+  const totalStu = groups.filter((x) => !x.archived).reduce((s, x) => s + (x.stu || 0), 0);
+  const totalGL = groups.filter((x) => !x.archived).reduce((s, x) => s + (x.gl || 0), 0);
+  const activeGroups = groups.filter((x) => !x.archived);
+  const archivedGroups = groups.filter((x) => x.archived);
   const [expanded, setExpanded] = useState(null);
+  const [showArchived, setShowArchived] = useState(false);
+
+  const toggleArchive = (groupId) => {
+    setGroups((prev) => prev.map((g) => g.id === groupId ? { ...g, archived: !g.archived } : g));
+  };
 
   return (
     <div>
-      <div style={{ padding: "12px 20px", display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <StatCard label="Groups" value={groups.length} accent={B.navy} />
+      <div style={{ padding: "12px 20px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <StatCard label="Groups" value={activeGroups.length} accent={B.navy} />
         <StatCard label="Students" value={totalStu} accent={B.red} />
         <StatCard label="GLs" value={totalGL} accent="#7c3aed" />
         <StatCard label="Total Pax" value={totalStu + totalGL} accent={B.success} />
+        {archivedGroups.length > 0 && (
+          <button onClick={() => setShowArchived(!showArchived)} style={{
+            padding: "6px 12px", borderRadius: 6, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", marginLeft: "auto",
+            background: showArchived ? "#fef3c7" : "#f1f5f9", border: "1px solid " + (showArchived ? "#fbbf24" : B.border),
+            color: showArchived ? "#92400e" : B.textMuted,
+          }}>{showArchived ? "\ud83d\udcc2 Hide Archived" : "\ud83d\uddc3\ufe0f Show Archived"} ({archivedGroups.length})</button>
+        )}
       </div>
 
       {importMsg && (
@@ -179,13 +194,13 @@ export default function StudentsTab({ groups, setGroups }) {
       <div style={{ padding: "0 12px 16px", overflowX: "auto" }}>
         <TableWrap>
           <table style={{ minWidth: 800, borderCollapse: "collapse", fontSize: 11 }}>
-            <thead><tr>{["", "Agent", "Group", "Nat", "Stu", "GLs", "Total", "Wk1", "Prog", "Arr", "Dep", ""].map((h) => <th key={h} style={thStyle}>{h}</th>)}</tr></thead>
+            <thead><tr>{["", "Agent", "Group", "Nat", "Stu", "GLs", "Total", "Wk1", "Prog", "Arr", "Dep", "", ""].map((h, i) => <th key={h + i} style={thStyle}>{h}</th>)}</tr></thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={12} style={{ textAlign: "center", padding: 36, color: B.textLight }}>No groups — use <strong>Import Excel</strong> to upload an agent spreadsheet</td></tr>
+                <tr><td colSpan={13} style={{ textAlign: "center", padding: 36, color: B.textLight }}>No groups — use <strong>Import Excel</strong> to upload an agent spreadsheet</td></tr>
               ) : filtered.map((x) => (
                 <>
-                  <tr key={x.id} style={{ borderBottom: expanded === x.id ? "none" : "1px solid " + B.borderLight, cursor: "pointer" }} onClick={() => setExpanded(expanded === x.id ? null : x.id)}>
+                  <tr key={x.id} style={{ borderBottom: expanded === x.id ? "none" : "1px solid " + B.borderLight, cursor: "pointer", opacity: x.archived ? 0.5 : 1 }} onClick={() => setExpanded(expanded === x.id ? null : x.id)}>
                     <td style={{ ...tdStyle, fontSize: 9, color: B.textMuted }}>{expanded === x.id ? "\u25bc" : "\u25b6"}</td>
                     <td style={tdStyle}>{x.agent}</td>
                     <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{x.group}</td>
@@ -203,19 +218,27 @@ export default function StudentsTab({ groups, setGroups }) {
                     <td style={tdStyle}><span style={{ background: "#e0f2fe", color: "#0369a1", padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{x.prog}</span></td>
                     <td style={tdStyle}>{fmtDate(x.arr)}</td>
                     <td style={tdStyle}>{fmtDate(x.dep)}</td>
-                    <td style={tdStyle} onClick={(e) => e.stopPropagation()}><IconBtn danger onClick={() => setGroups((p) => p.filter((z) => z.id !== x.id))}><IcTrash /></IconBtn></td>
+                    <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
+                      <div style={{ display: "flex", gap: 2 }}>
+                        <button onClick={() => toggleArchive(x.id)} title={x.archived ? "Unarchive" : "Archive"} style={{
+                          background: "none", border: "none", cursor: "pointer", padding: 3, fontSize: 12,
+                          color: x.archived ? "#f59e0b" : B.textMuted, borderRadius: 4,
+                        }}>{x.archived ? "\ud83d\udcc2" : "\ud83d\uddc3\ufe0f"}</button>
+                        <IconBtn danger onClick={() => setGroups((p) => p.filter((z) => z.id !== x.id))}><IcTrash /></IconBtn>
+                      </div>
+                    </td>
                   </tr>
                   {expanded === x.id && x.students && (
                     <tr key={x.id + "-d"} style={{ borderBottom: "1px solid " + B.borderLight }}>
-                      <td colSpan={12} style={{ padding: "0 8px 12px", background: "#f8fafc", padding: "0 8px 12px", background: "#f8fafc" }}>
+                      <td colSpan={13} style={{ padding: "0 8px 12px", background: "#f8fafc" }}>
                         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", padding: "8px 12px" }}>
                           {x.arrFlight && <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Arrival:</span> {x.arrAirport} · {x.arrFlight} {x.arrTime ? "at " + x.arrTime : ""}</div>}
                           {x.depFlight && <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Departure:</span> {x.depAirport} · {x.depFlight} {x.depTime ? "at " + x.depTime : ""}</div>}
                           {x.centre && <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Centre:</span> {x.centre}</div>}
                           <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Wk1 Lessons:</span> {x.lessonSlot || "AM"} <span style={{ color: B.textLight }}>(Wk2 auto-flips to {x.lessonSlot === "AM" ? "PM" : "AM"})</span></div>
                         </div>
-                        <div style={{ overflowX: "auto" }}>
-                        <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: 10, background: B.white, borderRadius: 6 }}>
+                        <div style={{ overflowX: "auto", maxWidth: "calc(100vw - 60px)" }}>
+                        <table style={{ minWidth: 900, borderCollapse: "collapse", fontSize: 10, background: B.white, borderRadius: 6 }}>
                           <thead><tr style={{ background: "#f1f5f9" }}>{["#", "Name", "DOB", "Age", "Sex", "Nat", "Accomm", "Arr", "Dep", "Specialism", "Medical", "Swimming"].map((h) => <th key={h} style={{ ...thStyle, fontSize: 8, padding: "4px 5px" }}>{h}</th>)}</tr></thead>
                           <tbody>
                             {(x.students || []).map((s, i) => (
@@ -247,7 +270,7 @@ export default function StudentsTab({ groups, setGroups }) {
                                 <td style={{ ...tdStyle, fontSize: 9 }}>{fmtDate(gl.depDate)}</td>
                                 <td style={{ ...tdStyle, fontSize: 9 }}>Group Leader</td>
                                 <td style={{ ...tdStyle, fontSize: 9, color: gl.medical ? B.danger : B.textLight }}>{gl.medical || "\u2014"}</td>
-                                <td style={{ ...tdStyle, fontSize: 9 }}>{"\u2014"}</td>
+                                <td style={{ ...tdStyle, fontSize: 9 }}>{gl.mobile || "\u2014"}</td>
                               </tr>
                             ))}
                           </tbody>
