@@ -115,7 +115,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       <div style={{display:"flex",gap:4}}>
         {["all","group","template"].map(m=><button key={m} onClick={()=>setViewMode(m)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+(viewMode===m?B.navy:B.border),background:viewMode===m?B.navy:B.white,color:viewMode===m?B.white:B.textMuted}}>
           {m==="all"?"\ud83d\udc65 All Groups":m==="group"?"\ud83d\udc64 By Group":"\ud83d\udcc4 Templates"}</button>)}
-        <button onClick={autoPop} style={{...btnPrimary,background:B.navy,marginLeft:4}}><IcWand/> {isMinistay ? "Init Programme" : "Auto-Populate"}</button>
+        <button onClick={autoPop} style={{...btnPrimary,background:B.navy,marginLeft:4}}><IcWand/> {isMinistay ? "Auto-Populate" : "Auto-Populate"}</button>
       </div>
     </div>
 

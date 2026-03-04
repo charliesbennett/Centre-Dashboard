@@ -34,6 +34,7 @@ export default function Dashboard() {
     if (db.settings.prog_end) setManualEnd(db.settings.prog_end);
   }, [db.settings]);
 
+  const isMinistay = centreName.toLowerCase().includes("ministay");
   const { progStart, progEnd } = useMemo(() => {
     const allDates = [];
     db.groups.forEach((g) => {
@@ -50,10 +51,10 @@ export default function Dashboard() {
     const earliest = starts[0] || manualStart;
     const latest = ends[ends.length - 1] || manualEnd;
     return {
-      progStart: earliest < manualStart ? earliest : manualStart,
-      progEnd: latest > manualEnd ? latest : manualEnd,
+      progStart: isMinistay ? earliest : (earliest < manualStart ? earliest : manualStart),
+      progEnd: isMinistay ? latest : (latest > manualEnd ? latest : manualEnd),
     };
-  }, [db.groups, db.staff, manualStart, manualEnd]);
+  }, [db.groups, db.staff, manualStart, manualEnd, isMinistay]);
 
   // Debounced auto-save for grids
   const rotaSaveTimer = useRef(null);
