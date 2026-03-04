@@ -4,7 +4,7 @@ import { B, MEALS, PROGRAMMES, uid, fmtDate } from "@/lib/constants";
 import { Fld, StatCard, TableWrap, IconBtn, IcPlus, IcTrash, IcSearch, inputStyle, thStyle, tdStyle, btnPrimary } from "@/components/ui";
 import * as XLSX from "xlsx";
 
-export default function StudentsTab({ groups, setGroups }) {
+export default function StudentsTab({ groups = [], setGroups }) {
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState("");
   const [importMsg, setImportMsg] = useState(null);
