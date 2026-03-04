@@ -94,7 +94,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     setQuickPickCell(quickPickCell === key ? null : key);
   };
   const QUICK_AM_PM = ["English Lessons", "English Test", "Orientation Tour", "Sports & Games", "Arts & Crafts", "Paparazzi Challenge", "Half Day Excursion", "Full Day Excursion", "ARRIVAL", "DEPARTURE"];
-  const QUICK_EVE = ["EE", "Welcome Talk", "Speed Dating", "Paparazzi", "Trashion Show", "Movie Night", "Quiz Night", "Disco", "Drop the Egg", "Attractions"];
+  const QUICK_EVE = ["Evening Activity", "EE", "Welcome Talk", "Speed Dating", "Paparazzi", "Trashion Show", "Movie Night", "Quiz Night", "Disco", "Drop the Egg", "Attractions"];
 
   const classify = (text) => {
     if (!text) return { color: B.textLight, bg: "transparent" };
