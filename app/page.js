@@ -11,6 +11,7 @@ import TeamTab from "@/components/tabs/TeamTab";
 import ExcursionsTab from "@/components/tabs/ExcursionsTab";
 import PettyCashTab from "@/components/tabs/PettyCashTab";
 import ContactsTab from "@/components/tabs/ContactsTab";
+import RoomingTab from "@/components/tabs/RoomingTab";
 
 export default function Dashboard() {
   const [tab, setTab] = useState("students");
@@ -145,6 +146,65 @@ export default function Dashboard() {
     });
   }, [db.saveTransfer, db.deleteTransfer]);
 
+  const roomingAssignSaveTimer = useRef(null);
+  const [roomingOverrides, setRoomingOverridesState] = useState({});
+
+  // Load rooming overrides from settings
+  useEffect(() => {
+    if (db.settings.rooming_overrides) {
+      try { setRoomingOverridesState(JSON.parse(db.settings.rooming_overrides)); } catch {}
+    } else {
+      setRoomingOverridesState({});
+    }
+  }, [db.settings.rooming_overrides]);
+
+  const setRoomingOverrides = useCallback((updater) => {
+    setRoomingOverridesState((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      db.saveSetting("rooming_overrides", JSON.stringify(next));
+      setLastSaved(new Date());
+      return next;
+    });
+  }, [db.saveSetting]);
+
+  const setRoomingHouses = useCallback((updater) => {
+    db.setRoomingHouses((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      next.forEach((h) => {
+        const old = prev.find((p) => p.id === h.id);
+        if (!old || JSON.stringify(old) !== JSON.stringify(h)) db.saveRoomingHouse(h);
+      });
+      prev.forEach((p) => { if (!next.find((h) => h.id === p.id)) db.deleteRoomingHouse(p.id); });
+      setLastSaved(new Date());
+      return next;
+    });
+  }, [db.saveRoomingHouse, db.deleteRoomingHouse]);
+
+  const setRoomingRooms = useCallback((updater) => {
+    db.setRoomingRooms((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      next.forEach((r) => {
+        const old = prev.find((p) => p.id === r.id);
+        if (!old || JSON.stringify(old) !== JSON.stringify(r)) db.saveRoomingRoom(r);
+      });
+      prev.forEach((p) => { if (!next.find((r) => r.id === p.id)) db.deleteRoomingRoom(p.id); });
+      setLastSaved(new Date());
+      return next;
+    });
+  }, [db.saveRoomingRoom, db.deleteRoomingRoom]);
+
+  const setRoomingAssignments = useCallback((updater) => {
+    db.setRoomingAssignments((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      clearTimeout(roomingAssignSaveTimer.current);
+      roomingAssignSaveTimer.current = setTimeout(async () => {
+        await db.saveRoomingAssignments(next);
+        setLastSaved(new Date());
+      }, 1500);
+      return next;
+    });
+  }, [db.saveRoomingAssignments]);
+
   const excSaveTimer2 = useRef(null);
   const setExcursions = useCallback((updater) => {
     db.setExcursions((prev) => {
@@ -183,6 +243,13 @@ export default function Dashboard() {
       case "transfers": return <TransfersTab groups={activeGroups} transfers={db.transfers} setTransfers={setTransfers} />;
       case "team": return <TeamTab staff={db.staff} setStaff={setStaff} />;
       case "excursions": return <ExcursionsTab excDays={db.excDays} setExcDays={setExcDays} groups={activeGroups} progStart={progStart} progEnd={progEnd} excursions={db.excursions} setExcursions={setExcursions} />;
+      case "rooming": return <RoomingTab
+        groups={db.groups} progStart={progStart} progEnd={progEnd}
+        roomingHouses={db.roomingHouses} setRoomingHouses={setRoomingHouses}
+        roomingRooms={db.roomingRooms} setRoomingRooms={setRoomingRooms}
+        roomingAssignments={db.roomingAssignments} setRoomingAssignments={setRoomingAssignments}
+        roomingOverrides={roomingOverrides} setRoomingOverrides={setRoomingOverrides}
+      />;
       case "pettycash": return <PettyCashTab />;
       case "contacts": return <ContactsTab />;
       default: return null;
