@@ -174,13 +174,14 @@ export default function Dashboard() {
       </div>
     );
     switch (tab) {
+    const activeGroups = (db.groups || []).filter((g) => !g.archived);
       case "students": return <StudentsTab groups={db.groups} setGroups={setGroups} />;
-      case "rota": return <RotaTab staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} groups={db.groups} rotaGrid={db.rotaGrid} setRotaGrid={setRotaGrid} />;
-      case "programmes": return <ProgrammesTab groups={db.groups} progStart={progStart} progEnd={progEnd} centre={centreName} excDays={db.excDays} setExcDays={setExcDays} progGrid={db.progGrid} setProgGrid={setProgGrid} />;
-      case "catering": return <CateringTab groups={db.groups} staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} />;
-      case "transfers": return <TransfersTab groups={db.groups} transfers={db.transfers} setTransfers={setTransfers} />;
+      case "rota": return <RotaTab staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} groups={activeGroups} rotaGrid={db.rotaGrid} setRotaGrid={setRotaGrid} />;
+      case "programmes": return <ProgrammesTab groups={activeGroups} progStart={progStart} progEnd={progEnd} centre={centreName} excDays={db.excDays} setExcDays={setExcDays} progGrid={db.progGrid} setProgGrid={setProgGrid} />;
+      case "catering": return <CateringTab groups={activeGroups} staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} />;
+      case "transfers": return <TransfersTab groups={activeGroups} transfers={db.transfers} setTransfers={setTransfers} />;
       case "team": return <TeamTab staff={db.staff} setStaff={setStaff} />;
-      case "excursions": return <ExcursionsTab excDays={db.excDays} setExcDays={setExcDays} groups={db.groups} progStart={progStart} progEnd={progEnd} excursions={db.excursions} setExcursions={setExcursions} />;
+      case "excursions": return <ExcursionsTab excDays={db.excDays} setExcDays={setExcDays} groups={activeGroups} progStart={progStart} progEnd={progEnd} excursions={db.excursions} setExcursions={setExcursions} />;
       case "pettycash": return <PettyCashTab />;
       case "contacts": return <ContactsTab />;
       default: return null;
