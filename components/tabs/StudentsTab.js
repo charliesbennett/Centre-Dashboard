@@ -124,6 +124,8 @@ export default function StudentsTab({ groups = [], setGroups }) {
     setGroups((prev) => prev.map((g) => g.id === groupId ? { ...g, lessonSlot: g.lessonSlot === "AM" ? "PM" : "AM" } : g));
   };
 
+  const [expanded, setExpanded] = useState(null);
+  const [showArchived, setShowArchived] = useState(false);
   const filtered = groups.filter((x) =>
     (showArchived ? x.archived : !x.archived) &&
     (!search || (x.agent + " " + x.group + " " + x.nat).toLowerCase().includes(search.toLowerCase()))
@@ -132,8 +134,6 @@ export default function StudentsTab({ groups = [], setGroups }) {
   const totalGL = groups.filter((x) => !x.archived).reduce((s, x) => s + (x.gl || 0), 0);
   const activeGroups = groups.filter((x) => !x.archived);
   const archivedGroups = groups.filter((x) => x.archived);
-  const [expanded, setExpanded] = useState(null);
-  const [showArchived, setShowArchived] = useState(false);
 
   const toggleArchive = (groupId) => {
     setGroups((prev) => prev.map((g) => g.id === groupId ? { ...g, archived: !g.archived } : g));
