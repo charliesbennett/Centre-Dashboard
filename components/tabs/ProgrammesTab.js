@@ -17,6 +17,8 @@ function getGroupLessonSlot(g, ds) {
 export default function ProgrammesTab({ groups, progStart, progEnd, centre, excDays, setExcDays, progGrid, setProgGrid }) {
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
   const isLondon = LONDON_CENTRES.includes(centre);
+  const isMinistay = (centre || "").toLowerCase().includes("ministay");
+  const slots = isMinistay ? ["AM", "PM", "EVE"] : ["AM", "PM"];
   const [viewMode, setViewMode] = useState("all");
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const grid = progGrid || {};
@@ -25,8 +27,22 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const activeTemplate = selectedTemplate !== null ? centreProgs[selectedTemplate] : null;
 
-  // Auto-populate using group lessonSlot (AM/PM) with weekly flip
+  // Auto-populate: summer uses weekly flip logic, ministay starts blank
   const autoPop = () => {
+    if (isMinistay) {
+      // Ministay: only fill arrival/departure, leave rest blank for manual entry
+      const ng = {};
+      groups.forEach((g) => {
+        dates.forEach((d) => {
+          const s = dayKey(d);
+          if (!inRange(s, g.arr, g.dep)) return;
+          if (g.arr && s === dayKey(new Date(g.arr))) { ng[g.id+"-"+s+"-PM"] = "ARRIVAL"; return; }
+          if (g.dep && s === dayKey(new Date(g.dep))) { ng[g.id+"-"+s+"-AM"] = "DEPARTURE"; return; }
+        });
+      });
+      setGrid(ng);
+      return;
+    }
     const ng = {};
     groups.forEach((g) => {
       dates.forEach((d) => {
@@ -82,6 +98,8 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     if (t.includes("activity")) return { color: "#8b5cf6", bg: "#8b5cf620" };
     if (t.includes("free time") || t.includes("optional")) return { color: B.textMuted, bg: "#f1f5f9" };
     if (t.includes("orientation") || t.includes("welcome")) return { color: "#16a34a", bg: "#16a34a20" };
+    if (t.includes("ee") || t.includes("evening") || t.includes("disco") || t.includes("quiz") || t.includes("movie") || t.includes("trashion") || t.includes("speed dating") || t.includes("paparazzi") && t.length < 20) return { color: "#7c3aed", bg: "#7c3aed15" };
+    if (t.includes("sports") || t.includes("games")) return { color: "#0d9488", bg: "#0d948815" };
     return { color: "#ea580c", bg: "#ea580c15" };
   };
 
@@ -92,20 +110,27 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       <div style={{display:"flex",gap:8,alignItems:"center"}}>
         <span style={{fontSize:11,fontWeight:700,color:B.navy}}>{dates.length} days {"\u00b7"} {groups.length} groups</span>
         {isLondon && <span style={{background:"#e0f2fe",color:"#0369a1",padding:"2px 8px",borderRadius:4,fontSize:9,fontWeight:700}}>London</span>}
+        {isMinistay && <span style={{background:"#fef3c7",color:"#92400e",padding:"2px 8px",borderRadius:4,fontSize:9,fontWeight:700}}>Ministay</span>}
       </div>
       <div style={{display:"flex",gap:4}}>
         {["all","group","template"].map(m=><button key={m} onClick={()=>setViewMode(m)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+(viewMode===m?B.navy:B.border),background:viewMode===m?B.navy:B.white,color:viewMode===m?B.white:B.textMuted}}>
           {m==="all"?"\ud83d\udc65 All Groups":m==="group"?"\ud83d\udc64 By Group":"\ud83d\udcc4 Templates"}</button>)}
-        <button onClick={autoPop} style={{...btnPrimary,background:B.navy,marginLeft:4}}><IcWand/> Auto-Populate</button>
+        <button onClick={autoPop} style={{...btnPrimary,background:B.navy,marginLeft:4}}><IcWand/> {isMinistay ? "Init Programme" : "Auto-Populate"}</button>
       </div>
     </div>
 
     {/* Lesson slot summary */}
-    {groups.length > 0 && (
+    {groups.length > 0 && !isMinistay && (
       <div style={{padding:"6px 20px",background:"#f0f9ff",borderBottom:"1px solid "+B.border,fontSize:10,display:"flex",gap:12,flexWrap:"wrap"}}>
         <span style={{fontWeight:700,color:"#0369a1"}}>{"\ud83d\udcda"} Lesson slots:</span>
         {groups.map(g => <span key={g.id}><strong>{g.group}</strong>: Wk1 {g.lessonSlot || "AM"} / Wk2 {(g.lessonSlot||"AM")==="AM"?"PM":"AM"}</span>)}
         <span style={{color:"#64748b"}}>{"\u00b7"} Toggle in Students tab</span>
+      </div>
+    )}
+    {groups.length > 0 && isMinistay && (
+      <div style={{padding:"6px 20px",background:"#fffbeb",borderBottom:"1px solid "+B.border,fontSize:10,display:"flex",gap:12,flexWrap:"wrap"}}>
+        <span style={{fontWeight:700,color:"#92400e"}}>{"\ud83d\udcc5"} Ministay programme:</span>
+        <span>Double-click cells to enter activities {"\u00b7"} AM / PM / EVE sessions</span>
       </div>
     )}
 
@@ -117,7 +142,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
             <th style={{...thStyle,width:90,position:"sticky",left:100,zIndex:2,background:"#f8fafc"}}>Group</th>
             <th style={{...thStyle,width:30,textAlign:"center"}}>Pax</th>
             <th style={{...thStyle,width:30,textAlign:"center",fontSize:8}}>Wk1</th>
-            {dates.map(d=>{const s=dayKey(d),exc=excDays[s],we=isWeekend(d);return<th key={s} colSpan={2} onClick={()=>toggleExc(s)} style={{...thStyle,textAlign:"center",borderLeft:"2px solid "+B.border,padding:"3px 2px",minWidth:90,cursor:"pointer",background:exc?"#fff7ed":we?"#fef2f2":"#f8fafc"}}>
+            {dates.map(d=>{const s=dayKey(d),exc=excDays[s],we=isWeekend(d);return<th key={s} colSpan={slots.length} onClick={()=>toggleExc(s)} style={{...thStyle,textAlign:"center",borderLeft:"2px solid "+B.border,padding:"3px 2px",minWidth:isMinistay?130:90,cursor:"pointer",background:exc?"#fff7ed":we?"#fef2f2":"#f8fafc"}}>
               <div style={{fontSize:7,color:B.textMuted}}>{fmtDate(d)}</div>
               <div style={{fontWeight:800,fontSize:9,color:we?B.red:B.navy}}>{dayName(d)}</div>
               {exc&&<div style={{fontSize:6,color:"#ea580c",fontWeight:800}}>{exc==="Full"?"FD EXC":"HD EXC"}</div>}
@@ -128,7 +153,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
             <th style={{...thStyle,position:"sticky",left:100,zIndex:2,background:"#f8fafc"}}></th>
             <th style={thStyle}></th>
             <th style={thStyle}></th>
-            {dates.map(d=>["AM","PM"].map(sl=><th key={dayKey(d)+"-"+sl} style={{...thStyle,textAlign:"center",fontSize:7,padding:"2px 1px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,minWidth:44}}>{sl}</th>))}
+            {dates.map(d=>slots.map(sl=><th key={dayKey(d)+"-"+sl} style={{...thStyle,textAlign:"center",fontSize:7,padding:"2px 1px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,minWidth:isMinistay?42:44}}>{sl}</th>))}
           </tr>
         </thead>
         <tbody>
@@ -138,7 +163,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
             <td style={{...tdStyle,fontWeight:700,color:B.navy,fontSize:10,position:"sticky",left:100,background:B.white,zIndex:1}}>{g.group}</td>
             <td style={{...tdStyle,fontWeight:800,textAlign:"center",fontSize:10}}>{(g.stu||0)+(g.gl||0)}</td>
             <td style={{...tdStyle,textAlign:"center"}}><span style={{background:g.lessonSlot==="PM"?"#fae8ff":"#dbeafe",color:g.lessonSlot==="PM"?"#9333ea":"#1e40af",padding:"2px 6px",borderRadius:3,fontSize:8,fontWeight:800}}>{g.lessonSlot||"AM"}</span></td>
-            {dates.map(d=>["AM","PM"].map(sl=>{const s=dayKey(d),key=g.id+"-"+s+"-"+sl,val=grid[key],on=inRange(s,g.arr,g.dep),cls=classify(val),isEd=editingCell===key;
+            {dates.map(d=>slots.map(sl=>{const s=dayKey(d),key=g.id+"-"+s+"-"+sl,val=grid[key],on=inRange(s,g.arr,g.dep),cls=classify(val),isEd=editingCell===key;
               return<td key={key} onDoubleClick={()=>on&&startEdit(key,val)} style={{padding:"1px 2px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,verticalAlign:"middle",minWidth:44,maxWidth:80,background:!on?"#f5f5f5":cls.bg,cursor:on?"pointer":"default"}}>
                 {isEd?<input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} style={{width:"100%",fontSize:8,padding:"2px",border:"1px solid "+B.navy,borderRadius:2,fontFamily:"inherit"}}/>:
                 val?<div style={{color:cls.color,fontSize:8,fontWeight:600,padding:"2px 3px",borderRadius:2,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:75}} title={val}>{val}</div>:
@@ -170,8 +195,8 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
               <div style={{fontSize:7,color:B.textMuted}}>{fmtDate(d)}</div>
               <div style={{fontWeight:800,fontSize:9,color:we?B.red:B.navy}}>{dayName(d)}</div></th>;})}
           </tr></thead>
-          <tbody>{["AM","PM"].map(sl=><tr key={sl} style={{borderBottom:"1px solid "+B.borderLight}}>
-            <td style={{...tdStyle,fontWeight:800,fontSize:8,color:B.textMuted,textAlign:"center"}}>{sl}</td>
+          <tbody>{slots.map(sl=><tr key={sl} style={{borderBottom:"1px solid "+B.borderLight}}>
+            <td style={{...tdStyle,fontWeight:800,fontSize:8,color:sl==="EVE"?"#92400e":B.textMuted,textAlign:"center"}}>{sl}</td>
             {dates.filter(d=>inRange(dayKey(d),selGroup.arr,selGroup.dep)).map(d=>{const key=selGroup.id+"-"+dayKey(d)+"-"+sl,val=grid[key],cls=classify(val),isEd=editingCell===key;
               return<td key={key} onDoubleClick={()=>startEdit(key,val)} style={{padding:"4px 6px",borderLeft:"1px solid "+B.borderLight,verticalAlign:"top",cursor:"pointer"}}>
                 {isEd?<input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} style={{width:"100%",fontSize:9,padding:"4px",border:"1px solid "+B.navy,borderRadius:3,fontFamily:"inherit"}}/>:
@@ -200,7 +225,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
             <thead><tr><th style={{...thStyle,width:30}}></th>
               {wk.days.map((d,i)=><th key={i} style={{...thStyle,textAlign:"center",minWidth:100}}><div style={{fontWeight:800,fontSize:10,color:(d.day==="Saturday"||d.day==="Sunday")?B.red:B.navy}}>{d.day}</div></th>)}
             </tr></thead>
-            <tbody>{["am","pm"].map(sl=><tr key={sl} style={{borderBottom:"1px solid "+B.borderLight}}>
+            <tbody>{(isMinistay ? ["am","pm","eve"] : ["am","pm"]).map(sl=><tr key={sl} style={{borderBottom:"1px solid "+B.borderLight}}>
               <td style={{...tdStyle,fontWeight:800,fontSize:8,color:B.textMuted,textAlign:"center"}}>{sl.toUpperCase()}</td>
               {wk.days.map((d,i)=>{const cls=classify(d[sl]);return<td key={i} style={{padding:"4px 6px",borderLeft:"1px solid "+B.borderLight,verticalAlign:"top"}}>
                 <div style={{background:cls.bg,color:cls.color,padding:"4px 6px",borderRadius:4,fontSize:9,fontWeight:600,minHeight:32,display:"flex",alignItems:"center"}}>{d[sl]||"\u2014"}</div></td>;})}
