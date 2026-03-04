@@ -83,9 +83,18 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
 
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState("");
-  const startEdit = (key, val) => { setEditingCell(key); setEditValue(val || ""); };
+  const [quickPickCell, setQuickPickCell] = useState(null);
+  const startEdit = (key, val) => { setQuickPickCell(null); setEditingCell(key); setEditValue(val || ""); };
   const commitEdit = () => { if (editingCell) { setGrid(p => ({...p, [editingCell]: editValue || undefined})); setEditingCell(null); } };
   const toggleExc = (dStr) => { setExcDays(p => { const c = p[dStr]; if (!c) return {...p,[dStr]:"Full"}; if (c==="Full") return {...p,[dStr]:"Half"}; const n={...p}; delete n[dStr]; return n; }); };
+  const quickPick = (key, val) => { setGrid(p => ({...p, [key]: val})); setQuickPickCell(null); };
+  const handleCellClick = (key, sl, on) => {
+    if (!on || !isMinistay) return;
+    if (editingCell === key) return;
+    setQuickPickCell(quickPickCell === key ? null : key);
+  };
+  const QUICK_AM_PM = ["English Lessons", "English Test", "Orientation Tour", "Sports & Games", "Arts & Crafts", "Paparazzi Challenge", "Half Day Excursion", "Full Day Excursion", "ARRIVAL", "DEPARTURE"];
+  const QUICK_EVE = ["EE", "Welcome Talk", "Speed Dating", "Paparazzi", "Trashion Show", "Movie Night", "Quiz Night", "Disco", "Drop the Egg", "Attractions"];
 
   const classify = (text) => {
     if (!text) return { color: B.textLight, bg: "transparent" };
@@ -163,16 +172,23 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
             <td style={{...tdStyle,fontWeight:700,color:B.navy,fontSize:10,position:"sticky",left:100,background:B.white,zIndex:1}}>{g.group}</td>
             <td style={{...tdStyle,fontWeight:800,textAlign:"center",fontSize:10}}>{(g.stu||0)+(g.gl||0)}</td>
             <td style={{...tdStyle,textAlign:"center"}}><span style={{background:g.lessonSlot==="PM"?"#fae8ff":"#dbeafe",color:g.lessonSlot==="PM"?"#9333ea":"#1e40af",padding:"2px 6px",borderRadius:3,fontSize:8,fontWeight:800}}>{g.lessonSlot||"AM"}</span></td>
-            {dates.map(d=>slots.map(sl=>{const s=dayKey(d),key=g.id+"-"+s+"-"+sl,val=grid[key],on=inRange(s,g.arr,g.dep),cls=classify(val),isEd=editingCell===key;
-              return<td key={key} onDoubleClick={()=>on&&startEdit(key,val)} style={{padding:"1px 2px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,verticalAlign:"middle",minWidth:44,maxWidth:80,background:!on?"#f5f5f5":cls.bg,cursor:on?"pointer":"default"}}>
+            {dates.map(d=>slots.map(sl=>{const s=dayKey(d),key=g.id+"-"+s+"-"+sl,val=grid[key],on=inRange(s,g.arr,g.dep),cls=classify(val),isEd=editingCell===key,isQP=quickPickCell===key;
+              return<td key={key} onClick={()=>handleCellClick(key,sl,on)} onDoubleClick={()=>on&&startEdit(key,val)} style={{padding:"1px 2px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,verticalAlign:"middle",minWidth:44,maxWidth:80,background:!on?"#f5f5f5":cls.bg,cursor:on?"pointer":"default",position:"relative"}}>
                 {isEd?<input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} style={{width:"100%",fontSize:8,padding:"2px",border:"1px solid "+B.navy,borderRadius:2,fontFamily:"inherit"}}/>:
                 val?<div style={{color:cls.color,fontSize:8,fontWeight:600,padding:"2px 3px",borderRadius:2,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:75}} title={val}>{val}</div>:
                 on?<div style={{height:18}}/>:<div style={{height:18}}/>}
+                {isQP&&<div style={{position:"absolute",top:"100%",left:0,zIndex:10,background:B.white,border:"1px solid "+B.border,borderRadius:6,boxShadow:"0 4px 12px rgba(0,0,0,0.15)",padding:"4px 0",minWidth:140,maxHeight:200,overflowY:"auto"}}>
+                  {(sl==="EVE"?QUICK_EVE:QUICK_AM_PM).map(opt=><div key={opt} onClick={(e)=>{e.stopPropagation();quickPick(key,opt);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:classify(opt).color,whiteSpace:"nowrap"}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{opt}</div>)}
+                  <div style={{borderTop:"1px solid "+B.border,marginTop:2,paddingTop:2}}>
+                    <div onClick={(e)=>{e.stopPropagation();quickPick(key,undefined);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:B.textMuted}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u2717"} Clear</div>
+                    <div onClick={(e)=>{e.stopPropagation();setQuickPickCell(null);startEdit(key,val);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:B.navy}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u270f\ufe0f"} Custom text...</div>
+                  </div>
+                </div>}
               </td>;}))}
           </tr>)}
         </tbody>
       </table></TableWrap>
-      <div style={{padding:"6px 12px",fontSize:9,color:B.textMuted}}>Double-click to edit {"\u00b7"} Click date headers for exc days {"\u00b7"} Lessons follow Wk1 slot, flip each week</div>
+      <div style={{padding:"6px 12px",fontSize:9,color:B.textMuted}}>{isMinistay ? "Click cell for quick-pick \u00b7 Double-click for custom text \u00b7 Click date headers for exc days" : "Double-click to edit \u00b7 Click date headers for exc days \u00b7 Lessons follow Wk1 slot, flip each week"}</div>
     </div>}
 
     {viewMode==="group" && <div>
@@ -197,10 +213,17 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           </tr></thead>
           <tbody>{slots.map(sl=><tr key={sl} style={{borderBottom:"1px solid "+B.borderLight}}>
             <td style={{...tdStyle,fontWeight:800,fontSize:8,color:sl==="EVE"?"#92400e":B.textMuted,textAlign:"center"}}>{sl}</td>
-            {dates.filter(d=>inRange(dayKey(d),selGroup.arr,selGroup.dep)).map(d=>{const key=selGroup.id+"-"+dayKey(d)+"-"+sl,val=grid[key],cls=classify(val),isEd=editingCell===key;
-              return<td key={key} onDoubleClick={()=>startEdit(key,val)} style={{padding:"4px 6px",borderLeft:"1px solid "+B.borderLight,verticalAlign:"top",cursor:"pointer"}}>
+            {dates.filter(d=>inRange(dayKey(d),selGroup.arr,selGroup.dep)).map(d=>{const key=selGroup.id+"-"+dayKey(d)+"-"+sl,val=grid[key],cls=classify(val),isEd=editingCell===key,isQP=quickPickCell===key;
+              return<td key={key} onClick={()=>handleCellClick(key,sl,true)} onDoubleClick={()=>startEdit(key,val)} style={{padding:"4px 6px",borderLeft:"1px solid "+B.borderLight,verticalAlign:"top",cursor:"pointer",position:"relative"}}>
                 {isEd?<input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} style={{width:"100%",fontSize:9,padding:"4px",border:"1px solid "+B.navy,borderRadius:3,fontFamily:"inherit"}}/>:
                 <div style={{background:cls.bg,color:cls.color,padding:"4px 6px",borderRadius:4,fontSize:9,fontWeight:600,minHeight:32,display:"flex",alignItems:"center"}}>{val||"\u2014"}</div>}
+                {isQP&&<div style={{position:"absolute",top:"100%",left:0,zIndex:10,background:B.white,border:"1px solid "+B.border,borderRadius:6,boxShadow:"0 4px 12px rgba(0,0,0,0.15)",padding:"4px 0",minWidth:160,maxHeight:220,overflowY:"auto"}}>
+                  {(sl==="EVE"?QUICK_EVE:QUICK_AM_PM).map(opt=><div key={opt} onClick={(e)=>{e.stopPropagation();quickPick(key,opt);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:classify(opt).color,whiteSpace:"nowrap"}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{opt}</div>)}
+                  <div style={{borderTop:"1px solid "+B.border,marginTop:2,paddingTop:2}}>
+                    <div onClick={(e)=>{e.stopPropagation();quickPick(key,undefined);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:B.textMuted}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u2717"} Clear</div>
+                    <div onClick={(e)=>{e.stopPropagation();setQuickPickCell(null);startEdit(key,val);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:B.navy}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u270f\ufe0f"} Custom text...</div>
+                  </div>
+                </div>}
               </td>;})}
           </tr>)}</tbody>
         </table></TableWrap>
