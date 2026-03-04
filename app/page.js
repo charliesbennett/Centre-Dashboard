@@ -173,8 +173,8 @@ export default function Dashboard() {
         Loading {centreName}...
       </div>
     );
-    switch (tab) {
     const activeGroups = (db.groups || []).filter((g) => !g.archived);
+    switch (tab) {
       case "students": return <StudentsTab groups={db.groups} setGroups={setGroups} />;
       case "rota": return <RotaTab staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} groups={activeGroups} rotaGrid={db.rotaGrid} setRotaGrid={setRotaGrid} />;
       case "programmes": return <ProgrammesTab groups={activeGroups} progStart={progStart} progEnd={progEnd} centre={centreName} excDays={db.excDays} setExcDays={setExcDays} progGrid={db.progGrid} setProgGrid={setProgGrid} />;
