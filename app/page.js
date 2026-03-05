@@ -12,9 +12,10 @@ import ExcursionsTab from "@/components/tabs/ExcursionsTab";
 import PettyCashTab from "@/components/tabs/PettyCashTab";
 import ContactsTab from "@/components/tabs/ContactsTab";
 import RoomingTab from "@/components/tabs/RoomingTab";
+import HomeTab from "@/components/tabs/HomeTab";
 
 export default function Dashboard() {
-  const [tab, setTab] = useState("students");
+  const [tab, setTab] = useState("home");
   const [centreId, setCentreId] = useState("");
   const [centreName, setCentreName] = useState("");
   const [manualStart, setManualStart] = useState("2026-07-04");
@@ -236,6 +237,7 @@ export default function Dashboard() {
     );
     const activeGroups = (db.groups || []).filter((g) => !g.archived);
     switch (tab) {
+      case "home": return <HomeTab groups={db.groups} staff={db.staff} excDays={db.excDays} progGrid={db.progGrid} rotaGrid={db.rotaGrid} progStart={progStart} progEnd={progEnd} />;
       case "students": return <StudentsTab groups={db.groups} setGroups={setGroups} />;
       case "rota": return <RotaTab staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} groups={activeGroups} rotaGrid={db.rotaGrid} setRotaGrid={setRotaGrid} />;
       case "programmes": return <ProgrammesTab groups={activeGroups} progStart={progStart} progEnd={progEnd} centre={centreName} excDays={db.excDays} setExcDays={setExcDays} progGrid={db.progGrid} setProgGrid={setProgGrid} />;
