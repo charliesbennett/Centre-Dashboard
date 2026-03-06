@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import { B, ACTIVITY_TYPES, LONDON_CENTRES, genDates, dayKey, dayName, isWeekend, inRange, fmtDate } from "@/lib/constants";
 import { Fld, TableWrap, IcWand, thStyle, tdStyle, btnPrimary, inputStyle } from "@/components/ui";
 import { getProgrammesForCentre } from "@/lib/programmeData";
+import ProgrammeTemplateModal from "@/components/ProgrammeTemplateModal";
 
 // Which lesson slot does this group have on this date?
 function getGroupLessonSlot(g, ds) {
@@ -14,7 +15,7 @@ function getGroupLessonSlot(g, ds) {
   return weekNum % 2 === 0 ? g.lessonSlot : (g.lessonSlot === "AM" ? "PM" : "AM");
 }
 
-export default function ProgrammesTab({ groups, progStart, progEnd, centre, excDays, setExcDays, progGrid, setProgGrid }) {
+export default function ProgrammesTab({ groups, progStart, progEnd, centre, excDays, setExcDays, progGrid, setProgGrid, settings, saveSetting }) {
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
   const isLondon = LONDON_CENTRES.includes(centre);
   const isMinistay = (centre || "").toLowerCase().includes("ministay");
@@ -27,10 +28,18 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const activeTemplate = selectedTemplate !== null ? centreProgs[selectedTemplate] : null;
 
-  // Auto-populate: summer uses weekly flip logic, ministay starts blank
+  // Auto-populate: summer uses weekly flip logic, ministay uses saved template
   const autoPop = () => {
     if (isMinistay) {
-      // Ministay: only fill arrival/departure, leave rest blank for manual entry
+      let template = null;
+      if (settings?.ministay_template) {
+        try { template = JSON.parse(settings.ministay_template); } catch {}
+      }
+      if (!template) {
+        setShowTemplateModal(true);
+        return;
+      }
+      const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
       const ng = {};
       groups.forEach((g) => {
         dates.forEach((d) => {
@@ -38,6 +47,13 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           if (!inRange(s, g.arr, g.dep)) return;
           if (g.arr && s === dayKey(new Date(g.arr))) { ng[g.id+"-"+s+"-PM"] = "ARRIVAL"; return; }
           if (g.dep && s === dayKey(new Date(g.dep))) { ng[g.id+"-"+s+"-AM"] = "DEPARTURE"; return; }
+          const dayOfWeek = DAY_NAMES[d.getDay()];
+          const day = template[dayOfWeek];
+          if (day) {
+            if (day.am) ng[g.id+"-"+s+"-AM"] = day.am;
+            if (day.pm) ng[g.id+"-"+s+"-PM"] = day.pm;
+            if (day.eve) ng[g.id+"-"+s+"-EVE"] = day.eve;
+          }
         });
       });
       setGrid(ng);
@@ -81,6 +97,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     setGrid(ng);
   };
 
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState("");
   const [quickPickCell, setQuickPickCell] = useState(null); const [qpPos, setQpPos] = useState({top:0,left:0});
@@ -115,6 +132,13 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   const selGroup = groups.find(g => g.id === selectedGroupId);
 
   return (<div>
+    {showTemplateModal && (
+      <ProgrammeTemplateModal
+        currentJson={settings?.ministay_template || null}
+        onSave={(json) => { if (saveSetting) saveSetting("ministay_template", json); setShowTemplateModal(false); }}
+        onClose={() => setShowTemplateModal(false)}
+      />
+    )}
     <div style={{background:B.white,borderBottom:"1px solid "+B.border,padding:"10px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}>
       <div style={{display:"flex",gap:8,alignItems:"center"}}>
         <span style={{fontSize:11,fontWeight:700,color:B.navy}}>{dates.length} days {"\u00b7"} {groups.length} groups</span>
@@ -124,7 +148,9 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       <div style={{display:"flex",gap:4}}>
         {["all","group","template"].map(m=><button key={m} onClick={()=>setViewMode(m)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+(viewMode===m?B.navy:B.border),background:viewMode===m?B.navy:B.white,color:viewMode===m?B.white:B.textMuted}}>
           {m==="all"?"\ud83d\udc65 All Groups":m==="group"?"\ud83d\udc64 By Group":"\ud83d\udcc4 Templates"}</button>)}
-        <button onClick={autoPop} style={{...btnPrimary,background:B.navy,marginLeft:4}}><IcWand/> {isMinistay ? "Init Programme" : "Auto-Populate"}</button>
+        {isMinistay && <button onClick={()=>setShowTemplateModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+B.border,background:settings?.ministay_template?"#dcfce7":B.white,color:settings?.ministay_template?B.success:B.textMuted,marginLeft:4}}>
+          {"\ud83d\udcc4"} {settings?.ministay_template ? "Edit Template" : "Set Up Template"}</button>}
+        <button onClick={autoPop} style={{...btnPrimary,background:B.navy,marginLeft:4}}><IcWand/> Auto-Populate</button>
       </div>
     </div>
 
@@ -137,9 +163,11 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       </div>
     )}
     {groups.length > 0 && isMinistay && (
-      <div style={{padding:"6px 20px",background:"#fffbeb",borderBottom:"1px solid "+B.border,fontSize:10,display:"flex",gap:12,flexWrap:"wrap"}}>
+      <div style={{padding:"6px 20px",background:"#fffbeb",borderBottom:"1px solid "+B.border,fontSize:10,display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
         <span style={{fontWeight:700,color:"#92400e"}}>{"\ud83d\udcc5"} Ministay programme:</span>
-        <span>Double-click cells to enter activities {"\u00b7"} AM / PM / EVE sessions</span>
+        {settings?.ministay_template
+          ? <span style={{color:"#16a34a",fontWeight:600}}>{"\u2713"} Template saved {"\u00b7"} Click Auto-Populate to apply</span>
+          : <span style={{color:"#92400e"}}>No template yet {"\u00b7"} Click <strong>Set Up Template</strong> to define the weekly programme, then Auto-Populate</span>}
       </div>
     )}
 
