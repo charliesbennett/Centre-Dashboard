@@ -59,7 +59,7 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
 
       if (result.ok) {
         setTemplate(result.template);
-        setMsg({ ok: true, text: "Programme extracted — review the grid and correct anything that looks wrong, then save." });
+        setMsg({ ok: true, text: "Programme extracted — review the grid and correct anything that looks wrong, then save." + (result.debug ? " (" + result.debug + ")" : "") });
       } else {
         setMsg({ ok: false, text: result.error + " Review the raw text below and fill in the grid manually." });
         setShowRaw(true);
