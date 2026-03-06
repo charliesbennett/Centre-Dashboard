@@ -103,20 +103,28 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
       pm: progGrid[g.id + "-" + today + "-PM"] || "",
     })), [onSiteGroups, progGrid, today]);
 
-  // ── Evening activity (most common Eve rota slot today) ─
+  // ── Evening activity: check progGrid EVE first, then rotaGrid Eve ─
   const eveActivity = useMemo(() => {
-    const counts = {};
-    const dateSlotSuffix = today + "-Eve";
+    // Check progGrid EVE slots (Ministay centres)
+    const progCounts = {};
+    Object.entries(progGrid).forEach(([key, val]) => {
+      if (!val) return;
+      const m = key.match(/^(.+)-(\d{4}-\d{2}-\d{2})-(EVE)$/);
+      if (m && m[2] === today) progCounts[val] = (progCounts[val] || 0) + 1;
+    });
+    const progSorted = Object.entries(progCounts).sort((a, b) => b[1] - a[1]);
+    if (progSorted.length > 0) return progSorted[0][0];
+
+    // Fall back to rotaGrid Eve (summer centres)
+    const rotaCounts = {};
     Object.entries(rotaGrid).forEach(([key, val]) => {
       if (!val) return;
-      const m = key.match(/^(.+)-(\d{4}-\d{2}-\d{2})-(AM|PM|Eve)$/);
-      if (m && m[2] === today && m[3] === "Eve") {
-        counts[val] = (counts[val] || 0) + 1;
-      }
+      const m = key.match(/^(.+)-(\d{4}-\d{2}-\d{2})-(Eve)$/);
+      if (m && m[2] === today) rotaCounts[val] = (rotaCounts[val] || 0) + 1;
     });
-    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-    return sorted.length > 0 ? sorted[0][0] : null;
-  }, [rotaGrid, today]);
+    const rotaSorted = Object.entries(rotaCounts).sort((a, b) => b[1] - a[1]);
+    return rotaSorted.length > 0 ? rotaSorted[0][0] : null;
+  }, [progGrid, rotaGrid, today]);
 
   // ── Upcoming birthdays (next 14 days) ─────────────────
   const upcomingBirthdays = useMemo(() => {

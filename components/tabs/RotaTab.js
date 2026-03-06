@@ -4,8 +4,8 @@ import { B, SESSION_TYPES, genDates, dayKey, dayName, isWeekend, inRange, fmtDat
 import { StatCard, IcWand, thStyle, tdStyle, btnPrimary } from "@/components/ui";
 
 const SLOTS = ["AM", "PM", "Eve"];
-const CELL_W = 32; // Wider cells for readability
-const CELL_H = 28;
+const CELL_W = 46; // Wider cells for readability
+const CELL_H = 36;
 
 function calcRequiredStaff(n) { return n > 0 ? Math.ceil(n / 20) : 0; }
 
@@ -492,7 +492,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         <span style={{ fontSize: 9, color: B.textMuted, marginLeft: 4 }}>Click = cycle {"\u00b7"} Double-click = edit text</span>
       </div>
 
-      <div style={{ overflow: "auto", maxHeight: "calc(100vh - 280px)", padding: "0 4px 16px" }}>
+      <div style={{ overflow: "auto", maxHeight: "calc(100vh - 220px)", padding: "0 4px 16px" }}>
         <table style={{ borderCollapse: "collapse", fontSize: 10, minWidth: tableMinWidth, background: B.white, borderRadius: 10, border: "1px solid "+B.border }}>
           <thead>
             <tr>
@@ -506,11 +506,11 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                 const dem = lessonDemand[ds];
                 return (
                   <th key={ds} colSpan={3} style={{ ...thStyle, textAlign: "center", borderLeft: "2px solid "+B.border, padding: "3px 1px", minWidth: CELL_W*3+4, background: isArr ? "#dcfce7" : exc ? "#fff7ed" : we ? "#fef2f2" : "#f8fafc" }}>
-                    <div style={{ fontSize: 7, color: B.textMuted }}>{fmtDate(d)}</div>
-                    <div style={{ fontWeight: 800, fontSize: 9, color: we ? B.red : B.navy }}>{dayName(d)}</div>
-                    {exc && <div style={{ fontSize: 6, color: "#ea580c", fontWeight: 800 }}>{exc === "Full" ? "FD" : "HD"}</div>}
-                    {isArr && <div style={{ fontSize: 6, color: B.success, fontWeight: 800 }}>ARRIVE</div>}
-                    {dem && !we && <div style={{ fontSize: 5, color: "#6b7280" }}>{dem.amStudents>0?"AM:"+dem.amStudents:""} {dem.pmStudents>0?"PM:"+dem.pmStudents:""}</div>}
+                    <div style={{ fontSize: 8, color: B.textMuted }}>{fmtDate(d)}</div>
+                    <div style={{ fontWeight: 800, fontSize: 10, color: we ? B.red : B.navy }}>{dayName(d)}</div>
+                    {exc && <div style={{ fontSize: 7, color: "#ea580c", fontWeight: 800 }}>{exc === "Full" ? "FD" : "HD"}</div>}
+                    {isArr && <div style={{ fontSize: 7, color: B.success, fontWeight: 800 }}>ARR</div>}
+                    {dem && !we && <div style={{ fontSize: 6, color: "#6b7280" }}>{dem.amStudents>0?"AM:"+dem.amStudents:""} {dem.pmStudents>0?"PM:"+dem.pmStudents:""}</div>}
                   </th>
                 );
               })}
@@ -521,7 +521,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
               <th style={{ ...thStyle, position: "sticky", left: 152, zIndex: 3, background: "#f8fafc" }}></th>
               <th style={{ ...thStyle, position: "sticky", left: 184, zIndex: 3, background: "#f8fafc" }}></th>
               {dates.map((d) => SLOTS.map((sl) => (
-                <th key={dayKey(d)+"-"+sl} style={{ ...thStyle, textAlign: "center", fontSize: 7, padding: "2px 0", borderLeft: sl === "AM" ? "2px solid "+B.border : "1px solid "+B.borderLight, minWidth: CELL_W }}>{sl}</th>
+                <th key={dayKey(d)+"-"+sl} style={{ ...thStyle, textAlign: "center", fontSize: 8, padding: "3px 0", borderLeft: sl === "AM" ? "2px solid "+B.border : "1px solid "+B.borderLight, minWidth: CELL_W }}>{sl}</th>
               )))}
             </tr>
           </thead>
@@ -588,8 +588,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                               onBlur={commitEdit} onKeyDown={(e) => e.key === "Enter" && commitEdit()}
                               style={{ width: "100%", fontSize: 8, padding: "2px", border: "1px solid "+B.navy, borderRadius: 2, fontFamily: "inherit", height: CELL_H }} />
                           ) : col ? (
-                            <div style={{ background: col+"30", color: col, borderRadius: 3, fontSize: 7, fontWeight: 800, height: CELL_H, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }} title={v}>
-                              {off ? "OFF" : (v || "").length > 5 ? (v || "").slice(0, 5) : v}
+                            <div style={{ background: col+"30", color: col, borderRadius: 3, fontSize: 8, fontWeight: 800, height: CELL_H, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "0 2px", textAlign: "center", lineHeight: 1.1 }} title={v}>
+                              {off ? "OFF" : (v || "").length > 6 ? (v || "").slice(0, 6) : v}
                             </div>
                           ) : on ? <div style={{ height: CELL_H }} /> : <div style={{ height: CELL_H, background: "#eee", borderRadius: 2 }} />}
                         </td>
