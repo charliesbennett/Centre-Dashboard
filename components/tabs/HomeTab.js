@@ -1,7 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import { B, dayKey, dayName, fmtDate, ACTIVITY_TYPES, SESSION_TYPES, ROLES } from "@/lib/constants";
-import { StatCard } from "@/components/ui";
+import { StatCard, IcPlaneUp, IcPlaneDn, IcCake, IcBus, IcMountain, IcSparkles } from "@/components/ui";
 
 // ── Helpers ────────────────────────────────────────────────
 function inBed(dateStr, arrDate, depDate) {
@@ -179,27 +179,36 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
     <div style={{ paddingBottom: 24 }}>
 
       {/* ── Hero banner ──────────────────────────────────── */}
-      <div style={{ background: B.navy, padding: "18px 24px 16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 24, flexWrap: "wrap" }}>
+      <div style={{ background: B.navy, padding: "20px 24px 18px", position: "relative", overflow: "hidden" }}>
+        {/* Subtle brand graphic */}
+        <svg aria-hidden="true" style={{ position: "absolute", right: 0, top: 0, opacity: 0.05, pointerEvents: "none" }} width="260" height="90" viewBox="0 0 260 90">
+          <rect x="100" y="0" width="60" height="90" fill="white" />
+          <rect x="0" y="30" width="260" height="30" fill="white" />
+          <path d="M0 0L65 90M195 0L260 90M260 0L195 90M65 0L0 90" stroke="white" strokeWidth="22" />
+        </svg>
+        {/* Yellow accent line at bottom */}
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: B.yellow, opacity: 0.6 }} />
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 24, flexWrap: "wrap", position: "relative", zIndex: 1 }}>
           <div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3 }}>
-              Centre Dashboard
+            <div style={{ fontSize: 10, color: B.yellow, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4, fontFamily: "'Raleway', sans-serif" }}>
+              Today
             </div>
-            <div style={{ fontSize: 21, fontWeight: 800, color: B.white, lineHeight: 1.2 }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: B.white, lineHeight: 1.2, fontFamily: "'Raleway', sans-serif" }}>
               {todayStr}
             </div>
             {dayNum && (
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", marginTop: 4, fontWeight: 600 }}>
-                Day {dayNum} · Week {weekNum} of programme
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", marginTop: 5, fontWeight: 600 }}>
+                Day {dayNum} of programme &nbsp;·&nbsp; Week {weekNum}
               </div>
             )}
             {beforeProg && daysToStart != null && (
-              <div style={{ fontSize: 10, color: "#fbbf24", marginTop: 4, fontWeight: 700 }}>
-                Programme starts in {daysToStart} day{daysToStart !== 1 ? "s" : ""} · {fmtDate(progStart)}
+              <div style={{ fontSize: 10, color: B.yellow, marginTop: 5, fontWeight: 700 }}>
+                Programme starts in {daysToStart} day{daysToStart !== 1 ? "s" : ""} &nbsp;·&nbsp; {fmtDate(progStart)}
               </div>
             )}
             {afterProg && (
-              <div style={{ fontSize: 10, color: "#f87171", marginTop: 4, fontWeight: 700 }}>
+              <div style={{ fontSize: 10, color: B.pink, marginTop: 5, fontWeight: 700 }}>
                 Programme complete
               </div>
             )}
@@ -207,10 +216,10 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
 
           {/* Quote */}
           <div style={{ maxWidth: 380, textAlign: "right", flex: "1 1 220px" }}>
-            <div style={{ fontSize: 11, fontStyle: "italic", color: "rgba(255,255,255,0.65)", lineHeight: 1.6 }}>
+            <div style={{ fontSize: 11, fontStyle: "italic", color: "rgba(255,255,255,0.6)", lineHeight: 1.7 }}>
               &ldquo;{quote.text}&rdquo;
             </div>
-            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", marginTop: 4, fontWeight: 700 }}>
+            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 5, fontWeight: 700, letterSpacing: 0.5 }}>
               &mdash; {quote.author}
             </div>
           </div>
@@ -230,10 +239,13 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
           <StatCard label="Departing" value={departingToday.length + (departingToday.length === 1 ? " group" : " groups")} accent={B.warning} />
         )}
         {excToday && (
-          <div style={{ marginLeft: 4, background: excToday === "Full" ? "#fff7ed" : "#fefce8", border: "2px solid " + (excToday === "Full" ? "#fb923c" : "#fbbf24"), borderRadius: 8, padding: "8px 14px" }}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: excToday === "Full" ? "#c2410c" : "#92400e", textTransform: "uppercase", letterSpacing: 0.5 }}>Today</div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: excToday === "Full" ? "#ea580c" : "#d97706" }}>
-              {excToday === "Full" ? "\ud83d\udeb8 Full Day Excursion" : "\u26f0\ufe0f Half Day Excursion"}
+          <div style={{ marginLeft: 4, background: excToday === "Full" ? "#fff7ed" : B.yellow + "30", border: "2px solid " + (excToday === "Full" ? "#fb923c" : B.yellow), borderRadius: 8, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: excToday === "Full" ? "#ea580c" : "#92400e" }}>{excToday === "Full" ? <IcBus /> : <IcMountain />}</span>
+            <div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: excToday === "Full" ? "#c2410c" : "#92400e", textTransform: "uppercase", letterSpacing: 0.5 }}>Excursion Today</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: excToday === "Full" ? "#ea580c" : "#d97706" }}>
+                {excToday === "Full" ? "Full Day" : "Half Day"}
+              </div>
             </div>
           </div>
         )}
@@ -244,7 +256,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
 
         {/* ── TODAY'S PROGRAMME ────────────────────────── */}
         <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
-          <div style={{ padding: "8px 14px", background: B.navy, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ padding: "8px 14px", background: B.navy, backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 10px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 800, fontSize: 11, color: B.white }}>Today&rsquo;s Programme</span>
             <span style={{ fontSize: 9, color: "rgba(255,255,255,0.5)" }}>
               {dayName(todayDate)}, {todayDate.getDate()}/{todayDate.getMonth() + 1}
@@ -252,8 +264,9 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
           </div>
 
           {excToday && (
-            <div style={{ padding: "6px 14px", background: excToday === "Full" ? "#fff7ed" : "#fefce8", borderBottom: "1px solid " + B.borderLight, fontSize: 10, fontWeight: 800, color: excToday === "Full" ? "#ea580c" : "#d97706" }}>
-              {excToday === "Full" ? "\ud83d\udeb8 Full Day Excursion — groups off-site" : "\u26f0\ufe0f Half Day Excursion"}
+            <div style={{ padding: "6px 14px", background: excToday === "Full" ? "#fff7ed" : B.yellow + "25", borderBottom: "1px solid " + B.borderLight, fontSize: 10, fontWeight: 800, color: excToday === "Full" ? "#ea580c" : "#92400e", display: "flex", alignItems: "center", gap: 6 }}>
+              <span>{excToday === "Full" ? <IcBus /> : <IcMountain />}</span>
+              {excToday === "Full" ? "Full Day Excursion — groups off-site" : "Half Day Excursion"}
             </div>
           )}
 
@@ -301,7 +314,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
 
           {/* Arrivals & Departures */}
           <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden", flex: "0 0 auto" }}>
-            <div style={{ padding: "8px 14px", background: "#0f766e", display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ padding: "8px 14px", background: "#0f766e", backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 10px)", display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ fontWeight: 800, fontSize: 11, color: B.white }}>Arrivals &amp; Departures</span>
             </div>
             <div style={{ padding: "6px 0" }}>
@@ -311,7 +324,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                 <>
                   {arrivingToday.map((g) => (
                     <div key={g.id} style={{ padding: "6px 14px", display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid " + B.borderLight }}>
-                      <span style={{ fontSize: 13 }}>\u2708\ufe0f</span>
+                      <span style={{ color: B.success }}><IcPlaneUp /></span>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 10, color: B.navy }}>{g.group}</div>
                         <div style={{ fontSize: 9, color: B.success, fontWeight: 600 }}>Arriving — {(g.stu || 0) + (g.gl || 0)} pax</div>
@@ -321,7 +334,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                   ))}
                   {departingToday.map((g) => (
                     <div key={g.id} style={{ padding: "6px 14px", display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid " + B.borderLight }}>
-                      <span style={{ fontSize: 13 }}>\ud83d\udeeb</span>
+                      <span style={{ color: B.warning }}><IcPlaneDn /></span>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 10, color: B.navy }}>{g.group}</div>
                         <div style={{ fontSize: 9, color: B.warning, fontWeight: 600 }}>Departing — {(g.stu || 0) + (g.gl || 0)} pax</div>
@@ -336,7 +349,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
 
           {/* Staff on duty */}
           <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden", flex: 1 }}>
-            <div style={{ padding: "8px 14px", background: "#1e40af", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "8px 14px", background: "#1e40af", backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 10px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontWeight: 800, fontSize: 11, color: B.white }}>Staff on Duty</span>
               <span style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700 }}>{onSiteStaff.length}</span>
             </div>
@@ -361,8 +374,8 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
 
         {/* ── BIRTHDAYS ─────────────────────────────────── */}
         <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
-          <div style={{ padding: "8px 14px", background: "#be185d", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontWeight: 800, fontSize: 11, color: B.white }}>\ud83c\udf82 Upcoming Birthdays</span>
+          <div style={{ padding: "8px 14px", background: "#be185d", backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 10px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontWeight: 800, fontSize: 11, color: B.white, display: "flex", alignItems: "center", gap: 6 }}><IcCake /> Upcoming Birthdays</span>
             <span style={{ fontSize: 9, color: "rgba(255,255,255,0.6)" }}>Next 14 days</span>
           </div>
           <div style={{ padding: "4px 0" }}>
@@ -377,7 +390,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                 <div key={i} style={{
                   padding: "7px 14px",
                   borderBottom: i < upcomingBirthdays.length - 1 ? "1px solid " + B.borderLight : "none",
-                  background: isToday ? "#fff0f6" : "transparent",
+                  background: isToday ? B.pink : "transparent",
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <div style={{ width: 7, height: 7, borderRadius: "50%", background: b.color, flexShrink: 0 }} />
@@ -391,7 +404,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       {isToday ? (
-                        <span style={{ background: "#fce7f3", color: "#be185d", padding: "2px 7px", borderRadius: 4, fontSize: 9, fontWeight: 800 }}>Today! \ud83c\udf89</span>
+                        <span style={{ background: "#fce7f3", color: "#be185d", padding: "2px 7px", borderRadius: 4, fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}><IcSparkles /> Today!</span>
                       ) : isTomorrow ? (
                         <span style={{ background: "#fef3c7", color: "#92400e", padding: "2px 7px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>Tomorrow</span>
                       ) : (

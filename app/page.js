@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { B, CENTRES, TABS } from "@/lib/constants";
+import { IcHome, IcGradCap, IcCalGrid, IcClipboard, IcFork, IcPlane, IcUsersTab, IcMapPin, IcKey, IcCoins, IcPhone, IcBuilding } from "@/components/ui";
 import { useSupabase } from "@/lib/useSupabase";
 import StudentsTab from "@/components/tabs/StudentsTab";
 import RotaTab from "@/components/tabs/RotaTab";
@@ -224,11 +225,20 @@ export default function Dashboard() {
     else { setManualEnd(val); db.saveSetting("prog_end", val); }
   };
 
+  const TAB_ICONS = {
+    home: <IcHome />, students: <IcGradCap />, rota: <IcCalGrid />,
+    programmes: <IcClipboard />, catering: <IcFork />, transfers: <IcPlane />,
+    team: <IcUsersTab />, excursions: <IcMapPin />, rooming: <IcKey />,
+    pettycash: <IcCoins />, contacts: <IcPhone />,
+  };
+
   const renderTab = () => {
     if (!centreId) return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 12 }}>
-        <div style={{ width: 64, height: 64, borderRadius: 16, background: B.ice, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🏛️</div>
-        <div style={{ fontSize: 16, fontWeight: 800, color: B.navy, fontFamily: "'Raleway', sans-serif" }}>Select a centre to get started</div>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 14 }}>
+        <div style={{ width: 72, height: 72, borderRadius: 18, background: B.ice, border: `2px solid ${B.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: B.navy }}>
+          <IcBuilding />
+        </div>
+        <div style={{ fontSize: 17, fontWeight: 800, color: B.navy, fontFamily: "'Raleway', sans-serif" }}>Select a centre to get started</div>
         <div style={{ fontSize: 12, color: B.textMuted }}>Choose a centre from the dropdown in the top bar</div>
       </div>
     );
@@ -267,86 +277,106 @@ export default function Dashboard() {
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header style={{
         background: B.navy,
-        backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px)",
-        backgroundSize: "22px 22px",
+        position: "relative", overflow: "hidden",
         padding: "0 24px", display: "flex", alignItems: "center",
-        justifyContent: "space-between", height: 60, flexShrink: 0,
+        justifyContent: "space-between", height: 68, flexShrink: 0,
       }}>
-        {/* Left: brand */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 10, background: B.red,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontFamily: "'Raleway', sans-serif", fontWeight: 900, fontSize: 14,
-            color: B.white, letterSpacing: 0.5, flexShrink: 0,
-            boxShadow: "0 3px 10px rgba(236,39,59,0.45)",
-          }}>UK</div>
+        {/* Brand graphic — subtle union jack cross pattern */}
+        <svg aria-hidden="true" style={{ position: "absolute", right: -20, top: -20, opacity: 0.055, pointerEvents: "none" }} width="320" height="110" viewBox="0 0 320 110">
+          <rect x="130" y="0" width="60" height="110" fill="white" />
+          <rect x="0" y="35" width="320" height="40" fill="white" />
+          <path d="M0 0 L80 110M240 0 L320 110" stroke="white" strokeWidth="28" />
+          <path d="M320 0 L240 110M80 0 L0 110" stroke="white" strokeWidth="28" />
+        </svg>
+
+        {/* Left: brand mark + wordmark */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative", zIndex: 1 }}>
+          {/* Union Jack logo mark */}
+          <svg width="44" height="44" viewBox="0 0 44 44" fill="none" style={{ flexShrink: 0, filter: "drop-shadow(0 3px 8px rgba(236,39,59,0.5))" }}>
+            <rect width="44" height="44" rx="9" fill={B.red} />
+            <rect x="0" y="16" width="44" height="12" fill="white" />
+            <rect x="16" y="0" width="12" height="44" fill="white" />
+            <rect x="16" y="16" width="12" height="12" fill={B.navy} />
+            <path d="M0 0L10 10M34 0L44 10M0 34L10 44M34 44L44 34" stroke="rgba(255,255,255,0.4)" strokeWidth="3.5" strokeLinecap="round" />
+          </svg>
           <div>
-            <div style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 900, fontSize: 19, color: B.white, letterSpacing: -0.5, lineHeight: 1 }}>UKLC</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.45)", letterSpacing: 1.8, textTransform: "uppercase", marginTop: 1 }}>Centre Dashboard</div>
+            <div style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 900, fontSize: 21, color: B.white, letterSpacing: -0.5, lineHeight: 1 }}>UKLC</div>
+            <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 2, textTransform: "uppercase", marginTop: 2 }}>Centre Dashboard</div>
           </div>
           {saving && (
-            <div style={{ display: "flex", alignItems: "center", gap: 5, marginLeft: 4, padding: "3px 10px", background: "rgba(134,239,172,0.12)", border: "1px solid rgba(134,239,172,0.25)", borderRadius: 20 }}>
-              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#86efac", display: "block" }} />
-              <span style={{ fontSize: 10, color: "#86efac", fontWeight: 600 }}>Saving</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginLeft: 6, padding: "3px 10px", background: "rgba(134,239,172,0.15)", border: "1px solid rgba(134,239,172,0.3)", borderRadius: 20 }}>
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#86efac", display: "block", animation: "spin 1.2s linear infinite" }} />
+              <span style={{ fontSize: 10, color: "#86efac", fontWeight: 700, fontFamily: "'Raleway', sans-serif" }}>Saving…</span>
             </div>
           )}
           {!saving && lastSaved && (
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginLeft: 4, fontWeight: 500 }}>✓ Saved</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginLeft: 4 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#86efac" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontWeight: 600 }}>Saved</span>
+            </div>
           )}
         </div>
 
         {/* Right: controls */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
           <select value={centreName} onChange={(e) => handleCentreChange(e.target.value)} style={{
-            background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)",
-            color: "#fff", padding: "7px 12px", borderRadius: 8, fontSize: 12,
-            fontFamily: "'Open Sans', sans-serif", fontWeight: 600, maxWidth: 240, cursor: "pointer",
+            background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
+            color: "#fff", padding: "8px 14px", borderRadius: 8, fontSize: 12,
+            fontFamily: "'Open Sans', sans-serif", fontWeight: 600, maxWidth: 260, cursor: "pointer",
+            backdropFilter: "blur(4px)",
           }}>
             <option value="" style={{ color: "#333", background: "#1c3048" }}>Select Centre…</option>
             {db.centres.map((c) => <option key={c.id} value={c.name} style={{ color: "#333", background: "#fff" }}>{c.name}</option>)}
           </select>
 
           <div style={{
-            display: "flex", alignItems: "center", gap: 6,
-            background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.14)",
-            borderRadius: 8, padding: "5px 12px",
+            display: "flex", alignItems: "center", gap: 8,
+            background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
+            borderRadius: 8, padding: "7px 14px", backdropFilter: "blur(4px)",
           }}>
-            <span style={{ fontSize: 8, color: "rgba(255,255,255,0.4)", fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'Raleway', sans-serif" }}>Dates</span>
-            <input type="date" value={manualStart} onChange={(e) => handleDateChange("start", e.target.value)} style={{ background: "transparent", border: "none", color: "#fff", padding: "2px 6px", fontSize: 11, fontFamily: "'Open Sans', sans-serif", outline: "none", cursor: "pointer" }} />
-            <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 13 }}>→</span>
-            <input type="date" value={manualEnd} onChange={(e) => handleDateChange("end", e.target.value)} style={{ background: "transparent", border: "none", color: "#fff", padding: "2px 6px", fontSize: 11, fontFamily: "'Open Sans', sans-serif", outline: "none", cursor: "pointer" }} />
+            <span style={{ fontSize: 8, color: B.yellow, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'Raleway', sans-serif" }}>Season</span>
+            <input type="date" value={manualStart} onChange={(e) => handleDateChange("start", e.target.value)} style={{ background: "transparent", border: "none", color: "#fff", padding: "1px 4px", fontSize: 11, fontFamily: "'Open Sans', sans-serif", outline: "none", cursor: "pointer" }} />
+            <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>→</span>
+            <input type="date" value={manualEnd} onChange={(e) => handleDateChange("end", e.target.value)} style={{ background: "transparent", border: "none", color: "#fff", padding: "1px 4px", fontSize: 11, fontFamily: "'Open Sans', sans-serif", outline: "none", cursor: "pointer" }} />
             {(progStart !== manualStart || progEnd !== manualEnd) && (
-              <span style={{ fontSize: 9, color: "#86efac", fontWeight: 700, marginLeft: 2, fontFamily: "'Raleway', sans-serif" }}>Auto: {progStart.slice(5)} → {progEnd.slice(5)}</span>
+              <span style={{ fontSize: 9, color: B.yellow, fontWeight: 800, marginLeft: 2, fontFamily: "'Raleway', sans-serif" }}>Auto: {progStart.slice(5)} → {progEnd.slice(5)}</span>
             )}
           </div>
         </div>
       </header>
 
+      {/* ── Brand colour strip ──────────────────────────────────────────── */}
+      <div aria-hidden="true" style={{ height: 4, background: `linear-gradient(90deg, ${B.navy} 0%, ${B.red} 20%, ${B.yellow} 42%, ${B.pink} 64%, ${B.ice} 86%, ${B.white} 100%)`, flexShrink: 0 }} />
+
       {/* ── Nav tabs ────────────────────────────────────────────────────── */}
       <nav style={{
         background: B.white, borderBottom: `1px solid ${B.border}`,
-        padding: "0 16px", display: "flex", overflowX: "auto", gap: 0,
-        boxShadow: "0 2px 8px rgba(28,48,72,0.06)", flexShrink: 0,
+        padding: "0 12px", display: "flex", overflowX: "auto", gap: 0,
+        boxShadow: "0 2px 12px rgba(28,48,72,0.08)", flexShrink: 0,
       }}>
-        {TABS.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)} className="nav-tab" style={{
-            display: "flex", alignItems: "center", gap: 6,
-            padding: "0 15px", height: 46, border: "none", cursor: "pointer",
-            fontFamily: "'Raleway', sans-serif", fontSize: 12, fontWeight: 700,
-            whiteSpace: "nowrap",
-            borderBottom: tab === t.id ? `3px solid ${B.red}` : "3px solid transparent",
-            background: tab === t.id ? "rgba(28,48,72,0.04)" : "transparent",
-            color: tab === t.id ? B.navy : B.textMuted,
-            borderRadius: "4px 4px 0 0",
-          }}>
-            <span style={{ fontSize: 15 }}>{t.icon}</span>
-            {t.label}
-          </button>
-        ))}
+        {TABS.map((t) => {
+          const active = tab === t.id;
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)} className="nav-tab" style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "0 14px", height: 48, border: "none", cursor: "pointer",
+              fontFamily: "'Raleway', sans-serif", fontSize: 11, fontWeight: 700,
+              whiteSpace: "nowrap", transition: "all 0.12s",
+              borderBottom: active ? `3px solid ${B.red}` : "3px solid transparent",
+              background: active ? "rgba(28,48,72,0.05)" : "transparent",
+              color: active ? B.navy : B.textMuted,
+              borderRadius: "4px 4px 0 0",
+            }}>
+              <span style={{ color: active ? B.red : B.textLight, display: "flex", alignItems: "center" }}>
+                {TAB_ICONS[t.id]}
+              </span>
+              {t.label}
+            </button>
+          );
+        })}
       </nav>
 
-      <div style={{ minHeight: "calc(100vh - 106px)" }}>{renderTab()}</div>
+      <div style={{ minHeight: "calc(100vh - 120px)" }}>{renderTab()}</div>
     </div>
   );
 }
