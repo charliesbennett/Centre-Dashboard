@@ -64,51 +64,98 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
     return combined.sort((a, b) => a.date.localeCompare(b.date));
   }, [excList, weekendExcs, isMinistay]);
 
+  // Returns true if this cell value looks like a custom excursion destination
+  // (non-standard activity — mirrors the orange catch-all in ProgrammesTab classify())
+  const isExcActivity = (text) => {
+    if (!text) return false;
+    const t = text.toLowerCase();
+    return !t.includes("arrival") && !t.includes("depart") &&
+      !t.includes("english") && !t.includes("lesson") && !t.includes(" test") &&
+      !t.includes("multi-activity") && !t.includes("chosen programme") &&
+      !t.includes("activity") && !t.includes("free time") && !t.includes("optional") &&
+      !t.includes("orientation") && !t.includes("welcome") &&
+      !t.includes("evening") && !t.includes(" ee") && t !== "ee" &&
+      !t.includes("disco") && !t.includes("quiz") && !t.includes("movie") &&
+      !t.includes("trashion") && !t.includes("speed dating") && !t.includes("paparazzi") &&
+      !t.includes("sports") && !t.includes("games") && !t.includes("arts & crafts") &&
+      !t.includes("full exc") && !t.includes("half exc");
+  };
+
+  const applyResult = (newExcDays, destUpdates) => {
+    setExcDays(newExcDays);
+    if (destUpdates.length > 0) {
+      setExcursions((prev) => {
+        const updated = [...(prev || [])];
+        destUpdates.forEach(({ date, destination }) => {
+          const idx = updated.findIndex((e) => e.date === date);
+          if (idx >= 0) { updated[idx] = { ...updated[idx], destination }; }
+          else { updated.push({ id: uid(), date, destination, coaches: [], notes: "" }); }
+        });
+        return updated;
+      });
+    }
+  };
+
   const autoFromProgramme = () => {
-    // For ministay: read exc field from the saved template
+    const newExcDays = {};
+    const destUpdates = [];
+    const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+    // Path 1: template exc fields (ministay, if any day has an exc field set)
     if (isMinistay && settings?.ministay_template) {
       try {
         const tmpl = JSON.parse(settings.ministay_template);
         const isRelative = Object.keys(tmpl).some((k) => /^\d+$/.test(k));
-        const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-        const newExcDays = {};
+        let found = false;
         (groups || []).forEach((g) => {
           const arrTime = g.arr ? new Date(g.arr + "T00:00:00").getTime() : null;
           if (!arrTime) return;
           dates.forEach((d) => {
             const ds = dayKey(d);
             if (!inRange(ds, g.arr, g.dep)) return;
-            let day;
-            if (isRelative) {
-              const dayNum = Math.round((d.getTime() - arrTime) / 86400000) + 1;
-              day = tmpl[String(dayNum)];
-            } else {
-              day = tmpl[DOW[d.getDay()]];
+            let day = isRelative
+              ? tmpl[String(Math.round((d.getTime() - arrTime) / 86400000) + 1)]
+              : tmpl[DOW[d.getDay()]];
+            if (day?.exc === "Full") {
+              newExcDays[ds] = "Full"; found = true;
+              if (day.exc_dest) destUpdates.push({ date: ds, destination: day.exc_dest });
+            } else if (day?.exc === "Half" && !newExcDays[ds]) {
+              newExcDays[ds] = "Half"; found = true;
+              if (day.exc_dest) destUpdates.push({ date: ds, destination: day.exc_dest });
             }
-            if (day?.exc === "Full") newExcDays[ds] = "Full";
-            else if (day?.exc === "Half" && !newExcDays[ds]) newExcDays[ds] = "Half";
           });
         });
-        setExcDays(newExcDays);
-        return;
+        if (found) { applyResult(newExcDays, destUpdates); return; }
       } catch {}
     }
-    // Fallback: scan progGrid for "Full Exc" / "Half Exc" (summer auto-populate uses these values)
-    const newExcDays = {};
+
+    // Path 2: scan progGrid — keywords ("Full Exc"/"Half Exc") + heuristic for custom names
     dates.forEach((d) => {
       const ds = dayKey(d);
-      let hasFullExc = false, hasHalfExc = false;
+      let hasFullKw = false, hasHalfKw = false, amDest = "", pmDest = "";
       (groups || []).forEach((g) => {
-        ["AM", "PM", "EVE"].forEach((sl) => {
-          const val = ((progGrid || {})[`${g.id}-${ds}-${sl}`] || "").toLowerCase();
-          if (val.includes("full") && val.includes("exc")) hasFullExc = true;
-          if (val.includes("half") && val.includes("exc")) hasHalfExc = true;
-        });
+        if (!inRange(ds, g.arr, g.dep)) return;
+        const am = (progGrid || {})[`${g.id}-${ds}-AM`] || "";
+        const pm = (progGrid || {})[`${g.id}-${ds}-PM`] || "";
+        const amL = am.toLowerCase(), pmL = pm.toLowerCase();
+        if (amL.includes("full") && amL.includes("exc")) hasFullKw = true;
+        if (pmL.includes("full") && pmL.includes("exc")) hasFullKw = true;
+        if (amL.includes("half") && amL.includes("exc")) hasHalfKw = true;
+        if (pmL.includes("half") && pmL.includes("exc")) hasHalfKw = true;
+        if (!amDest && isExcActivity(am)) amDest = am;
+        if (!pmDest && isExcActivity(pm)) pmDest = pm;
       });
-      if (hasFullExc) newExcDays[ds] = "Full";
-      else if (hasHalfExc) newExcDays[ds] = "Half";
+      const amExc = isMinistay && (groups || []).some((g) => isExcActivity((progGrid || {})[`${g.id}-${ds}-AM`] || ""));
+      const pmExc = isMinistay && (groups || []).some((g) => isExcActivity((progGrid || {})[`${g.id}-${ds}-PM`] || ""));
+      let excType = hasFullKw || (amExc && pmExc) ? "Full"
+        : hasHalfKw || amExc || pmExc ? "Half" : null;
+      if (excType) {
+        newExcDays[ds] = excType;
+        const dest = pmDest || amDest;
+        if (dest) destUpdates.push({ date: ds, destination: dest });
+      }
     });
-    setExcDays(newExcDays);
+    applyResult(newExcDays, destUpdates);
   };
 
   const saveDest = (date, dest) => {

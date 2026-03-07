@@ -209,6 +209,17 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
                       </div>
                     ))}
                   </div>
+                  {template[day]?.exc && (
+                    <div style={{ padding:"4px 8px 6px", borderTop:"1px solid "+B.borderLight, background:EXC_COLORS[template[day].exc]+"10" }}>
+                      <div style={{ fontSize:7, fontWeight:800, color:EXC_COLORS[template[day].exc], marginBottom:2 }}>EXCURSION DESTINATION</div>
+                      <input
+                        value={template[day]?.exc_dest || ""}
+                        onChange={(e) => update(day, "exc_dest", e.target.value)}
+                        placeholder="e.g. Oxford with walking tour"
+                        style={{ width:"100%", padding:"3px 5px", fontSize:9, fontFamily:"inherit", border:"1px solid "+B.border, borderRadius:3, color:EXC_COLORS[template[day].exc], fontWeight:700, background:B.white, boxSizing:"border-box" }}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
