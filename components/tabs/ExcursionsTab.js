@@ -10,7 +10,8 @@ const COACH_STATUS = {
   Paid: { color: "#5b21b6", bg: "#ede9fe" },
 };
 
-export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, progEnd, excursions, setExcursions }) {
+export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, progEnd, excursions, setExcursions, centre, progGrid }) {
+  const isMinistay = (centre || "").toLowerCase().includes("ministay");
   const [showCoachForm, setShowCoachForm] = useState(null);
   const [coachForm, setCoachForm] = useState({ company: "", phone: "", cost: "", pickupTime: "", dropoffTime: "", vehicle: "Coach", notes: "", status: "Pending" });
   const [editingDest, setEditingDest] = useState(null);
@@ -55,11 +56,31 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
 
   const allExcs = useMemo(() => {
     const combined = [...excList];
-    weekendExcs.forEach((we) => {
-      if (!combined.find((e) => e.date === we.date)) combined.push(we);
-    });
+    if (!isMinistay) {
+      weekendExcs.forEach((we) => {
+        if (!combined.find((e) => e.date === we.date)) combined.push(we);
+      });
+    }
     return combined.sort((a, b) => a.date.localeCompare(b.date));
-  }, [excList, weekendExcs]);
+  }, [excList, weekendExcs, isMinistay]);
+
+  const autoFromProgramme = () => {
+    const newExcDays = {};
+    dates.forEach((d) => {
+      const ds = dayKey(d);
+      let hasFullExc = false, hasHalfExc = false;
+      (groups || []).forEach((g) => {
+        ["AM", "PM", "EVE"].forEach((sl) => {
+          const val = ((progGrid || {})[`${g.id}-${ds}-${sl}`] || "").toLowerCase();
+          if (val.includes("full") && val.includes("exc")) hasFullExc = true;
+          if (val.includes("half") && val.includes("exc")) hasHalfExc = true;
+        });
+      });
+      if (hasFullExc) newExcDays[ds] = "Full";
+      else if (hasHalfExc) newExcDays[ds] = "Half";
+    });
+    setExcDays(newExcDays);
+  };
 
   const saveDest = (date, dest) => {
     const existing = (excursions || []).find((e) => e.date === date);
@@ -124,7 +145,12 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
             <div style={{ fontSize: 9, color: B.textMuted, fontWeight: 600 }}>Coach Cost</div>
           </div>
         )}
-        <div style={{ fontSize: 9, color: B.textMuted, marginLeft: "auto" }}>Set exc days in Programmes tab {"\u00b7"} Weekends auto-included</div>
+        <button onClick={autoFromProgramme} style={{ marginLeft: "auto", padding: "6px 14px", background: B.navy, border: "none", color: B.white, borderRadius: 6, cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit" }}>
+          Auto from Programme
+        </button>
+        <div style={{ fontSize: 9, color: B.textMuted }}>
+          {isMinistay ? "Ministay: set exc days via Programme tab or Auto from Programme" : "Set exc days in Programmes tab \u00b7 Weekends auto-included"}
+        </div>
       </div>
 
       {allExcs.length === 0 ? (
