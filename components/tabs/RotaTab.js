@@ -4,8 +4,8 @@ import { B, SESSION_TYPES, genDates, dayKey, dayName, isWeekend, inRange, fmtDat
 import { StatCard, IcWand, thStyle, tdStyle, btnPrimary } from "@/components/ui";
 
 const SLOTS = ["AM", "PM", "Eve"];
-const CELL_W = 46; // Wider cells for readability
-const CELL_H = 36;
+const CELL_W = 88;
+const CELL_H = 52;
 
 function calcRequiredStaff(n) { return n > 0 ? Math.ceil(n / 20) : 0; }
 
@@ -426,7 +426,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     return "#6b7280";
   };
 
-  const tableMinWidth = 260 + dates.length * (CELL_W * 3 + 6);
+  const tableMinWidth = 272 + dates.length * (CELL_W * 3 + 6);
 
   // Total chrome height: header 68 + strip 4 + nav 48 = 120px
   const CHROME = 120;
@@ -499,42 +499,42 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         <table style={{ borderCollapse: "collapse", fontSize: 10, minWidth: tableMinWidth, background: B.white }}>
           <thead>
             <tr>
-              <th style={{ ...thStyle, width: 42, position: "sticky", left: 0, zIndex: 3 }}>Role</th>
-              <th style={{ ...thStyle, width: 110, position: "sticky", left: 42, zIndex: 3 }}>Name</th>
-              <th style={{ ...thStyle, width: 32, textAlign: "center", position: "sticky", left: 152, zIndex: 3, fontSize: 8 }}>Sess</th>
-              <th style={{ ...thStyle, width: 28, textAlign: "center", position: "sticky", left: 184, zIndex: 3, fontSize: 8 }}>Off</th>
+              <th style={{ ...thStyle, width: 52, position: "sticky", left: 0, zIndex: 3 }}>Role</th>
+              <th style={{ ...thStyle, width: 140, position: "sticky", left: 52, zIndex: 3 }}>Name</th>
+              <th style={{ ...thStyle, width: 44, textAlign: "center", position: "sticky", left: 192, zIndex: 3, fontSize: 9 }}>Sess</th>
+              <th style={{ ...thStyle, width: 36, textAlign: "center", position: "sticky", left: 236, zIndex: 3, fontSize: 9 }}>Off</th>
               {dates.map((d) => {
                 const we = isWeekend(d); const ds = dayKey(d); const exc = excDays && excDays[ds];
                 const isArr = allArrivalDates.has(ds);
                 const dem = lessonDemand[ds];
                 return (
-                  <th key={ds} colSpan={3} style={{ ...thStyle, textAlign: "center", borderLeft: "2px solid "+B.border, padding: "3px 1px", minWidth: CELL_W*3+4, background: isArr ? "#dcfce7" : exc ? "#fff7ed" : we ? "#fef2f2" : "#f8fafc" }}>
-                    <div style={{ fontSize: 8, color: B.textMuted }}>{fmtDate(d)}</div>
-                    <div style={{ fontWeight: 800, fontSize: 10, color: we ? B.red : B.navy }}>{dayName(d)}</div>
-                    {exc && <div style={{ fontSize: 7, color: "#ea580c", fontWeight: 800 }}>{exc === "Full" ? "FD" : "HD"}</div>}
-                    {isArr && <div style={{ fontSize: 7, color: B.success, fontWeight: 800 }}>ARR</div>}
-                    {dem && !we && <div style={{ fontSize: 6, color: "#6b7280" }}>{dem.amStudents>0?"AM:"+dem.amStudents:""} {dem.pmStudents>0?"PM:"+dem.pmStudents:""}</div>}
+                  <th key={ds} colSpan={3} style={{ ...thStyle, textAlign: "center", borderLeft: "2px solid rgba(255,255,255,0.2)", padding: "4px 2px", minWidth: CELL_W*3+4, background: isArr ? "#166534" : exc ? "#92400e" : we ? "#7f1d1d" : B.navy }}>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{fmtDate(d)}</div>
+                    <div style={{ fontWeight: 900, fontSize: 13, color: B.white, letterSpacing: 0.5 }}>{dayName(d)}</div>
+                    {exc && <div style={{ fontSize: 8, color: B.yellow, fontWeight: 800 }}>{exc === "Full" ? "Full Day Exc" : "Half Day Exc"}</div>}
+                    {isArr && <div style={{ fontSize: 8, color: "#86efac", fontWeight: 800 }}>ARRIVAL</div>}
+                    {dem && !we && <div style={{ fontSize: 8, color: "rgba(255,255,255,0.5)" }}>{dem.amStudents>0?"AM:"+dem.amStudents:""}{dem.amStudents>0&&dem.pmStudents>0?" · ":""}{dem.pmStudents>0?"PM:"+dem.pmStudents:""}</div>}
                   </th>
                 );
               })}
             </tr>
             <tr>
               <th style={{ ...thStyle, position: "sticky", left: 0, zIndex: 3 }}></th>
-              <th style={{ ...thStyle, position: "sticky", left: 42, zIndex: 3 }}></th>
-              <th style={{ ...thStyle, position: "sticky", left: 152, zIndex: 3 }}></th>
-              <th style={{ ...thStyle, position: "sticky", left: 184, zIndex: 3 }}></th>
+              <th style={{ ...thStyle, position: "sticky", left: 52, zIndex: 3 }}></th>
+              <th style={{ ...thStyle, position: "sticky", left: 192, zIndex: 3 }}></th>
+              <th style={{ ...thStyle, position: "sticky", left: 236, zIndex: 3 }}></th>
               {dates.map((d) => SLOTS.map((sl) => (
-                <th key={dayKey(d)+"-"+sl} style={{ ...thStyle, textAlign: "center", fontSize: 8, padding: "3px 0", borderLeft: sl === "AM" ? "2px solid "+B.border : "1px solid "+B.borderLight, minWidth: CELL_W }}>{sl}</th>
+                <th key={dayKey(d)+"-"+sl} style={{ ...thStyle, textAlign: "center", fontSize: 9, padding: "4px 0", borderLeft: sl === "AM" ? "2px solid rgba(255,255,255,0.2)" : "1px solid rgba(255,255,255,0.1)", minWidth: CELL_W }}>{sl}</th>
               )))}
             </tr>
           </thead>
           <tbody>
             {filled && groups && groups.length > 0 && (
               <tr style={{ borderBottom: "2px solid "+B.border, background: "#f0fdf4" }}>
-                <td style={{ ...tdStyle, position: "sticky", left: 0, zIndex: 1, background: "#f0fdf4", fontSize: 8, fontWeight: 800, color: B.success }}>{"\ud83d\udee1\ufe0f"}</td>
-                <td style={{ ...tdStyle, position: "sticky", left: 42, zIndex: 1, background: "#f0fdf4", fontSize: 9, fontWeight: 700, color: B.navy }}>Staff+GL / Need</td>
-                <td style={{ ...tdStyle, position: "sticky", left: 152, zIndex: 1, background: "#f0fdf4" }}></td>
-                <td style={{ ...tdStyle, position: "sticky", left: 184, zIndex: 1, background: "#f0fdf4" }}></td>
+                <td style={{ ...tdStyle, position: "sticky", left: 0, zIndex: 1, background: "#f0fdf4", fontSize: 9, fontWeight: 800, color: B.success }}>Ratio</td>
+                <td style={{ ...tdStyle, position: "sticky", left: 52, zIndex: 1, background: "#f0fdf4", fontSize: 10, fontWeight: 700, color: B.navy }}>Staff+GL / Need</td>
+                <td style={{ ...tdStyle, position: "sticky", left: 192, zIndex: 1, background: "#f0fdf4" }}></td>
+                <td style={{ ...tdStyle, position: "sticky", left: 236, zIndex: 1, background: "#f0fdf4" }}></td>
                 {dates.map((d) => {
                   const ds = dayKey(d); const rd = ratioData[ds];
                   return SLOTS.map((sl) => {
@@ -543,9 +543,9 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                     const tot = sw + rd.gls;
                     const ok = tot >= rd.required;
                     return (
-                      <td key={ds+"-"+sl} style={{ padding: "1px", borderLeft: sl === "AM" ? "2px solid "+B.border : "1px solid "+B.borderLight, textAlign: "center", background: ok ? "#f0fdf4" : "#fee2e2" }}>
-                        <div style={{ fontSize: 8, fontWeight: 800, color: ok ? B.success : B.danger, lineHeight: 1 }}>{tot}/{rd.required}</div>
-                        <div style={{ fontSize: 6, color: B.textMuted }}>{rd.students}s</div>
+                      <td key={ds+"-"+sl} style={{ padding: "2px", borderLeft: sl === "AM" ? "2px solid "+B.border : "1px solid "+B.borderLight, textAlign: "center", background: ok ? "#f0fdf4" : "#fee2e2" }}>
+                        <div style={{ fontSize: 10, fontWeight: 800, color: ok ? B.success : B.danger, lineHeight: 1 }}>{tot}/{rd.required}</div>
+                        <div style={{ fontSize: 9, color: B.textMuted }}>{rd.students}s</div>
                       </td>
                     );
                   });
@@ -564,11 +564,11 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
               return (
                 <tr key={s.id} style={{ borderBottom: "1px solid "+B.borderLight }}>
                   <td style={{ ...tdStyle, position: "sticky", left: 0, background: B.white, zIndex: 1 }}>
-                    <span style={{ background: "#dbeafe", color: "#1e40af", padding: "2px 5px", borderRadius: 3, fontSize: 8, fontWeight: 800 }}>{s.role}</span>
+                    <span style={{ background: "#dbeafe", color: "#1e40af", padding: "3px 7px", borderRadius: 4, fontSize: 10, fontWeight: 800 }}>{s.role}</span>
                   </td>
-                  <td style={{ ...tdStyle, fontWeight: 700, color: B.navy, fontSize: 10, position: "sticky", left: 42, background: B.white, zIndex: 1, whiteSpace: "nowrap" }}>{s.name}</td>
-                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, fontSize: 10, position: "sticky", left: 152, background: B.white, zIndex: 1, color: over ? B.danger : B.navy }}>{st.sess}</td>
-                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700, fontSize: 10, position: "sticky", left: 184, background: B.white, zIndex: 1, color: st.offs > 0 ? "#f59e0b" : B.textLight }}>{st.offs}</td>
+                  <td style={{ ...tdStyle, fontWeight: 700, color: B.navy, fontSize: 12, position: "sticky", left: 52, background: B.white, zIndex: 1, whiteSpace: "nowrap" }}>{s.name}</td>
+                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, fontSize: 12, position: "sticky", left: 192, background: B.white, zIndex: 1, color: over ? B.danger : B.navy }}>{st.sess}</td>
+                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700, fontSize: 12, position: "sticky", left: 236, background: B.white, zIndex: 1, color: st.offs > 0 ? "#f59e0b" : B.textLight }}>{st.offs}</td>
                   {dates.map((d) => {
                     const ds = dayKey(d); const on = inRange(ds, s.arr, s.dep);
                     return SLOTS.map((sl) => {
@@ -589,12 +589,12 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                           {isEd ? (
                             <input autoFocus value={editValue} onChange={(e) => setEditValue(e.target.value)}
                               onBlur={commitEdit} onKeyDown={(e) => e.key === "Enter" && commitEdit()}
-                              style={{ width: "100%", fontSize: 8, padding: "2px", border: "1px solid "+B.navy, borderRadius: 2, fontFamily: "inherit", height: CELL_H }} />
+                              style={{ width: "100%", fontSize: 10, padding: "4px", border: "1px solid "+B.navy, borderRadius: 3, fontFamily: "inherit", height: CELL_H }} />
                           ) : col ? (
-                            <div style={{ background: col+"30", color: col, borderRadius: 3, fontSize: 8, fontWeight: 800, height: CELL_H, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "0 2px", textAlign: "center", lineHeight: 1.1 }} title={v}>
-                              {off ? "OFF" : (v || "").length > 6 ? (v || "").slice(0, 6) : v}
+                            <div style={{ background: col+"25", color: col, borderRadius: 4, fontSize: 10, fontWeight: 800, height: CELL_H, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", textAlign: "center", lineHeight: 1.2 }} title={v}>
+                              {off ? "Day Off" : v}
                             </div>
-                          ) : on ? <div style={{ height: CELL_H }} /> : <div style={{ height: CELL_H, background: "#eee", borderRadius: 2 }} />}
+                          ) : on ? <div style={{ height: CELL_H }} /> : <div style={{ height: CELL_H, background: "#f0f0f0", borderRadius: 3 }} />}
                         </td>
                       );
                     });
