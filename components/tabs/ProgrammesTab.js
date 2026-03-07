@@ -39,16 +39,24 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         setShowTemplateModal(true);
         return;
       }
-      const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+      // Detect format: numeric keys ("1","2"…) = relative-day; day names = legacy
+      const isRelative = Object.keys(template).some((k) => /^\d+$/.test(k));
       const ng = {};
       groups.forEach((g) => {
+        const arrTime = g.arr ? new Date(g.arr + "T00:00:00").getTime() : null;
         dates.forEach((d) => {
           const s = dayKey(d);
           if (!inRange(s, g.arr, g.dep)) return;
           if (g.arr && s === dayKey(new Date(g.arr))) { ng[g.id+"-"+s+"-PM"] = "ARRIVAL"; return; }
           if (g.dep && s === dayKey(new Date(g.dep))) { ng[g.id+"-"+s+"-AM"] = "DEPARTURE"; return; }
-          const dayOfWeek = DAY_NAMES[d.getDay()];
-          const day = template[dayOfWeek];
+          let day;
+          if (isRelative && arrTime) {
+            const dayNum = Math.round((d.getTime() - arrTime) / 86400000) + 1;
+            day = template[String(dayNum)];
+          } else {
+            const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+            day = template[DOW[d.getDay()]];
+          }
           if (day) {
             if (day.am) ng[g.id+"-"+s+"-AM"] = day.am;
             if (day.pm) ng[g.id+"-"+s+"-PM"] = day.pm;

@@ -3,7 +3,13 @@ import { useState } from "react";
 import { B } from "@/lib/constants";
 import { parseProgrammeExcel } from "@/lib/parseProgrammeExcel";
 
-const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+// Days are relative to arrival: Day 1 = arrival, Day 7 = departure (6-night stay)
+const DAYS = ["1","2","3","4","5","6","7"];
+const DAY_LABELS = {
+  "1": "Day 1 — Arrival",
+  "2": "Day 2", "3": "Day 3", "4": "Day 4", "5": "Day 5", "6": "Day 6",
+  "7": "Day 7 — Departure",
+};
 const SLOT_OPTS = {
   am:  ["English Lessons","English Test","Orientation Tour","Sports & Games","Arts & Crafts","Half Day Excursion","Full Day Excursion","Free Time","ARRIVAL","DEPARTURE"],
   pm:  ["English Lessons","Multi-Activity","Half Day Excursion","Full Day Excursion","Sports & Games","Arts & Crafts","Paparazzi Challenge","Free Time","ARRIVAL","DEPARTURE"],
@@ -16,12 +22,25 @@ function empty() {
   DAYS.forEach((d) => { t[d] = { am:"", pm:"", eve:"" }; });
   return t;
 }
+
 function load(json) {
   if (!json) return empty();
   try {
     const p = JSON.parse(json);
+    // Support both new numeric format and legacy day-name format
+    const isNumeric = Object.keys(p).some((k) => /^\d+$/.test(k));
+    if (isNumeric) {
+      const t = empty();
+      DAYS.forEach((d) => { if (p[d]) t[d] = { am:"", pm:"", eve:"", ...p[d] }; });
+      return t;
+    }
+    // Legacy: day-name format — migrate by treating Monday=Day1, Tuesday=Day2, etc.
+    const legacyOrder = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
     const t = empty();
-    DAYS.forEach((d) => { if (p[d]) t[d] = { am:"", pm:"", eve:"", ...p[d] }; });
+    legacyOrder.forEach((day, i) => {
+      const key = String(i + 1);
+      if (p[day]) t[key] = { am:"", pm:"", eve:"", ...p[day] };
+    });
     return t;
   } catch { return empty(); }
 }
@@ -29,9 +48,9 @@ function load(json) {
 export default function ProgrammeTemplateModal({ currentJson, onSave, onClose }) {
   const [template, setTemplate] = useState(() => load(currentJson));
   const [parsing,  setParsing]  = useState(false);
-  const [msg,      setMsg]      = useState(null);   // { ok, text }
+  const [msg,      setMsg]      = useState(null);
   const [fileName, setFileName] = useState("");
-  const [rows,     setRows]     = useState([]);     // raw spreadsheet rows for preview
+  const [rows,     setRows]     = useState([]);
 
   const update = (day, slot, val) =>
     setTemplate((p) => ({ ...p, [day]: { ...p[day], [slot]: val } }));
@@ -47,7 +66,6 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
     try {
       const result = await parseProgrammeExcel(file);
       if (result.rows) setRows(result.rows);
-
       if (result.ok) {
         setTemplate(result.template);
         setMsg({ ok: true, text: "Programme extracted — review the grid and correct anything that looks wrong, then save." + (result.debug ? " (" + result.debug + ")" : "") });
@@ -60,8 +78,7 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
     setParsing(false);
   };
 
-  const isWeekend = (d) => d === "Saturday" || d === "Sunday";
-  const maxCols   = rows.length ? Math.max(...rows.map((r) => r.length)) : 0;
+  const maxCols = rows.length ? Math.max(...rows.map((r) => r.length)) : 0;
 
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.78)", zIndex:10000, display:"flex", flexDirection:"column", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>
@@ -136,7 +153,7 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
         <div style={{ width:"45%", background:B.bg, display:"flex", flexDirection:"column", minHeight:0 }}>
           <div style={{ padding:"8px 14px", background:B.white, borderBottom:"1px solid "+B.border, flexShrink:0 }}>
             <div style={{ fontSize:10, fontWeight:700, color:B.navy }}>Weekly Programme Template</div>
-            <div style={{ fontSize:9, color:B.textMuted, marginTop:1 }}>Auto-filled from spreadsheet. Edit anything that looks wrong.</div>
+            <div style={{ fontSize:9, color:B.textMuted, marginTop:1 }}>Relative to arrival — Day 1 = arrival, Day 7 = departure (6 nights). Auto-populate adjusts for any start day.</div>
           </div>
 
           {msg && (
@@ -157,27 +174,34 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
               ))}
             </div>
 
-            {DAYS.map((day) => (
-              <div key={day} style={{ marginBottom:5, background:B.white, borderRadius:6, border:"1px solid "+(isWeekend(day)?"#fecaca":B.border), overflow:"hidden" }}>
-                <div style={{ padding:"5px 10px", background:isWeekend(day)?"#fef2f2":"#f8fafc", borderBottom:"1px solid "+(isWeekend(day)?"#fecaca":B.borderLight), fontWeight:800, fontSize:10, color:isWeekend(day)?B.red:B.navy }}>
-                  {day}
+            {DAYS.map((day) => {
+              const isFirst = day === "1";
+              const isLast  = day === "7";
+              const accent  = isFirst ? "#1e40af" : isLast ? B.red : B.navy;
+              const bg      = isFirst ? "#eff6ff" : isLast ? "#fef2f2" : "#f8fafc";
+              const border  = isFirst ? "#bfdbfe" : isLast ? "#fecaca" : B.borderLight;
+              return (
+                <div key={day} style={{ marginBottom:5, background:B.white, borderRadius:6, border:"1px solid "+(isFirst?"#bfdbfe":isLast?"#fecaca":B.border), overflow:"hidden" }}>
+                  <div style={{ padding:"5px 10px", background:bg, borderBottom:"1px solid "+border, fontWeight:800, fontSize:10, color:accent }}>
+                    {DAY_LABELS[day]}
+                  </div>
+                  <div style={{ display:"flex" }}>
+                    {["am","pm","eve"].map((slot, si) => (
+                      <div key={slot} style={{ flex:1, padding:"5px 6px", borderRight:si<2?"1px solid "+B.borderLight:"none" }}>
+                        <div style={{ fontSize:7, fontWeight:800, color:SLOT_COLORS[slot], marginBottom:2, textTransform:"uppercase" }}>{slot}</div>
+                        <input
+                          value={template[day]?.[slot] || ""}
+                          onChange={(e) => update(day, slot, e.target.value)}
+                          list={`tmpl-${slot}-opts`}
+                          placeholder="—"
+                          style={{ width:"100%", padding:"3px 5px", fontSize:9, fontFamily:"inherit", border:"1px solid "+B.border, borderRadius:3, color:SLOT_COLORS[slot], fontWeight:template[day]?.[slot]?700:400, background:template[day]?.[slot]?SLOT_COLORS[slot]+"10":B.white, boxSizing:"border-box" }}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ display:"flex" }}>
-                  {["am","pm","eve"].map((slot, si) => (
-                    <div key={slot} style={{ flex:1, padding:"5px 6px", borderRight:si<2?"1px solid "+B.borderLight:"none" }}>
-                      <div style={{ fontSize:7, fontWeight:800, color:SLOT_COLORS[slot], marginBottom:2, textTransform:"uppercase" }}>{slot}</div>
-                      <input
-                        value={template[day]?.[slot] || ""}
-                        onChange={(e) => update(day, slot, e.target.value)}
-                        list={`tmpl-${slot}-opts`}
-                        placeholder="—"
-                        style={{ width:"100%", padding:"3px 5px", fontSize:9, fontFamily:"inherit", border:"1px solid "+B.border, borderRadius:3, color:SLOT_COLORS[slot], fontWeight:template[day]?.[slot]?700:400, background:template[day]?.[slot]?SLOT_COLORS[slot]+"10":B.white, boxSizing:"border-box" }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
             {["am","pm","eve"].map((slot) => (
               <datalist key={slot} id={`tmpl-${slot}-opts`}>
@@ -186,7 +210,7 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
             ))}
 
             <div style={{ marginTop:8, padding:"7px 10px", background:"#fffbeb", border:"1px solid #fde68a", borderRadius:5, fontSize:9, color:"#92400e" }}>
-              <strong>Tip:</strong> Arrival and departure days are set automatically. Leave EVE blank if no evening activity. Use the spreadsheet preview on the left to check how the data was read.
+              <strong>Tip:</strong> Arrival and departure are set automatically regardless of what's in Day 1/Day 7. Leave EVE blank if no evening activity. This template works for any group arriving on any day of the week.
             </div>
           </div>
         </div>
