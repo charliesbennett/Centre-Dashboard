@@ -18,7 +18,7 @@ function getGroupLessonSlot(g, ds) {
 export default function ProgrammesTab({ groups, progStart, progEnd, centre, excDays, setExcDays, progGrid, setProgGrid, settings, saveSetting }) {
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
   const isLondon = LONDON_CENTRES.includes(centre);
-  const isMinistay = (centre || "").toLowerCase().includes("ministay");
+  const isMinistay = /mini[\s-]?stay/i.test(centre || "");
   const slots = isMinistay ? ["AM", "PM", "EVE"] : ["AM", "PM"];
   const [viewMode, setViewMode] = useState("all");
   const [selectedGroupId, setSelectedGroupId] = useState(null);
@@ -64,6 +64,27 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           }
         });
       });
+      // Also set excDays from template exc field
+      const newExcDays = {};
+      groups.forEach((g) => {
+        const gArrTime = g.arr ? new Date(g.arr + "T00:00:00").getTime() : null;
+        if (!gArrTime) return;
+        dates.forEach((d) => {
+          const s = dayKey(d);
+          if (!inRange(s, g.arr, g.dep)) return;
+          let day;
+          if (isRelative) {
+            const dayNum = Math.round((d.getTime() - gArrTime) / 86400000) + 1;
+            day = template[String(dayNum)];
+          } else {
+            const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+            day = template[DOW[d.getDay()]];
+          }
+          if (day?.exc === "Full") newExcDays[s] = "Full";
+          else if (day?.exc === "Half" && !newExcDays[s]) newExcDays[s] = "Half";
+        });
+      });
+      setExcDays(newExcDays);
       setGrid(ng);
       return;
     }

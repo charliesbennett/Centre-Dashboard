@@ -10,8 +10,8 @@ const COACH_STATUS = {
   Paid: { color: "#5b21b6", bg: "#ede9fe" },
 };
 
-export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, progEnd, excursions, setExcursions, centre, progGrid }) {
-  const isMinistay = (centre || "").toLowerCase().includes("ministay");
+export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, progEnd, excursions, setExcursions, centre, progGrid, settings }) {
+  const isMinistay = /mini[\s-]?stay/i.test(centre || "");
   const [showCoachForm, setShowCoachForm] = useState(null);
   const [coachForm, setCoachForm] = useState({ company: "", phone: "", cost: "", pickupTime: "", dropoffTime: "", vehicle: "Coach", notes: "", status: "Pending" });
   const [editingDest, setEditingDest] = useState(null);
@@ -65,6 +65,35 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
   }, [excList, weekendExcs, isMinistay]);
 
   const autoFromProgramme = () => {
+    // For ministay: read exc field from the saved template
+    if (isMinistay && settings?.ministay_template) {
+      try {
+        const tmpl = JSON.parse(settings.ministay_template);
+        const isRelative = Object.keys(tmpl).some((k) => /^\d+$/.test(k));
+        const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+        const newExcDays = {};
+        (groups || []).forEach((g) => {
+          const arrTime = g.arr ? new Date(g.arr + "T00:00:00").getTime() : null;
+          if (!arrTime) return;
+          dates.forEach((d) => {
+            const ds = dayKey(d);
+            if (!inRange(ds, g.arr, g.dep)) return;
+            let day;
+            if (isRelative) {
+              const dayNum = Math.round((d.getTime() - arrTime) / 86400000) + 1;
+              day = tmpl[String(dayNum)];
+            } else {
+              day = tmpl[DOW[d.getDay()]];
+            }
+            if (day?.exc === "Full") newExcDays[ds] = "Full";
+            else if (day?.exc === "Half" && !newExcDays[ds]) newExcDays[ds] = "Half";
+          });
+        });
+        setExcDays(newExcDays);
+        return;
+      } catch {}
+    }
+    // Fallback: scan progGrid for "Full Exc" / "Half Exc" (summer auto-populate uses these values)
     const newExcDays = {};
     dates.forEach((d) => {
       const ds = dayKey(d);

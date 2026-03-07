@@ -257,7 +257,7 @@ export default function Dashboard() {
       case "catering": return <CateringTab groups={activeGroups} staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} />;
       case "transfers": return <TransfersTab groups={activeGroups} transfers={db.transfers} setTransfers={setTransfers} />;
       case "team": return <TeamTab staff={db.staff} setStaff={setStaff} />;
-      case "excursions": return <ExcursionsTab excDays={db.excDays} setExcDays={setExcDays} groups={activeGroups} progStart={progStart} progEnd={progEnd} excursions={db.excursions} setExcursions={setExcursions} />;
+      case "excursions": return <ExcursionsTab excDays={db.excDays} setExcDays={setExcDays} groups={activeGroups} progStart={progStart} progEnd={progEnd} excursions={db.excursions} setExcursions={setExcursions} centre={centreName} progGrid={db.progGrid} settings={db.settings} />;
       case "rooming": return <RoomingTab
         groups={db.groups} progStart={progStart} progEnd={progEnd}
         roomingHouses={db.roomingHouses} setRoomingHouses={setRoomingHouses}

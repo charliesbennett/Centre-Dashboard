@@ -16,10 +16,16 @@ const SLOT_OPTS = {
   eve: ["Evening Activity","EE","Welcome Talk","Speed Dating","Paparazzi","Trashion Show","Movie Night","Quiz Night","Disco","Drop the Egg","Attractions","BBQ","Talent Show","Karaoke"],
 };
 const SLOT_COLORS = { am: "#1e40af", pm: "#166534", eve: "#6d28d9" };
+const EXC_OPTS = [
+  { value: "", label: "— No excursion" },
+  { value: "Full", label: "Full Day Excursion" },
+  { value: "Half", label: "Half Day Excursion" },
+];
+const EXC_COLORS = { "": "#94a3b8", Full: "#ea580c", Half: "#0369a1" };
 
 function empty() {
   const t = {};
-  DAYS.forEach((d) => { t[d] = { am:"", pm:"", eve:"" }; });
+  DAYS.forEach((d) => { t[d] = { am:"", pm:"", eve:"", exc:"" }; });
   return t;
 }
 
@@ -31,7 +37,7 @@ function load(json) {
     const isNumeric = Object.keys(p).some((k) => /^\d+$/.test(k));
     if (isNumeric) {
       const t = empty();
-      DAYS.forEach((d) => { if (p[d]) t[d] = { am:"", pm:"", eve:"", ...p[d] }; });
+      DAYS.forEach((d) => { if (p[d]) t[d] = { am:"", pm:"", eve:"", exc:"", ...p[d] }; });
       return t;
     }
     // Legacy: day-name format — migrate by treating Monday=Day1, Tuesday=Day2, etc.
@@ -39,7 +45,7 @@ function load(json) {
     const t = empty();
     legacyOrder.forEach((day, i) => {
       const key = String(i + 1);
-      if (p[day]) t[key] = { am:"", pm:"", eve:"", ...p[day] };
+      if (p[day]) t[key] = { am:"", pm:"", eve:"", exc:"", ...p[day] };
     });
     return t;
   } catch { return empty(); }
@@ -182,8 +188,12 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
               const border  = isFirst ? "#bfdbfe" : isLast ? "#fecaca" : B.borderLight;
               return (
                 <div key={day} style={{ marginBottom:5, background:B.white, borderRadius:6, border:"1px solid "+(isFirst?"#bfdbfe":isLast?"#fecaca":B.border), overflow:"hidden" }}>
-                  <div style={{ padding:"5px 10px", background:bg, borderBottom:"1px solid "+border, fontWeight:800, fontSize:10, color:accent }}>
-                    {DAY_LABELS[day]}
+                  <div style={{ padding:"5px 10px", background:bg, borderBottom:"1px solid "+border, display:"flex", alignItems:"center", gap:8 }}>
+                    <span style={{ fontWeight:800, fontSize:10, color:accent, flex:1 }}>{DAY_LABELS[day]}</span>
+                    <select value={template[day]?.exc || ""} onChange={(e) => update(day, "exc", e.target.value)}
+                      style={{ fontSize:8, padding:"2px 5px", borderRadius:3, border:"1px solid "+B.border, background: template[day]?.exc ? EXC_COLORS[template[day].exc]+"20" : B.white, color: EXC_COLORS[template[day]?.exc || ""], fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                      {EXC_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
                   </div>
                   <div style={{ display:"flex" }}>
                     {["am","pm","eve"].map((slot, si) => (
