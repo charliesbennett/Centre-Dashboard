@@ -289,19 +289,16 @@ export default function Dashboard() {
           <path d="M320 0 L240 110M80 0 L0 110" stroke="white" strokeWidth="28" />
         </svg>
 
-        {/* Left: brand mark + wordmark */}
+        {/* Left: logo + subtitle */}
         <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative", zIndex: 1 }}>
-          {/* Union Jack logo mark */}
-          <svg width="44" height="44" viewBox="0 0 44 44" fill="none" style={{ flexShrink: 0, filter: "drop-shadow(0 3px 8px rgba(236,39,59,0.5))" }}>
-            <rect width="44" height="44" rx="9" fill={B.red} />
-            <rect x="0" y="16" width="44" height="12" fill="white" />
-            <rect x="16" y="0" width="12" height="44" fill="white" />
-            <rect x="16" y="16" width="12" height="12" fill={B.navy} />
-            <path d="M0 0L10 10M34 0L44 10M0 34L10 44M34 44L44 34" stroke="rgba(255,255,255,0.4)" strokeWidth="3.5" strokeLinecap="round" />
-          </svg>
-          <div>
-            <div style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 900, fontSize: 21, color: B.white, letterSpacing: -0.5, lineHeight: 1 }}>UKLC</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 2, textTransform: "uppercase", marginTop: 2 }}>Centre Dashboard</div>
+          <div style={{
+            background: B.white, borderRadius: 8, padding: "5px 14px 5px 10px",
+            display: "flex", alignItems: "center", gap: 10,
+            boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+          }}>
+            <img src="/logo-new.png" alt="UKLC" style={{ height: 34, display: "block" }} />
+            <div style={{ width: 1, height: 28, background: B.border }} />
+            <div style={{ fontSize: 8, fontWeight: 700, color: B.textMuted, letterSpacing: 1.8, textTransform: "uppercase", whiteSpace: "nowrap", fontFamily: "'Raleway', sans-serif" }}>Centre Dashboard</div>
           </div>
           {saving && (
             <div style={{ display: "flex", alignItems: "center", gap: 5, marginLeft: 6, padding: "3px 10px", background: "rgba(134,239,172,0.15)", border: "1px solid rgba(134,239,172,0.3)", borderRadius: 20 }}>
