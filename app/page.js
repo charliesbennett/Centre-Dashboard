@@ -226,13 +226,16 @@ export default function Dashboard() {
 
   const renderTab = () => {
     if (!centreId) return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "50vh", color: B.textMuted, fontSize: 14, fontWeight: 600 }}>
-        {"\u2190"} Select a centre to get started
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 12 }}>
+        <div style={{ width: 64, height: 64, borderRadius: 16, background: B.ice, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🏛️</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: B.navy, fontFamily: "'Raleway', sans-serif" }}>Select a centre to get started</div>
+        <div style={{ fontSize: 12, color: B.textMuted }}>Choose a centre from the dropdown in the top bar</div>
       </div>
     );
     if (db.loading) return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "50vh", color: B.navy, fontSize: 13, fontWeight: 600 }}>
-        Loading {centreName}...
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 10 }}>
+        <div style={{ width: 32, height: 32, border: `3px solid ${B.border}`, borderTopColor: B.red, borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+        <div style={{ fontSize: 13, fontWeight: 600, color: B.textMuted }}>Loading {centreName}…</div>
       </div>
     );
     const activeGroups = (db.groups || []).filter((g) => !g.archived);
@@ -259,40 +262,91 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: B.bg, color: B.text, minHeight: "100vh", fontSize: 13 }}>
-      <header style={{ background: B.navy, padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 50 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: B.red, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, color: B.white }}>UK</div>
-          <div style={{ fontSize: 14, fontWeight: 800, color: B.white }}>UKLC Centre Dashboard</div>
-          {saving && <span style={{ fontSize: 9, color: "#86efac", fontWeight: 600, marginLeft: 8 }}>Saving...</span>}
-          {!saving && lastSaved && <span style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", marginLeft: 8 }}>{"\u2713"} Saved</span>}
+    <div style={{ fontFamily: "'Open Sans', sans-serif", background: B.bg, color: B.text, minHeight: "100vh", fontSize: 13 }}>
+
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <header style={{
+        background: B.navy,
+        backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px)",
+        backgroundSize: "22px 22px",
+        padding: "0 24px", display: "flex", alignItems: "center",
+        justifyContent: "space-between", height: 60, flexShrink: 0,
+      }}>
+        {/* Left: brand */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 10, background: B.red,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontFamily: "'Raleway', sans-serif", fontWeight: 900, fontSize: 14,
+            color: B.white, letterSpacing: 0.5, flexShrink: 0,
+            boxShadow: "0 3px 10px rgba(236,39,59,0.45)",
+          }}>UK</div>
+          <div>
+            <div style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 900, fontSize: 19, color: B.white, letterSpacing: -0.5, lineHeight: 1 }}>UKLC</div>
+            <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.45)", letterSpacing: 1.8, textTransform: "uppercase", marginTop: 1 }}>Centre Dashboard</div>
+          </div>
+          {saving && (
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginLeft: 4, padding: "3px 10px", background: "rgba(134,239,172,0.12)", border: "1px solid rgba(134,239,172,0.25)", borderRadius: 20 }}>
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#86efac", display: "block" }} />
+              <span style={{ fontSize: 10, color: "#86efac", fontWeight: 600 }}>Saving</span>
+            </div>
+          )}
+          {!saving && lastSaved && (
+            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginLeft: 4, fontWeight: 500 }}>✓ Saved</span>
+          )}
         </div>
+
+        {/* Right: controls */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <select value={centreName} onChange={(e) => handleCentreChange(e.target.value)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", padding: "6px 10px", borderRadius: 5, fontSize: 11, fontFamily: "inherit", maxWidth: 220 }}>
-            <option value="" style={{ color: "#333" }}>Select Centre...</option>
-            {db.centres.map((c) => <option key={c.id} value={c.name} style={{ color: "#333" }}>{c.name}</option>)}
+          <select value={centreName} onChange={(e) => handleCentreChange(e.target.value)} style={{
+            background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)",
+            color: "#fff", padding: "7px 12px", borderRadius: 8, fontSize: 12,
+            fontFamily: "'Open Sans', sans-serif", fontWeight: 600, maxWidth: 240, cursor: "pointer",
+          }}>
+            <option value="" style={{ color: "#333", background: "#1c3048" }}>Select Centre…</option>
+            {db.centres.map((c) => <option key={c.id} value={c.name} style={{ color: "#333", background: "#fff" }}>{c.name}</option>)}
           </select>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>DATES</span>
-            <input type="date" value={manualStart} onChange={(e) => handleDateChange("start", e.target.value)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", padding: "4px 8px", borderRadius: 4, fontSize: 11, fontFamily: "inherit" }} />
-            <span style={{ color: "rgba(255,255,255,0.3)" }}>{"\u2192"}</span>
-            <input type="date" value={manualEnd} onChange={(e) => handleDateChange("end", e.target.value)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", padding: "4px 8px", borderRadius: 4, fontSize: 11, fontFamily: "inherit" }} />
+
+          <div style={{
+            display: "flex", alignItems: "center", gap: 6,
+            background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.14)",
+            borderRadius: 8, padding: "5px 12px",
+          }}>
+            <span style={{ fontSize: 8, color: "rgba(255,255,255,0.4)", fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'Raleway', sans-serif" }}>Dates</span>
+            <input type="date" value={manualStart} onChange={(e) => handleDateChange("start", e.target.value)} style={{ background: "transparent", border: "none", color: "#fff", padding: "2px 6px", fontSize: 11, fontFamily: "'Open Sans', sans-serif", outline: "none", cursor: "pointer" }} />
+            <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 13 }}>→</span>
+            <input type="date" value={manualEnd} onChange={(e) => handleDateChange("end", e.target.value)} style={{ background: "transparent", border: "none", color: "#fff", padding: "2px 6px", fontSize: 11, fontFamily: "'Open Sans', sans-serif", outline: "none", cursor: "pointer" }} />
             {(progStart !== manualStart || progEnd !== manualEnd) && (
-              <span style={{ fontSize: 8, color: "#86efac", fontWeight: 700 }}>Auto: {progStart.slice(5)} {"\u2192"} {progEnd.slice(5)}</span>
+              <span style={{ fontSize: 9, color: "#86efac", fontWeight: 700, marginLeft: 2, fontFamily: "'Raleway', sans-serif" }}>Auto: {progStart.slice(5)} → {progEnd.slice(5)}</span>
             )}
           </div>
         </div>
       </header>
-      <nav style={{ background: B.white, borderBottom: "2px solid " + B.border, padding: "0 12px", display: "flex", overflowX: "auto", gap: 0 }}>
+
+      {/* ── Nav tabs ────────────────────────────────────────────────────── */}
+      <nav style={{
+        background: B.white, borderBottom: `1px solid ${B.border}`,
+        padding: "0 16px", display: "flex", overflowX: "auto", gap: 0,
+        boxShadow: "0 2px 8px rgba(28,48,72,0.06)", flexShrink: 0,
+      }}>
         {TABS.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{
-            display: "flex", alignItems: "center", gap: 5, padding: "10px 14px", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit", whiteSpace: "nowrap",
-            borderBottom: tab === t.id ? "3px solid " + B.red : "3px solid transparent",
-            background: "transparent", color: tab === t.id ? B.navy : B.textMuted, transition: "all 0.15s",
-          }}><span style={{ fontSize: 14 }}>{t.icon}</span>{t.label}</button>
+          <button key={t.id} onClick={() => setTab(t.id)} className="nav-tab" style={{
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "0 15px", height: 46, border: "none", cursor: "pointer",
+            fontFamily: "'Raleway', sans-serif", fontSize: 12, fontWeight: 700,
+            whiteSpace: "nowrap",
+            borderBottom: tab === t.id ? `3px solid ${B.red}` : "3px solid transparent",
+            background: tab === t.id ? "rgba(28,48,72,0.04)" : "transparent",
+            color: tab === t.id ? B.navy : B.textMuted,
+            borderRadius: "4px 4px 0 0",
+          }}>
+            <span style={{ fontSize: 15 }}>{t.icon}</span>
+            {t.label}
+          </button>
         ))}
       </nav>
-      <div style={{ minHeight: "calc(100vh - 100px)" }}>{renderTab()}</div>
+
+      <div style={{ minHeight: "calc(100vh - 106px)" }}>{renderTab()}</div>
     </div>
   );
 }
