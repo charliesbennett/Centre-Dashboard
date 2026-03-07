@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { B } from "@/lib/constants";
-import { parseProgrammePdf, extractRawLines } from "@/lib/parseProgrammePdf";
+import { parseProgrammeExcel } from "@/lib/parseProgrammeExcel";
 
 const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const SLOT_OPTS = {
@@ -30,10 +30,8 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
   const [template, setTemplate] = useState(() => load(currentJson));
   const [parsing,  setParsing]  = useState(false);
   const [msg,      setMsg]      = useState(null);   // { ok, text }
-  const [pdfUrl,   setPdfUrl]   = useState(null);
-  const [pdfName,  setPdfName]  = useState("");
-  const [rawLines, setRawLines] = useState(null);   // string[] | null
-  const [showRaw,  setShowRaw]  = useState(false);
+  const [fileName, setFileName] = useState("");
+  const [rows,     setRows]     = useState([]);     // raw spreadsheet rows for preview
 
   const update = (day, slot, val) =>
     setTemplate((p) => ({ ...p, [day]: { ...p[day], [slot]: val } }));
@@ -41,37 +39,29 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
   const handleUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-    setPdfUrl(URL.createObjectURL(file));
-    setPdfName(file.name);
+    setFileName(file.name);
     setParsing(true);
     setMsg(null);
-    setRawLines(null);
-    setShowRaw(false);
+    setRows([]);
 
     try {
-      // Run extraction and raw-line fetch in parallel
-      const [result, raw] = await Promise.all([
-        parseProgrammePdf(file),
-        extractRawLines(file),
-      ]);
-      setRawLines(raw);
+      const result = await parseProgrammeExcel(file);
+      if (result.rows) setRows(result.rows);
 
       if (result.ok) {
         setTemplate(result.template);
         setMsg({ ok: true, text: "Programme extracted — review the grid and correct anything that looks wrong, then save." + (result.debug ? " (" + result.debug + ")" : "") });
       } else {
-        setMsg({ ok: false, text: result.error + " Review the raw text below and fill in the grid manually." });
-        setShowRaw(true);
+        setMsg({ ok: false, text: result.error + " Review the spreadsheet preview and fill in the grid manually." });
       }
     } catch (err) {
-      setMsg({ ok: false, text: "Extraction failed: " + err.message });
-      setShowRaw(true);
+      setMsg({ ok: false, text: "Failed to read file: " + err.message });
     }
     setParsing(false);
   };
 
   const isWeekend = (d) => d === "Saturday" || d === "Sunday";
+  const maxCols   = rows.length ? Math.max(...rows.map((r) => r.length)) : 0;
 
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.78)", zIndex:10000, display:"flex", flexDirection:"column", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>
@@ -79,7 +69,7 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
       {/* ── Header ─────────────────────────────────────────── */}
       <div style={{ background:B.navy, padding:"10px 16px", display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
         <div style={{ fontWeight:800, fontSize:13, color:B.white, flex:1 }}>Ministay Programme Template</div>
-        <div style={{ fontSize:9, color:"rgba(255,255,255,0.4)" }}>Upload the PDF → auto-extracted → review → save</div>
+        <div style={{ fontSize:9, color:"rgba(255,255,255,0.4)" }}>Upload the Excel spreadsheet → auto-extracted → review → save</div>
         <button onClick={() => onSave(JSON.stringify(template))}
           style={{ padding:"7px 18px", background:B.red, color:B.white, border:"none", borderRadius:6, fontWeight:800, fontSize:11, cursor:"pointer", fontFamily:"inherit" }}>
           ✓ Save Template
@@ -93,38 +83,49 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
       {/* ── Body ───────────────────────────────────────────── */}
       <div style={{ flex:1, display:"flex", overflow:"hidden", minHeight:0 }}>
 
-        {/* Left: PDF viewer */}
+        {/* Left: spreadsheet preview */}
         <div style={{ width:"55%", display:"flex", flexDirection:"column", borderRight:"2px solid #2a3f52" }}>
           <div style={{ padding:"8px 14px", background:"#162534", borderBottom:"1px solid #2a3f52", display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
             <label style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"6px 14px", background:B.white, borderRadius:5, cursor:parsing?"not-allowed":"pointer", fontSize:10, fontWeight:700, color:B.navy, opacity:parsing?0.6:1 }}>
-              {parsing ? "⏳ Extracting…" : "📄 Upload Sample Programme PDF"}
-              <input type="file" accept=".pdf" onChange={handleUpload} disabled={parsing} style={{ display:"none" }} />
+              {parsing ? "⏳ Extracting…" : "📊 Upload Sample Programme Excel"}
+              <input type="file" accept=".xlsx,.xls" onChange={handleUpload} disabled={parsing} style={{ display:"none" }} />
             </label>
-            {pdfName && <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{pdfName}</span>}
-            {rawLines && (
-              <button onClick={() => setShowRaw((v) => !v)}
-                style={{ marginLeft:"auto", fontSize:9, fontWeight:700, padding:"4px 10px", background:"rgba(255,255,255,0.12)", color:"rgba(255,255,255,0.7)", border:"none", borderRadius:4, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>
-                {showRaw ? "📄 Show PDF" : "📝 Show Raw Text"}
-              </button>
-            )}
+            {fileName && <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{fileName}</span>}
           </div>
 
-          <div style={{ flex:1, background:"#111", minHeight:0, overflow:"hidden" }}>
-            {showRaw && rawLines ? (
-              <div style={{ height:"100%", overflow:"auto", padding:"12px 16px" }}>
-                <div style={{ fontSize:9, color:"rgba(255,255,255,0.5)", marginBottom:8, fontWeight:700 }}>RAW EXTRACTED TEXT — use this to verify / manually correct the template</div>
-                {rawLines.map((line, i) => (
-                  <div key={i} style={{ fontSize:9, color: line.trim() ? "rgba(255,255,255,0.8)" : "transparent", fontFamily:"monospace", lineHeight:1.8, borderBottom:"1px solid rgba(255,255,255,0.04)", padding:"1px 0" }}>
-                    {line || "·"}
-                  </div>
-                ))}
+          <div style={{ flex:1, background:"#111", minHeight:0, overflow:"auto" }}>
+            {rows.length > 0 ? (
+              <div style={{ padding:"12px 16px" }}>
+                <div style={{ fontSize:9, color:"rgba(255,255,255,0.4)", marginBottom:8, fontWeight:700 }}>
+                  SPREADSHEET PREVIEW — {rows.length} rows × {maxCols} columns
+                </div>
+                <table style={{ borderCollapse:"collapse", fontSize:9, fontFamily:"monospace" }}>
+                  <tbody>
+                    {rows.map((row, r) => (
+                      <tr key={r}>
+                        {Array.from({ length: maxCols }, (_, c) => {
+                          const cell = row[c];
+                          const val  = cell != null && cell !== "" ? String(cell) : "";
+                          return (
+                            <td key={c} style={{
+                              padding:"2px 10px", border:"1px solid rgba(255,255,255,0.07)",
+                              color: val ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.12)",
+                              fontWeight: val ? 600 : 400, whiteSpace:"nowrap",
+                              maxWidth:160, overflow:"hidden", textOverflow:"ellipsis",
+                            }}>
+                              {val || "·"}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ) : pdfUrl ? (
-              <iframe src={pdfUrl} style={{ width:"100%", height:"100%", border:"none" }} title="Programme PDF" />
             ) : (
               <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%", gap:10, color:"rgba(255,255,255,0.2)" }}>
-                <div style={{ fontSize:44 }}>📄</div>
-                <div style={{ fontSize:12, fontWeight:700 }}>Upload the sample programme PDF</div>
+                <div style={{ fontSize:44 }}>📊</div>
+                <div style={{ fontSize:12, fontWeight:700 }}>Upload the sample programme spreadsheet</div>
                 <div style={{ fontSize:10 }}>Activities will be automatically extracted into the grid</div>
               </div>
             )}
@@ -135,7 +136,7 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
         <div style={{ width:"45%", background:B.bg, display:"flex", flexDirection:"column", minHeight:0 }}>
           <div style={{ padding:"8px 14px", background:B.white, borderBottom:"1px solid "+B.border, flexShrink:0 }}>
             <div style={{ fontSize:10, fontWeight:700, color:B.navy }}>Weekly Programme Template</div>
-            <div style={{ fontSize:9, color:B.textMuted, marginTop:1 }}>Auto-filled from PDF. Edit anything that looks wrong.</div>
+            <div style={{ fontSize:9, color:B.textMuted, marginTop:1 }}>Auto-filled from spreadsheet. Edit anything that looks wrong.</div>
           </div>
 
           {msg && (
@@ -145,7 +146,7 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
           )}
           {parsing && (
             <div style={{ padding:"7px 14px", background:"#eff6ff", borderBottom:"1px solid #bfdbfe", fontSize:9, color:"#1e40af", fontWeight:600, flexShrink:0 }}>
-              ⏳ Extracting programme from PDF…
+              ⏳ Extracting programme from spreadsheet…
             </div>
           )}
 
@@ -185,7 +186,7 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
             ))}
 
             <div style={{ marginTop:8, padding:"7px 10px", background:"#fffbeb", border:"1px solid #fde68a", borderRadius:5, fontSize:9, color:"#92400e" }}>
-              <strong>Tip:</strong> Arrival and departure days are set automatically. Leave EVE blank if no evening activity. Use <em>Show Raw Text</em> to see exactly what was read from the PDF.
+              <strong>Tip:</strong> Arrival and departure days are set automatically. Leave EVE blank if no evening activity. Use the spreadsheet preview on the left to check how the data was read.
             </div>
           </div>
         </div>
