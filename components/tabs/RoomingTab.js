@@ -1,7 +1,8 @@
 "use client";
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { B, uid, genDates, dayKey, dayName, isWeekend, fmtDate } from "@/lib/constants";
 import { StatCard, Fld, TableWrap, IconBtn, IcPlus, IcTrash, IcEdit, IcCheck, inputStyle, thStyle, tdStyle, btnPrimary, btnNavy } from "@/components/ui";
+import { supabase } from "@/lib/supabaseClient";
 
 // ── Helpers ────────────────────────────────────────────────
 function inBed(dateStr, arrDate, depDate) {
@@ -30,6 +31,7 @@ export default function RoomingTab({
   roomingRooms = [], setRoomingRooms,
   roomingAssignments = [], setRoomingAssignments,
   roomingOverrides = {}, setRoomingOverrides,
+  centreId = "",
 }) {
   const [view, setView] = useState("overview");
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
@@ -113,6 +115,51 @@ export default function RoomingTab({
   const [editingRoom, setEditingRoom] = useState({});
   const [nightDate, setNightDate] = useState(progStart || "");
   const saveTimer = useRef(null);
+
+  // ── Room form tokens ───────────────────────────────────
+  // { groupId: { token, created_at } }
+  const [roomTokens, setRoomTokens] = useState({});
+  const [tokenModal, setTokenModal] = useState(null); // groupId being shown
+  const [tokenLoading, setTokenLoading] = useState(null); // groupId generating
+  const [copied, setCopied] = useState(false);
+
+  // Load existing tokens for this centre on mount / centreId change
+  useEffect(() => {
+    if (!centreId) return;
+    supabase
+      .from("room_form_tokens")
+      .select("*")
+      .eq("centre_id", centreId)
+      .then(({ data }) => {
+        const map = {};
+        (data || []).forEach((t) => { map[t.group_id] = t; });
+        setRoomTokens(map);
+      });
+  }, [centreId]);
+
+  const generateToken = async (group) => {
+    setTokenLoading(group.id);
+    const token = crypto.randomUUID ? crypto.randomUUID() : uid();
+    const row = { token, centre_id: centreId, group_id: group.id, group_name: group.group };
+    await supabase.from("room_form_tokens").upsert(row, { onConflict: "group_id,centre_id" });
+    // delete any old token for this group first then insert
+    await supabase.from("room_form_tokens").delete().eq("centre_id", centreId).eq("group_id", group.id);
+    await supabase.from("room_form_tokens").insert(row);
+    setRoomTokens((p) => ({ ...p, [group.id]: row }));
+    setTokenLoading(null);
+    setTokenModal(group.id);
+  };
+
+  const revokeToken = async (groupId) => {
+    await supabase.from("room_form_tokens").delete().eq("centre_id", centreId).eq("group_id", groupId);
+    setRoomTokens((p) => { const n = { ...p }; delete n[groupId]; return n; });
+    setTokenModal(null);
+  };
+
+  const getFormUrl = (token) => {
+    if (typeof window === "undefined") return "";
+    return window.location.origin + "/room-form/" + token;
+  };
 
   const totalBeds = useMemo(() => roomingRooms.reduce((s, r) => s + (r.capacity || 0), 0), [roomingRooms]);
   const occupiedBeds = useMemo(() => roomingAssignments.filter((a) => a.occupantName).length, [roomingAssignments]);
@@ -414,8 +461,74 @@ export default function RoomingTab({
     return floors;
   };
 
+  // ── Token modal ─────────────────────────────────────────
+  const modalGroup = tokenModal ? activeGroups.find((g) => g.id === tokenModal) : null;
+  const modalToken = tokenModal ? roomTokens[tokenModal] : null;
+  const modalUrl = modalToken ? getFormUrl(modalToken.token) : "";
+
   return (
     <div>
+      {/* ── Room form link modal ─────────────────────────── */}
+      {tokenModal && modalGroup && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          onClick={() => setTokenModal(null)}>
+          <div style={{ background: B.white, borderRadius: 16, width: "100%", maxWidth: 440, boxShadow: "0 20px 60px rgba(0,0,0,0.25)", overflow: "hidden" }}
+            onClick={(e) => e.stopPropagation()}>
+
+            {/* Modal header */}
+            <div style={{ background: B.navy, padding: "14px 18px", display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: B.white }}>Rooming Form Link</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", marginTop: 1 }}>{modalGroup.group}</div>
+              </div>
+              <button onClick={() => setTokenModal(null)} style={{ background: "rgba(255,255,255,0.12)", border: "none", color: B.white, borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>✕</button>
+            </div>
+
+            <div style={{ padding: "18px 18px 20px" }}>
+              <p style={{ fontSize: 12, color: B.textMuted, margin: "0 0 14px", lineHeight: 1.5 }}>
+                Share this link with <strong>{modalGroup.group}</strong> group leader. They can open it on their phone and fill in their students' names for each room.
+              </p>
+
+              {/* QR code */}
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(modalUrl)}&bgcolor=ffffff&color=1c3048&margin=10`}
+                  alt="QR code"
+                  width={180} height={180}
+                  style={{ borderRadius: 8, border: "1px solid " + B.border }}
+                />
+              </div>
+
+              {/* URL + copy */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+                <input readOnly value={modalUrl}
+                  style={{ flex: 1, padding: "8px 10px", border: "1px solid " + B.border, borderRadius: 7, fontSize: 10, fontFamily: "inherit", color: B.textMuted, background: B.bg, minWidth: 0 }}
+                  onFocus={(e) => e.target.select()} />
+                <button
+                  onClick={() => { navigator.clipboard?.writeText(modalUrl); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                  style={{ padding: "8px 14px", background: copied ? B.success : B.navy, border: "none", color: B.white, borderRadius: 7, fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                  {copied ? "✓ Copied" : "Copy"}
+                </button>
+              </div>
+
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={() => { window.open(modalUrl, "_blank"); }}
+                  style={{ flex: 1, padding: "8px 14px", background: B.bg, border: "1px solid " + B.border, color: B.navy, borderRadius: 7, fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  Preview Form
+                </button>
+                <button
+                  onClick={() => { if (confirm("Revoke this link? The group leader will no longer be able to access it.")) revokeToken(tokenModal); }}
+                  style={{ padding: "8px 14px", background: "#fee2e2", border: "1px solid #fca5a5", color: "#dc2626", borderRadius: 7, fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  Revoke Link
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Header stats + top-level view switcher ──────── */}
       <div style={{ padding: "12px 20px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <StatCard label="Groups" value={activeGroups.length} accent={B.navy} />
@@ -750,13 +863,40 @@ export default function RoomingTab({
                 </div>
               ) : (
                 <>
-                  <div style={{ padding: "0 4px 8px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                  <div style={{ padding: "0 4px 10px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                     <span style={{ fontSize: 9, fontWeight: 700, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.5 }}>Groups:</span>
                     {activeGroups.map((g, i) => (
                       <span key={g.id} style={{ background: GROUP_COLORS[i % GROUP_COLORS.length] + "20", color: GROUP_COLORS[i % GROUP_COLORS.length], padding: "2px 8px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>
                         {g.group} ({(g.stu || 0) + (g.gl || 0)} pax)
                       </span>
                     ))}
+                    {centreId && (
+                      <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {activeGroups.map((g) => {
+                          const hasToken = !!roomTokens[g.id];
+                          const isLoading = tokenLoading === g.id;
+                          return (
+                            <button key={g.id}
+                              onClick={() => hasToken ? setTokenModal(g.id) : generateToken(g)}
+                              disabled={isLoading}
+                              style={{
+                                display: "flex", alignItems: "center", gap: 5,
+                                padding: "5px 10px", borderRadius: 6, fontSize: 9, fontWeight: 700,
+                                fontFamily: "inherit", cursor: isLoading ? "default" : "pointer",
+                                border: "1px solid " + (hasToken ? "#4ade80" : B.border),
+                                background: hasToken ? "#f0fdf4" : B.white,
+                                color: hasToken ? "#16a34a" : B.textMuted,
+                              }}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                                <line x1="12" y1="18" x2="12.01" y2="18"/>
+                              </svg>
+                              {isLoading ? "Generating…" : hasToken ? `${g.group} — View Link` : `${g.group} — Get Link`}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   {roomingHouses.map((house) => {

@@ -264,6 +264,7 @@ export default function Dashboard() {
         roomingRooms={db.roomingRooms} setRoomingRooms={setRoomingRooms}
         roomingAssignments={db.roomingAssignments} setRoomingAssignments={setRoomingAssignments}
         roomingOverrides={roomingOverrides} setRoomingOverrides={setRoomingOverrides}
+        centreId={centreId}
       />;
       case "pettycash": return <PettyCashTab />;
       case "contacts": return <ContactsTab />;
