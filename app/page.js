@@ -144,12 +144,62 @@ export default function Dashboard() {
       prev.forEach((p) => {
         if (!next.find((t) => t.id === p.id)) db.deleteTransfer(p.id);
       });
+      setLastSaved(new Date());
       return next;
     });
   }, [db.saveTransfer, db.deleteTransfer]);
 
   const roomingAssignSaveTimer = useRef(null);
   const [roomingOverrides, setRoomingOverridesState] = useState({});
+
+  // ── Catering data (overrides, dietary, specials) ───────
+  const [cateringData, setCateringDataState] = useState({});
+  useEffect(() => {
+    if (db.settings.catering_data) {
+      try { setCateringDataState(JSON.parse(db.settings.catering_data)); } catch {}
+    } else { setCateringDataState({}); }
+  }, [db.settings.catering_data]);
+  const setCateringData = useCallback((updater) => {
+    setCateringDataState((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      db.saveSetting("catering_data", JSON.stringify(next));
+      setLastSaved(new Date());
+      return next;
+    });
+  }, [db.saveSetting]);
+
+  // ── Contacts ───────────────────────────────────────────
+  const [contacts, setContactsState] = useState([]);
+  useEffect(() => {
+    if (db.settings.contacts_data) {
+      try { setContactsState(JSON.parse(db.settings.contacts_data)); } catch {}
+    } else { setContactsState([]); }
+  }, [db.settings.contacts_data]);
+  const setContacts = useCallback((updater) => {
+    setContactsState((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      db.saveSetting("contacts_data", JSON.stringify(next));
+      setLastSaved(new Date());
+      return next;
+    });
+  }, [db.saveSetting]);
+
+  // ── Petty Cash ─────────────────────────────────────────
+  const EMPTY_PC = { income: [], expenses: [], opening: 0, toRom: 0 };
+  const [pettyCash, setPettyCashState] = useState(EMPTY_PC);
+  useEffect(() => {
+    if (db.settings.petty_cash_data) {
+      try { setPettyCashState(JSON.parse(db.settings.petty_cash_data)); } catch {}
+    } else { setPettyCashState(EMPTY_PC); }
+  }, [db.settings.petty_cash_data]);
+  const setPettyCash = useCallback((updater) => {
+    setPettyCashState((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      db.saveSetting("petty_cash_data", JSON.stringify(next));
+      setLastSaved(new Date());
+      return next;
+    });
+  }, [db.saveSetting]);
 
   // Load rooming overrides from settings
   useEffect(() => {
@@ -254,7 +304,7 @@ export default function Dashboard() {
       case "students": return <StudentsTab groups={db.groups} setGroups={setGroups} />;
       case "rota": return <RotaTab staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} groups={activeGroups} rotaGrid={db.rotaGrid} setRotaGrid={setRotaGrid} />;
       case "programmes": return <ProgrammesTab groups={activeGroups} progStart={progStart} progEnd={progEnd} centre={centreName} excDays={db.excDays} setExcDays={setExcDays} progGrid={db.progGrid} setProgGrid={setProgGrid} settings={db.settings} saveSetting={db.saveSetting} />;
-      case "catering": return <CateringTab groups={activeGroups} staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} />;
+      case "catering": return <CateringTab groups={activeGroups} staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} cateringData={cateringData} setCateringData={setCateringData} />;
       case "transfers": return <TransfersTab groups={activeGroups} transfers={db.transfers} setTransfers={setTransfers} />;
       case "team": return <TeamTab staff={db.staff} setStaff={setStaff} />;
       case "excursions": return <ExcursionsTab excDays={db.excDays} setExcDays={setExcDays} groups={activeGroups} progStart={progStart} progEnd={progEnd} excursions={db.excursions} setExcursions={setExcursions} centre={centreName} progGrid={db.progGrid} settings={db.settings} />;
@@ -266,8 +316,8 @@ export default function Dashboard() {
         roomingOverrides={roomingOverrides} setRoomingOverrides={setRoomingOverrides}
         centreId={centreId}
       />;
-      case "pettycash": return <PettyCashTab />;
-      case "contacts": return <ContactsTab />;
+      case "pettycash": return <PettyCashTab pettyCash={pettyCash} setPettyCash={setPettyCash} />;
+      case "contacts": return <ContactsTab contacts={contacts} setContacts={setContacts} />;
       default: return null;
     }
   };

@@ -6,8 +6,7 @@ import { Fld, IcPlus, IcX, inputStyle, btnPrimary } from "@/components/ui";
 const CATEGORIES = ["Centre / Venue", "Coaches & Transport", "Excursions", "DJ / Entertainment", "Medical / Emergency", "UKLC Head Office", "Other"];
 const CAT_ICONS = { "Centre / Venue": "🏫", "Coaches & Transport": "🚌", Excursions: "🎯", "DJ / Entertainment": "🎵", "Medical / Emergency": "🏥", "UKLC Head Office": "🏢", Other: "📋" };
 
-export default function ContactsTab() {
-  const [contacts, setContacts] = useState([]);
+export default function ContactsTab({ contacts = [], setContacts }) {
   const [showAdd, setShowAdd] = useState(false);
   const [n, setN] = useState({ name: "", email: "", phone: "", role: "", cat: "Centre / Venue", notes: "" });
   const fi = inputStyle;

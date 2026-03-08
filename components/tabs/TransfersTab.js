@@ -22,11 +22,11 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
 
   // Auto-sync from groups
   const sync = () => {
-    const existingGids = new Set(transfers.map((t) => t.gid));
+    const existingGids = new Set(transfers.map((t) => t.groupId));
     const newT = groups
       .filter((g) => !existingGids.has(g.id))
       .map((g) => ({
-        id: uid(), gid: g.id, agent: g.agent || "", group: g.group || "",
+        id: uid(), groupId: g.id, agent: g.agent || "", group: g.group || "",
         pax: (g.stu || 0) + (g.gl || 0),
         arrAirport: g.arrAirport || "Heathrow", arrDate: g.arr || "", arrFlight: g.arrFlight || "",
         arrTime: g.arrTime || "", arrTerminal: "", arrNotes: "",
@@ -40,7 +40,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
   // Also update existing transfers when group data changes
   const syncUpdate = () => {
     setTransfers((prev) => prev.map((t) => {
-      const g = groups.find((gr) => gr.id === t.gid);
+      const g = groups.find((gr) => gr.id === t.groupId);
       if (!g) return t;
       return {
         ...t,
@@ -62,7 +62,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
   const upd = (id, field, value) => setTransfers((p) => p.map((t) => t.id === id ? { ...t, [field]: value } : t));
   const del = (id) => setTransfers((p) => p.filter((t) => t.id !== id));
 
-  const unsyncedCount = groups.filter((g) => !transfers.find((t) => t.gid === g.id)).length;
+  const unsyncedCount = groups.filter((g) => !transfers.find((t) => t.groupId === g.id)).length;
 
   // Timeline data: group by date
   const timeline = useMemo(() => {

@@ -179,7 +179,11 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           {m==="all"?"\ud83d\udc65 All Groups":m==="group"?"\ud83d\udc64 By Group":"\ud83d\udcc4 Templates"}</button>)}
         {isMinistay && <button onClick={()=>setShowTemplateModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+B.border,background:settings?.ministay_template?"#dcfce7":B.white,color:settings?.ministay_template?B.success:B.textMuted,marginLeft:4}}>
           {"\ud83d\udcc4"} {settings?.ministay_template ? "Edit Template" : "Set Up Template"}</button>}
-        <button onClick={autoPop} style={{...btnPrimary,background:B.navy,marginLeft:4}}><IcWand/> Auto-Populate</button>
+        <button onClick={() => {
+          const hasData = Object.values(progGrid).some((v) => v);
+          if (hasData && !window.confirm("Auto-populate will overwrite all existing programme cells. Continue?")) return;
+          autoPop();
+        }} style={{...btnPrimary,background:B.navy,marginLeft:4}}><IcWand/> Auto-Populate</button>
       </div>
     </div>
 

@@ -445,7 +445,11 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
           <button onClick={() => setShowRatios(!showRatios)} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: "1px solid "+(showRatios ? B.navy : B.border), background: showRatios ? B.navy : B.white, color: showRatios ? B.white : B.textMuted, display: "flex", alignItems: "center", gap: 4 }}>
             Ratios {ratioAlerts.length > 0 && <span style={{ background: B.danger, color: B.white, borderRadius: 8, padding: "1px 5px", fontSize: 8 }}>{ratioAlerts.length}</span>}
           </button>
-          <button onClick={autoGenerate} style={{ ...btnPrimary, background: B.navy }}><IcWand /> {filled ? "Re-generate" : "Auto-Generate"}</button>
+          <button onClick={() => {
+            const hasData = Object.values(rotaGrid).some((v) => v);
+            if (hasData && !window.confirm("Auto-generate will overwrite all existing rota entries. Continue?")) return;
+            autoGenerate();
+          }} style={{ ...btnPrimary, background: B.navy }}><IcWand /> {filled ? "Re-generate" : "Auto-Generate"}</button>
         </div>
       </div>
 

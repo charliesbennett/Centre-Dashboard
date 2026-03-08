@@ -153,6 +153,37 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
     return people.sort((a, b) => a.daysUntil - b.daysUntil);
   }, [activeGroups, todayDate]);
 
+  // ── Next 7 days outlook ────────────────────────────────
+  const next7Days = useMemo(() => {
+    const days = [];
+    for (let i = 1; i <= 7; i++) {
+      const d = new Date(todayDate);
+      d.setDate(d.getDate() + i);
+      const ds = dayKey(d);
+      const arrivals = activeGroups.filter((g) => g.arr === ds);
+      const departures = activeGroups.filter((g) => g.dep === ds);
+      const excursion = excDays[ds] || null;
+      // Birthdays on this day
+      const thisYear = d.getFullYear();
+      const bdays = [];
+      activeGroups.forEach((g) => {
+        [...(g.students || []), ...(g.leaders || [])].forEach((s) => {
+          if (!s.dob) return;
+          const dob = new Date(s.dob);
+          if (isNaN(dob)) return;
+          const bday = new Date(thisYear, dob.getMonth(), dob.getDate());
+          if (dayKey(bday) === ds) {
+            bdays.push(((s.firstName || "") + " " + (s.surname || "")).trim());
+          }
+        });
+      });
+      if (arrivals.length || departures.length || excursion || bdays.length) {
+        days.push({ date: ds, d, arrivals, departures, excursion, bdays });
+      }
+    }
+    return days;
+  }, [activeGroups, excDays, todayDate]);
+
   // ── Programme day/week number ──────────────────────────
   const { dayNum, weekNum, beforeProg, afterProg, daysToStart } = useMemo(() => {
     if (!progStart || !progEnd) return {};
@@ -440,6 +471,55 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                   <span style={{ fontSize: 9, color: B.textMuted }}>{(g.stu || 0) + (g.gl || 0)} pax</span>
                   <span style={{ fontSize: 8, color: B.textLight, background: "#f1f5f9", padding: "1px 4px", borderRadius: 3 }}>{g.nat}</span>
                   <span style={{ fontSize: 8, color: B.textLight }}>until {fmtDate(g.dep)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 7-day outlook ─────────────────────────────── */}
+      {next7Days.length > 0 && (
+        <div style={{ padding: "10px 12px 16px" }}>
+          <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
+            <div style={{ padding: "6px 14px", background: "#f8fafc", borderBottom: "1px solid " + B.border, fontSize: 9, fontWeight: 700, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.5 }}>
+              Coming Up — Next 7 Days
+            </div>
+            <div style={{ display: "flex", overflowX: "auto", padding: "8px 10px", gap: 8 }}>
+              {next7Days.map(({ date, d, arrivals, departures, excursion, bdays }) => (
+                <div key={date} style={{
+                  flexShrink: 0, width: 160, background: "#f8fafc", border: "1px solid " + B.border,
+                  borderRadius: 8, padding: "8px 10px", fontSize: 10,
+                }}>
+                  <div style={{ fontWeight: 800, color: B.navy, marginBottom: 6 }}>
+                    {dayName(d)} <span style={{ color: B.textMuted, fontWeight: 400 }}>{d.getDate()}/{d.getMonth() + 1}</span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    {arrivals.map((g) => (
+                      <div key={g.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <IcPlaneUp />
+                        <span style={{ color: B.success, fontWeight: 600, fontSize: 9 }}>{g.group} <span style={{ color: B.textMuted, fontWeight: 400 }}>({(g.stu || 0) + (g.gl || 0)})</span></span>
+                      </div>
+                    ))}
+                    {departures.map((g) => (
+                      <div key={g.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <IcPlaneDn />
+                        <span style={{ color: B.danger, fontWeight: 600, fontSize: 9 }}>{g.group} <span style={{ color: B.textMuted, fontWeight: 400 }}>({(g.stu || 0) + (g.gl || 0)})</span></span>
+                      </div>
+                    ))}
+                    {excursion && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <IcBus />
+                        <span style={{ color: "#7c3aed", fontWeight: 600, fontSize: 9 }}>{excursion} Day Exc</span>
+                      </div>
+                    )}
+                    {bdays.map((name, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <IcCake />
+                        <span style={{ color: "#db2777", fontWeight: 600, fontSize: 9 }}>{name}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>

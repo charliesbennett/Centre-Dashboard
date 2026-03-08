@@ -224,7 +224,11 @@ export default function StudentsTab({ groups = [], setGroups }) {
                           background: "none", border: "none", cursor: "pointer", padding: 3, fontSize: 12,
                           color: x.archived ? "#f59e0b" : B.textMuted, borderRadius: 4,
                         }}>{x.archived ? "\ud83d\udcc2" : "\ud83d\uddc3\ufe0f"}</button>
-                        <IconBtn danger onClick={() => setGroups((p) => p.filter((z) => z.id !== x.id))}><IcTrash /></IconBtn>
+                        <IconBtn danger onClick={() => {
+                          if (window.confirm(`Delete "${x.group}"? This will permanently remove the group, all students and programme data.`)) {
+                            setGroups((p) => p.filter((z) => z.id !== x.id));
+                          }
+                        }}><IcTrash /></IconBtn>
                       </div>
                     </td>
                   </tr>
