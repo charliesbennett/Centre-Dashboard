@@ -59,13 +59,6 @@ export default function Dashboard() {
   const READ_ONLY_ROLES = ["teacher", "activity_leader", "sports_activity_instructor", "house_parent"];
   const isReadOnly = READ_ONLY_ROLES.includes(auth.userRole);
 
-  if (auth.loading) return (
-    <div style={{ minHeight: "100vh", background: B.navy, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ width: 32, height: 32, border: "3px solid rgba(255,255,255,0.2)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
-    </div>
-  );
-  if (!auth.isAuthenticated) return <LoginPage onLogin={auth.login} error={auth.error} />;
-
   const isMinistay = centreName.toLowerCase().includes("ministay");
   const { progStart, progEnd } = useMemo(() => {
     const allDates = [];
@@ -311,6 +304,13 @@ export default function Dashboard() {
     pettycash: <IcCoins />, contacts: <IcPhone />, users: <IcUserCog />,
   };
   const visibleTabs = TABS.filter((t) => t.id !== "users" || auth.isHeadOffice);
+
+  if (auth.loading) return (
+    <div style={{ minHeight: "100vh", background: B.navy, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: 32, height: 32, border: "3px solid rgba(255,255,255,0.2)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+    </div>
+  );
+  if (!auth.isAuthenticated) return <LoginPage onLogin={auth.login} error={auth.error} />;
 
   const renderTab = () => {
     if (!centreId) return (
