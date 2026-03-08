@@ -54,7 +54,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_excursions_natural
 ALTER TABLE excursions REPLICA IDENTITY FULL;
 
 ALTER TABLE excursions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "excursions_all" ON excursions FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "excursions_all" ON excursions;
+CREATE POLICY "excursions_all" ON excursions FOR ALL USING (true) WITH CHECK (true);
 
 -- ── Enable Realtime for all grid tables ──────────────────────────────────────
 -- (Tables must be added to the Supabase Realtime publication to receive events)
