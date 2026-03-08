@@ -3,6 +3,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { B, uid, genDates, dayKey, dayName, isWeekend, fmtDate } from "@/lib/constants";
 import { StatCard, Fld, TableWrap, IconBtn, IcPlus, IcTrash, IcEdit, IcCheck, inputStyle, thStyle, tdStyle, btnPrimary, btnNavy } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
+import RoomingImportModal from "@/components/RoomingImportModal";
 
 // ── Helpers ────────────────────────────────────────────────
 function inBed(dateStr, arrDate, depDate) {
@@ -103,6 +104,7 @@ export default function RoomingTab({
   };
 
   // ── HOUSES state ────────────────────────────────────────
+  const [showImport, setShowImport] = useState(false);
   const [houseView, setHouseView] = useState("setup");
   const [showAddHouse, setShowAddHouse] = useState(false);
   const [newHouseName, setNewHouseName] = useState("");
@@ -468,6 +470,22 @@ export default function RoomingTab({
 
   return (
     <div>
+      {/* ── Import modal ────────────────────────────────────── */}
+      {showImport && (
+        <RoomingImportModal
+          onClose={() => setShowImport(false)}
+          existingHouses={roomingHouses}
+          existingRooms={roomingRooms}
+          activeGroups={activeGroups}
+          centreId={centreId}
+          onImport={({ newHouses, newRooms, newAssignments }) => {
+            if (newHouses.length) setRoomingHouses((p) => [...p, ...newHouses]);
+            if (newRooms.length) setRoomingRooms((p) => [...p, ...newRooms]);
+            if (newAssignments.length) setRoomingAssignments((p) => [...p, ...newAssignments]);
+          }}
+        />
+      )}
+
       {/* ── Room form link modal ─────────────────────────── */}
       {tokenModal && modalGroup && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
@@ -701,7 +719,13 @@ export default function RoomingTab({
                 <span style={{ fontSize: 11, fontWeight: 700, color: B.textMuted }}>
                   {roomingHouses.length} house{roomingHouses.length !== 1 ? "s" : ""} · {roomingRooms.length} rooms · {totalBeds} beds total
                 </span>
-                <button onClick={() => setShowAddHouse(true)} style={btnPrimary}><IcPlus /> Add House</button>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => setShowImport(true)} style={{ ...btnNavy, background: "#7c3aed", display: "flex", alignItems: "center", gap: 5 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Import Excel
+                  </button>
+                  <button onClick={() => setShowAddHouse(true)} style={btnPrimary}><IcPlus /> Add House</button>
+                </div>
               </div>
 
               {showAddHouse && (
