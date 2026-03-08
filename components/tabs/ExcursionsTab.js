@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import { B, uid, fmtDate, dayName, isWeekend, genDates, dayKey, inRange } from "@/lib/constants";
-import { Fld, StatusBadge, TableWrap, IconBtn, IcPlus, IcTrash, inputStyle, thStyle, tdStyle, btnPrimary } from "@/components/ui";
+import { Fld, StatusBadge, TableWrap, IconBtn, IcPlus, IcTrash, IcEdit, IcCheck, inputStyle, thStyle, tdStyle, btnPrimary } from "@/components/ui";
 
 const COACH_STATUS = {
   Pending: { color: B.warning, bg: B.warningBg },
@@ -16,6 +16,10 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
   const [coachForm, setCoachForm] = useState({ company: "", phone: "", cost: "", pickupTime: "", dropoffTime: "", vehicle: "Coach", notes: "", status: "Pending" });
   const [editingDest, setEditingDest] = useState(null);
   const [destValue, setDestValue] = useState("");
+  const [editCoachKey, setEditCoachKey] = useState(null); // "date-coachId"
+  const [editCoachForm, setEditCoachForm] = useState({});
+  const [editingNotes, setEditingNotes] = useState(null);
+  const [notesValue, setNotesValue] = useState("");
 
   const dates = useMemo(() => (progStart && progEnd) ? genDates(progStart, progEnd) : [], [progStart, progEnd]);
 
@@ -184,6 +188,28 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
     setExcursions((p) => p.map((e) => e.date === date ? { ...e, coaches: (e.coaches || []).filter((c) => c.id !== coachId) } : e));
   };
 
+  const startEditCoach = (date, coach) => {
+    setEditCoachKey(date + "-" + coach.id);
+    setEditCoachForm({ ...coach });
+  };
+
+  const saveCoachEdit = (date) => {
+    setExcursions((p) => p.map((e) => e.date === date
+      ? { ...e, coaches: (e.coaches || []).map((c) => c.id === editCoachForm.id ? { ...editCoachForm, cost: parseFloat(editCoachForm.cost) || 0 } : c) }
+      : e));
+    setEditCoachKey(null);
+  };
+
+  const saveNotes = (date, notes) => {
+    const existing = (excursions || []).find((e) => e.date === date);
+    if (existing) {
+      setExcursions((p) => p.map((e) => e.date === date ? { ...e, notes } : e));
+    } else {
+      setExcursions((p) => [...p, { id: uid(), date, destination: "", coaches: [], notes }]);
+    }
+    setEditingNotes(null);
+  };
+
   const totalCoachCost = allExcs.reduce((sum, exc) => sum + (exc.coaches || []).reduce((s, c) => s + (c.cost || 0), 0), 0);
   const totalCoaches = allExcs.reduce((sum, exc) => sum + (exc.coaches || []).length, 0);
   const confirmedCoaches = allExcs.reduce((sum, exc) => sum + (exc.coaches || []).filter((c) => c.status === "Confirmed" || c.status === "Paid").length, 0);
@@ -267,6 +293,21 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                 </div>
               </div>
 
+              <div style={{ padding: "4px 16px 2px", display: "flex", alignItems: "center", gap: 6, borderTop: "1px solid " + B.borderLight }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: B.textMuted, whiteSpace: "nowrap" }}>Notes:</span>
+                {editingNotes === exc.date ? (
+                  <input autoFocus value={notesValue} onChange={(e) => setNotesValue(e.target.value)}
+                    onBlur={() => saveNotes(exc.date, notesValue)}
+                    onKeyDown={(e) => e.key === "Enter" && saveNotes(exc.date, notesValue)}
+                    style={{ ...fi, fontSize: 10, flex: 1 }} placeholder="Any notes..." />
+                ) : (
+                  <span onClick={() => { setEditingNotes(exc.date); setNotesValue(exc.notes || ""); }}
+                    style={{ fontSize: 10, color: exc.notes ? B.navy : B.textLight, cursor: "pointer", flex: 1, padding: "2px 6px", borderRadius: 4, border: "1px dashed " + (exc.notes ? "transparent" : B.border) }}>
+                    {exc.notes || "Click to add notes..."}
+                  </span>
+                )}
+              </div>
+
               <div style={{ padding: "6px 16px 10px" }}>
                 {(exc.coaches || []).length > 0 && (
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, marginBottom: 6 }}>
@@ -276,18 +317,45 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                       ))}</tr>
                     </thead>
                     <tbody>
-                      {(exc.coaches || []).map((c) => (
-                        <tr key={c.id} style={{ borderBottom: "1px solid " + B.borderLight }}>
-                          <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{c.company}</td>
-                          <td style={tdStyle}><span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{c.vehicle}</span></td>
-                          <td style={tdStyle}>{c.pickupTime || "\u2014"}</td>
-                          <td style={tdStyle}>{c.dropoffTime || "\u2014"}</td>
-                          <td style={{ ...tdStyle, fontWeight: 700 }}>{c.cost ? "\u00a3" + c.cost.toLocaleString() : "\u2014"}</td>
-                          <td style={tdStyle}><StatusBadge status={c.status} map={COACH_STATUS} /></td>
-                          <td style={{ ...tdStyle, fontSize: 9, color: B.textMuted, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis" }}>{c.notes || "\u2014"}</td>
-                          <td style={tdStyle}><IconBtn danger onClick={() => removeCoach(exc.date, c.id)}><IcTrash /></IconBtn></td>
-                        </tr>
-                      ))}
+                      {(exc.coaches || []).map((c) => {
+                        const eck = exc.date + "-" + c.id;
+                        const isEd = editCoachKey === eck;
+                        const ecFi = { ...fi, fontSize: 9, padding: "2px 4px" };
+                        return (
+                          <tr key={c.id} style={{ borderBottom: "1px solid " + B.borderLight, background: isEd ? "#f0f4ff" : "transparent" }}>
+                            <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{isEd ? <input value={editCoachForm.company || ""} onChange={(e) => setEditCoachForm((p) => ({ ...p, company: e.target.value }))} style={{ ...ecFi, width: 120 }} /> : c.company}</td>
+                            <td style={tdStyle}>{isEd ? (
+                              <select value={editCoachForm.vehicle || "Coach"} onChange={(e) => setEditCoachForm((p) => ({ ...p, vehicle: e.target.value }))} style={{ ...ecFi, cursor: "pointer", width: 80 }}>
+                                {["Coach", "Minibus", "Double Decker", "Train", "Other"].map((v) => <option key={v}>{v}</option>)}
+                              </select>
+                            ) : <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{c.vehicle}</span>}</td>
+                            <td style={tdStyle}>{isEd ? <input value={editCoachForm.pickupTime || ""} onChange={(e) => setEditCoachForm((p) => ({ ...p, pickupTime: e.target.value }))} style={{ ...ecFi, width: 55 }} placeholder="09:00" /> : c.pickupTime || "\u2014"}</td>
+                            <td style={tdStyle}>{isEd ? <input value={editCoachForm.dropoffTime || ""} onChange={(e) => setEditCoachForm((p) => ({ ...p, dropoffTime: e.target.value }))} style={{ ...ecFi, width: 55 }} placeholder="17:00" /> : c.dropoffTime || "\u2014"}</td>
+                            <td style={{ ...tdStyle, fontWeight: 700 }}>{isEd ? <input type="number" value={editCoachForm.cost || ""} onChange={(e) => setEditCoachForm((p) => ({ ...p, cost: e.target.value }))} style={{ ...ecFi, width: 60 }} /> : c.cost ? "\u00a3" + c.cost.toLocaleString() : "\u2014"}</td>
+                            <td style={tdStyle}>{isEd ? (
+                              <select value={editCoachForm.status || "Pending"} onChange={(e) => setEditCoachForm((p) => ({ ...p, status: e.target.value }))} style={{ ...ecFi, cursor: "pointer", width: 85 }}>
+                                {Object.keys(COACH_STATUS).map((s) => <option key={s}>{s}</option>)}
+                              </select>
+                            ) : <StatusBadge status={c.status} map={COACH_STATUS} />}</td>
+                            <td style={{ ...tdStyle, fontSize: 9, color: B.textMuted, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis" }}>{isEd ? <input value={editCoachForm.notes || ""} onChange={(e) => setEditCoachForm((p) => ({ ...p, notes: e.target.value }))} style={{ ...ecFi, width: 100 }} /> : c.notes || "\u2014"}</td>
+                            <td style={tdStyle}>
+                              <div style={{ display: "flex", gap: 2 }}>
+                                {isEd ? (
+                                  <>
+                                    <IconBtn onClick={() => saveCoachEdit(exc.date)}><IcCheck /></IconBtn>
+                                    <IconBtn onClick={() => setEditCoachKey(null)}><span style={{ fontSize: 9, color: B.textMuted }}>✕</span></IconBtn>
+                                  </>
+                                ) : (
+                                  <>
+                                    <IconBtn onClick={() => startEditCoach(exc.date, c)}><IcEdit /></IconBtn>
+                                    <IconBtn danger onClick={() => removeCoach(exc.date, c.id)}><IcTrash /></IconBtn>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 )}

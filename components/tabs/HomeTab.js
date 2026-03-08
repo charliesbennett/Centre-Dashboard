@@ -283,7 +283,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
       </div>
 
       {/* ── Main 3-column grid ────────────────────────────── */}
-      <div style={{ padding: "8px 12px 0", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+      <div style={{ padding: "8px 12px 0", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 10 }}>
 
         {/* ── TODAY'S PROGRAMME ────────────────────────── */}
         <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>

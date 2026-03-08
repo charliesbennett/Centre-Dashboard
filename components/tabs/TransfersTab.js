@@ -64,6 +64,12 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
 
   const unsyncedCount = groups.filter((g) => !transfers.find((t) => t.groupId === g.id)).length;
 
+  const addManual = () => {
+    const id = uid();
+    setTransfers((p) => [...p, { id, groupId: null, agent: "", group: "New Transfer", pax: 0, arrAirport: "Heathrow", arrDate: "", arrFlight: "", arrTime: "", arrTerminal: "", arrNotes: "", depAirport: "Heathrow", depDate: "", depFlight: "", depTime: "", depTerminal: "", depNotes: "", uklc: "Yes", status: "Pending", notes: "" }]);
+    setEditId(id);
+  };
+
   // Timeline data: group by date
   const timeline = useMemo(() => {
     const days = {};
@@ -126,6 +132,9 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
             </select>
           ) : <StatusBadge status={t.status} map={STATUS_MAP} />}
         </td>
+        <td style={{ ...tdStyle, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis" }}>
+          {isEd ? <input value={t.notes || ""} onChange={(e) => upd(t.id, "notes", e.target.value)} style={{ ...edFi, minWidth: 100 }} placeholder="Notes..." /> : <span style={{ fontSize: 9, color: B.textMuted }}>{t.notes || ""}</span>}
+        </td>
         <td style={tdStyle}>
           <div style={{ display: "flex", gap: 2 }}>
             <IconBtn onClick={() => setEditId(isEd ? null : t.id)}>{isEd ? <IcCheck /> : <IcEdit />}</IconBtn>
@@ -165,6 +174,9 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
               {"\ud83d\udd04"} Update from Groups
             </button>
           )}
+          <button onClick={addManual} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: "1px solid " + B.border, background: B.white, color: B.navy, display: "flex", alignItems: "center", gap: 4 }}>
+            <IcPlus /> Add Transfer
+          </button>
           <button onClick={sync} style={{ ...btnPrimary, background: B.navy }}>
             <IcWand /> Sync from Students{unsyncedCount > 0 ? ` (+${unsyncedCount})` : ""}
           </button>
@@ -185,6 +197,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                   <th style={{ ...thStyle, textAlign: "center", background: "#dcfce7", color: "#16a34a" }} colSpan={5}>{"\u2708\ufe0f"} Arrival</th>
                   <th style={{ ...thStyle, textAlign: "center", background: "#fee2e2", color: "#dc2626" }} colSpan={5}>{"\ud83d\udeeb"} Departure</th>
                   <th style={thStyle} rowSpan={2}>Status</th>
+                  <th style={thStyle} rowSpan={2}>Notes</th>
                   <th style={thStyle} rowSpan={2}></th>
                 </tr>
                 <tr>
@@ -194,7 +207,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
               </thead>
               <tbody>
                 {transfers.length === 0 ? (
-                  <tr><td colSpan={16} style={{ textAlign: "center", padding: 36, color: B.textLight }}>Click "Sync from Students" to create transfer rows from imported groups</td></tr>
+                  <tr><td colSpan={17} style={{ textAlign: "center", padding: 36, color: B.textLight }}>Click "Sync from Students" to create transfer rows from imported groups</td></tr>
                 ) : transfers.map((t) => renderRow(t, true, true))}
               </tbody>
             </table>
@@ -209,7 +222,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
               <thead>
                 <tr>
-                  {["Agent", "Group", "Pax", "UKLC", "Airport", "Terminal", "Date", "Flight", "Time", "Status", ""].map((h) => (
+                  {["Agent", "Group", "Pax", "UKLC", "Airport", "Terminal", "Date", "Flight", "Time", "Status", "Notes", ""].map((h) => (
                     <th key={h} style={{ ...thStyle, background: "#f0fdf4" }}>{h}</th>
                   ))}
                 </tr>
@@ -231,6 +244,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                         <td style={{ ...tdStyle, fontFamily: "monospace" }}>{isEd ? <input value={t.arrFlight} onChange={(e) => upd(t.id, "arrFlight", e.target.value)} style={edFi} /> : t.arrFlight || <span style={{color:B.textLight}}>TBC</span>}</td>
                         <td style={{ ...tdStyle, fontWeight: 700 }}>{isEd ? <input value={t.arrTime} onChange={(e) => upd(t.id, "arrTime", e.target.value)} style={{...edFi,minWidth:50}} placeholder="14:30" /> : t.arrTime || <span style={{color:B.textLight}}>TBC</span>}</td>
                         <td style={tdStyle}>{isEd ? <select value={t.status} onChange={(e) => upd(t.id, "status", e.target.value)} style={edFi}>{Object.keys(STATUS_MAP).map((s) => <option key={s}>{s}</option>)}</select> : <StatusBadge status={t.status} map={STATUS_MAP} />}</td>
+                        <td style={{ ...tdStyle, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis" }}>{isEd ? <input value={t.notes || ""} onChange={(e) => upd(t.id, "notes", e.target.value)} style={{ ...edFi, minWidth: 90 }} placeholder="Notes..." /> : <span style={{ fontSize: 9, color: B.textMuted }}>{t.notes || ""}</span>}</td>
                         <td style={tdStyle}>
                           <div style={{ display: "flex", gap: 2 }}>
                             <IconBtn onClick={() => setEditId(isEd ? null : t.id)}>{isEd ? <IcCheck /> : <IcEdit />}</IconBtn>
@@ -253,7 +267,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
               <thead>
                 <tr>
-                  {["Agent", "Group", "Pax", "UKLC", "Airport", "Terminal", "Date", "Flight", "Time", "Status", ""].map((h) => (
+                  {["Agent", "Group", "Pax", "UKLC", "Airport", "Terminal", "Date", "Flight", "Time", "Status", "Notes", ""].map((h) => (
                     <th key={h} style={{ ...thStyle, background: "#fef2f2" }}>{h}</th>
                   ))}
                 </tr>
@@ -275,6 +289,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                         <td style={{ ...tdStyle, fontFamily: "monospace" }}>{isEd ? <input value={t.depFlight} onChange={(e) => upd(t.id, "depFlight", e.target.value)} style={edFi} /> : t.depFlight || <span style={{color:B.textLight}}>TBC</span>}</td>
                         <td style={{ ...tdStyle, fontWeight: 700 }}>{isEd ? <input value={t.depTime} onChange={(e) => upd(t.id, "depTime", e.target.value)} style={{...edFi,minWidth:50}} placeholder="10:00" /> : t.depTime || <span style={{color:B.textLight}}>TBC</span>}</td>
                         <td style={tdStyle}>{isEd ? <select value={t.status} onChange={(e) => upd(t.id, "status", e.target.value)} style={edFi}>{Object.keys(STATUS_MAP).map((s) => <option key={s}>{s}</option>)}</select> : <StatusBadge status={t.status} map={STATUS_MAP} />}</td>
+                        <td style={{ ...tdStyle, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis" }}>{isEd ? <input value={t.notes || ""} onChange={(e) => upd(t.id, "notes", e.target.value)} style={{ ...edFi, minWidth: 90 }} placeholder="Notes..." /> : <span style={{ fontSize: 9, color: B.textMuted }}>{t.notes || ""}</span>}</td>
                         <td style={tdStyle}>
                           <div style={{ display: "flex", gap: 2 }}>
                             <IconBtn onClick={() => setEditId(isEd ? null : t.id)}>{isEd ? <IcCheck /> : <IcEdit />}</IconBtn>

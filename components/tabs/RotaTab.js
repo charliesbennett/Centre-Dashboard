@@ -361,7 +361,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       SLOTS.forEach((sl) => {
         const v = grid[sid+"-"+ds+"-"+sl];
         if (v && v !== "Day Off" && v !== "Induction" && v !== "Setup") sess++;
-        if (v !== "Day Off") allOff = false;
+        if (v && v !== "Day Off") allOff = false;
       });
       if (allOff) {
         const a = grid[sid+"-"+ds+"-AM"], b = grid[sid+"-"+ds+"-PM"], c = grid[sid+"-"+ds+"-Eve"];
@@ -399,7 +399,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
   };
 
   const ratioAlerts = useMemo(() => {
-    if (!filled || !groups || !groups.length) return [];
+    if (!groups || !groups.length) return [];
     const a = [];
     dates.forEach((d) => {
       const ds = dayKey(d); const rd = ratioData[ds];
@@ -412,7 +412,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       });
     });
     return a;
-  }, [grid, ratioData, filled, dates, groups]);
+  }, [grid, ratioData, dates, groups]);
 
   const cellColor = (v) => {
     if (!v) return null;
@@ -465,7 +465,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
               <span style={{ color: "#64748b" }}>· Set in Students tab · Auto-flips weekly</span>
             </div>
           )}
-          {showRatios && filled && (
+          {showRatios && (
             <div style={{ padding: "4px 16px" }}>
               {groups && groups.length > 0 ? (
                 ratioAlerts.length > 0 ? (
