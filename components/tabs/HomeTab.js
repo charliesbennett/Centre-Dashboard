@@ -409,7 +409,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
             <span style={{ fontWeight: 800, fontSize: 11, color: B.white, display: "flex", alignItems: "center", gap: 6 }}><IcCake /> Upcoming Birthdays</span>
             <span style={{ fontSize: 9, color: "rgba(255,255,255,0.6)" }}>Next 14 days</span>
           </div>
-          <div style={{ padding: "4px 0" }}>
+          <div style={{ padding: "4px 0", maxHeight: 280, overflowY: "auto" }}>
             {upcomingBirthdays.length === 0 ? (
               <div style={{ padding: "20px 14px", textAlign: "center", color: B.textLight, fontSize: 10 }}>
                 No birthdays in the next 14 days

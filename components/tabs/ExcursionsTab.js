@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import { B, uid, fmtDate, dayName, isWeekend, genDates, dayKey, inRange } from "@/lib/constants";
-import { Fld, StatusBadge, TableWrap, IconBtn, IcPlus, IcTrash, IcEdit, IcCheck, inputStyle, thStyle, tdStyle, btnPrimary } from "@/components/ui";
+import { Fld, StatusBadge, TableWrap, IconBtn, IcPlus, IcTrash, IcEdit, IcCheck, IcCopy, inputStyle, thStyle, tdStyle, btnPrimary } from "@/components/ui";
 
 const COACH_STATUS = {
   Pending: { color: B.warning, bg: B.warningBg },
@@ -200,6 +200,11 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
     setEditCoachKey(null);
   };
 
+  const duplicateCoach = (date, coach) => {
+    const copy = { ...coach, id: uid() };
+    setExcursions((p) => p.map((e) => e.date === date ? { ...e, coaches: [...(e.coaches || []), copy] } : e));
+  };
+
   const saveNotes = (date, notes) => {
     const existing = (excursions || []).find((e) => e.date === date);
     if (existing) {
@@ -247,7 +252,9 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
             <div style={{ fontSize: 9, color: B.textMuted, fontWeight: 600 }}>Coach Cost</div>
           </div>
         )}
-        <button onClick={autoFromProgramme} style={{ marginLeft: "auto", padding: "6px 14px", background: B.navy, border: "none", color: B.white, borderRadius: 6, cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit" }}>
+        <button onClick={autoFromProgramme}
+          title={isMinistay ? "Reads exc days from ministay template first, then falls back to scanning the programme grid for Full Exc / Half Exc keywords or custom activity names" : "Scans the programme grid for Full Exc / Half Exc keywords or custom activity names and marks those days as excursion days"}
+          style={{ marginLeft: "auto", padding: "6px 14px", background: B.navy, border: "none", color: B.white, borderRadius: 6, cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit" }}>
           Auto from Programme
         </button>
         <div style={{ fontSize: 9, color: B.textMuted }}>
@@ -348,6 +355,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                                 ) : (
                                   <>
                                     <IconBtn onClick={() => startEditCoach(exc.date, c)}><IcEdit /></IconBtn>
+                                    <IconBtn title="Duplicate coach" onClick={() => duplicateCoach(exc.date, c)}><IcCopy /></IconBtn>
                                     <IconBtn danger onClick={() => removeCoach(exc.date, c.id)}><IcTrash /></IconBtn>
                                   </>
                                 )}

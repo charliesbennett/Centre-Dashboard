@@ -114,6 +114,7 @@ function Ic({ d, s = 16, c = "currentColor", sw = 1.8 }) {
 
 // ── General purpose icons ─────────────────────────────────────────────────
 export function IcPlus()    { return <Ic d="M12 5v14M5 12h14" />; }
+export function IcCopy()    { return <Ic d="M8 8H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2M16 2h-6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6l-4-4z" s={14} />; }
 export function IcTrash()   { return <Ic d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" s={14} />; }
 export function IcSearch()  { return <Ic d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35" s={14} />; }
 export function IcX()       { return <Ic d="M18 6L6 18M6 6l12 12" s={12} />; }

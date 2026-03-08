@@ -99,13 +99,20 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
 
   const edFi = { ...fi, padding: "3px", fontSize: 10, minWidth: 60 };
 
+  const isIncomplete = (t) =>
+    (t.uklc !== "Dep Only" && t.uklc !== "No" && !t.arrFlight) ||
+    (t.uklc !== "Arr Only" && t.uklc !== "No" && !t.depFlight);
+
   // Editable row for combined view
   const renderRow = (t, showArr, showDep) => {
     const isEd = editId === t.id;
     return (
       <tr key={t.id} style={{ borderBottom: "1px solid " + B.borderLight, background: isEd ? "#f0f4ff" : "transparent" }}>
         <td style={tdStyle}>{t.agent}</td>
-        <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{t.group}</td>
+        <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>
+          {t.group}
+          {!isEd && isIncomplete(t) && <span title="Missing flight number" style={{ marginLeft: 5, fontSize: 9, color: "#d97706", fontWeight: 800 }}>⚠</span>}
+        </td>
         <td style={{ ...tdStyle, fontWeight: 800, textAlign: "center" }}>{t.pax}</td>
         <td style={tdStyle}>
           {isEd ? (
