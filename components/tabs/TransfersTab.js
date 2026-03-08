@@ -60,7 +60,12 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
   };
 
   const upd = (id, field, value) => setTransfers((p) => p.map((t) => t.id === id ? { ...t, [field]: value } : t));
-  const del = (id) => setTransfers((p) => p.filter((t) => t.id !== id));
+  const del = (id) => {
+    const t = transfers.find((x) => x.id === id);
+    if (window.confirm(`Delete transfer for "${t?.group || "this group"}"?`)) {
+      setTransfers((p) => p.filter((x) => x.id !== id));
+    }
+  };
 
   const unsyncedCount = groups.filter((g) => !transfers.find((t) => t.groupId === g.id)).length;
 

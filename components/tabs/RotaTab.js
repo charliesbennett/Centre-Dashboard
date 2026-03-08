@@ -20,7 +20,6 @@ function getGroupLessonSlot(group, dateStr) {
 }
 
 export default function RotaTab({ staff, progStart, progEnd, excDays, groups, rotaGrid, setRotaGrid }) {
-  const [filled, setFilled] = useState(false);
   const [showRatios, setShowRatios] = useState(true);
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState("");
@@ -28,6 +27,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
   const setGrid = setRotaGrid;
 
   const dates = useMemo(() => (progStart && progEnd) ? genDates(progStart, progEnd) : [], [progStart, progEnd]);
+  const hasRotaData = useMemo(() => Object.values(rotaGrid || {}).some(Boolean), [rotaGrid]);
 
   const groupArrivalDate = useMemo(() => {
     if (!groups || !groups.length) return null;
@@ -323,7 +323,6 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     });
 
     setGrid(ng);
-    setFilled(true);
   };
 
   // ── Double-click to edit ──────────────────────────────
@@ -449,14 +448,14 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
             const hasData = Object.values(rotaGrid).some((v) => v);
             if (hasData && !window.confirm("Auto-generate will overwrite all existing rota entries. Continue?")) return;
             autoGenerate();
-          }} style={{ ...btnPrimary, background: B.navy }}><IcWand /> {filled ? "Re-generate" : "Auto-Generate"}</button>
+          }} style={{ ...btnPrimary, background: B.navy }}><IcWand /> {hasRotaData ? "Re-generate" : "Auto-Generate"}</button>
         </div>
       </div>
 
       {/* ── Inline alerts / info strip ───────────────────── */}
-      {(filled || showRatios) && (
+      {(hasRotaData || showRatios) && (
         <div style={{ flexShrink: 0, borderBottom: `1px solid ${B.border}` }}>
-          {filled && groups && groups.length > 0 && (
+          {hasRotaData && groups && groups.length > 0 && (
             <div style={{ padding: "4px 16px", background: "#e0f2fe", fontSize: 9, color: "#0369a1", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
               <span style={{ fontWeight: 700 }}>Lesson slots (Wk1):</span>
               {groups.map((g) => (
@@ -533,7 +532,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
             </tr>
           </thead>
           <tbody>
-            {filled && groups && groups.length > 0 && (
+            {hasRotaData && groups && groups.length > 0 && (
               <tr style={{ borderBottom: "2px solid "+B.border, background: "#f0fdf4" }}>
                 <td style={{ ...tdStyle, position: "sticky", left: 0, zIndex: 1, background: "#f0fdf4", fontSize: 9, fontWeight: 800, color: B.success }}>Ratio</td>
                 <td style={{ ...tdStyle, position: "sticky", left: 52, zIndex: 1, background: "#f0fdf4", fontSize: 10, fontWeight: 700, color: B.navy }}>Staff+GL / Need</td>
