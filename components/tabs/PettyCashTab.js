@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { B, uid, fmtMoney, fmtDate, dayKey } from "@/lib/constants";
 import { Fld, StatCard, IconBtn, IcPlus, IcTrash, inputStyle } from "@/components/ui";
 
@@ -15,6 +15,8 @@ export default function PettyCashTab({ pettyCash = {}, setPettyCash }) {
   const [showAddExp, setShowAddExp] = useState(false);
   const [ni, setNi] = useState({ date: TODAY, group: "", cat: "Activity", amt: "" });
   const [ne, setNe] = useState({ date: TODAY, desc: "", cat: "Activities & Equipment", amt: "" });
+  const incGroupRef = useRef(null);
+  const expDescRef = useRef(null);
 
   const fi = inputStyle;
   const totalInc = income.reduce((s, x) => s + (+x.amt || 0), 0);
@@ -54,7 +56,7 @@ export default function PettyCashTab({ pettyCash = {}, setPettyCash }) {
           {showAddInc && (
             <div style={{ padding: "8px 12px", borderBottom: `1px solid ${B.borderLight}`, display: "flex", gap: 5, flexWrap: "wrap", alignItems: "flex-end" }}>
               <Fld label="Date"><input type="date" value={ni.date} onChange={(e) => setNi((p) => ({ ...p, date: e.target.value }))} style={{ ...fi, width: 115 }} /></Fld>
-              <Fld label="Group"><input value={ni.group} onChange={(e) => setNi((p) => ({ ...p, group: e.target.value }))} style={{ ...fi, minWidth: 80 }} /></Fld>
+              <Fld label="Group"><input ref={incGroupRef} value={ni.group} onChange={(e) => setNi((p) => ({ ...p, group: e.target.value }))} style={{ ...fi, minWidth: 80 }} /></Fld>
               <Fld label="Cat">
                 <select value={ni.cat} onChange={(e) => setNi((p) => ({ ...p, cat: e.target.value }))} style={{ ...fi, cursor: "pointer", width: 90 }}>
                   {incCats.map((c) => <option key={c}>{c}</option>)}
@@ -65,7 +67,7 @@ export default function PettyCashTab({ pettyCash = {}, setPettyCash }) {
                 if (ni.group.trim() && ni.amt) {
                   setPettyCash((p) => ({ ...p, income: [...(p.income || []), { ...ni, id: uid() }] }));
                   setNi({ date: TODAY, group: "", cat: "Activity", amt: "" });
-                  setShowAddInc(false);
+                  setTimeout(() => incGroupRef.current?.focus(), 0);
                 }
               }} style={{ padding: "4px 10px", background: B.navy, border: "none", color: B.white, borderRadius: 4, cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit" }}>Add</button>
             </div>
@@ -100,7 +102,7 @@ export default function PettyCashTab({ pettyCash = {}, setPettyCash }) {
           {showAddExp && (
             <div style={{ padding: "8px 12px", borderBottom: `1px solid ${B.borderLight}`, display: "flex", gap: 5, flexWrap: "wrap", alignItems: "flex-end" }}>
               <Fld label="Date"><input type="date" value={ne.date} onChange={(e) => setNe((p) => ({ ...p, date: e.target.value }))} style={{ ...fi, width: 115 }} /></Fld>
-              <Fld label="Desc"><input value={ne.desc} onChange={(e) => setNe((p) => ({ ...p, desc: e.target.value }))} style={{ ...fi, minWidth: 100 }} /></Fld>
+              <Fld label="Desc"><input ref={expDescRef} value={ne.desc} onChange={(e) => setNe((p) => ({ ...p, desc: e.target.value }))} style={{ ...fi, minWidth: 100 }} /></Fld>
               <Fld label="Cat">
                 <select value={ne.cat} onChange={(e) => setNe((p) => ({ ...p, cat: e.target.value }))} style={{ ...fi, cursor: "pointer", width: 100 }}>
                   {expCats.map((c) => <option key={c}>{c}</option>)}
@@ -111,7 +113,7 @@ export default function PettyCashTab({ pettyCash = {}, setPettyCash }) {
                 if (ne.desc.trim() && ne.amt) {
                   setPettyCash((p) => ({ ...p, expenses: [...(p.expenses || []), { ...ne, id: uid() }] }));
                   setNe({ date: TODAY, desc: "", cat: "Activities & Equipment", amt: "" });
-                  setShowAddExp(false);
+                  setTimeout(() => expDescRef.current?.focus(), 0);
                 }
               }} style={{ padding: "4px 10px", background: B.navy, border: "none", color: B.white, borderRadius: 4, cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit" }}>Add</button>
             </div>

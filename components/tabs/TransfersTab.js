@@ -59,7 +59,17 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
     }));
   };
 
-  const upd = (id, field, value) => setTransfers((p) => p.map((t) => t.id === id ? { ...t, [field]: value } : t));
+  const upd = (id, field, value) => {
+    if (field === "status" && value === "Confirmed") {
+      const t = transfers.find((x) => x.id === id);
+      if (t) {
+        const missingArr = t.uklc !== "Dep Only" && t.uklc !== "No" && !t.arrFlight;
+        const missingDep = t.uklc !== "Arr Only" && t.uklc !== "No" && !t.depFlight;
+        if ((missingArr || missingDep) && !window.confirm("This transfer is missing a flight number. Mark as Confirmed anyway?")) return;
+      }
+    }
+    setTransfers((p) => p.map((t) => t.id === id ? { ...t, [field]: value } : t));
+  };
   const del = (id) => {
     const t = transfers.find((x) => x.id === id);
     if (window.confirm(`Delete transfer for "${t?.group || "this group"}"?`)) {

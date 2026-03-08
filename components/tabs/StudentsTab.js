@@ -8,6 +8,7 @@ export default function StudentsTab({ groups = [], setGroups }) {
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState("");
   const [importMsg, setImportMsg] = useState(null);
+  const [importPreview, setImportPreview] = useState(null);
   const fileRef = useRef(null);
   const [n, setN] = useState({
     agent: "", group: "", nat: "", stu: 0, gl: 0, arr: "", dep: "",
@@ -107,9 +108,7 @@ export default function StudentsTab({ groups = [], setGroups }) {
           students, leaders,
         };
 
-        setGroups((prev) => [...prev, newGroup]);
-        setImportMsg({ type: "success", text: "Imported \"" + newGroup.group + "\" \u2014 " + students.length + " students, " + leaders.length + " GLs" });
-        setTimeout(() => setImportMsg(null), 6000);
+        setImportPreview({ newGroup, students, leaders });
       } catch (err) {
         console.error("Import error:", err);
         setImportMsg({ type: "error", text: "Import failed: " + err.message });
@@ -141,6 +140,51 @@ export default function StudentsTab({ groups = [], setGroups }) {
 
   return (
     <div>
+      {/* ── Import preview modal ─────────────────────────── */}
+      {importPreview && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+            <div style={{ background: B.navy, padding: "14px 18px" }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>Confirm Import</div>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>Review before adding to dashboard</div>
+            </div>
+            <div style={{ padding: "18px 20px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "6px 14px", fontSize: 12 }}>
+                <span style={{ color: B.textMuted, fontWeight: 600 }}>Group</span>
+                <span style={{ fontWeight: 800, color: B.navy }}>{importPreview.newGroup.group}</span>
+                <span style={{ color: B.textMuted, fontWeight: 600 }}>Agent</span>
+                <span>{importPreview.newGroup.agent || "—"}</span>
+                <span style={{ color: B.textMuted, fontWeight: 600 }}>Students</span>
+                <span style={{ fontWeight: 700 }}>{importPreview.students.length}</span>
+                <span style={{ color: B.textMuted, fontWeight: 600 }}>Group Leaders</span>
+                <span style={{ fontWeight: 700 }}>{importPreview.leaders.length}</span>
+                <span style={{ color: B.textMuted, fontWeight: 600 }}>Arrival</span>
+                <span>{fmtDate(importPreview.newGroup.arr) || "—"}</span>
+                <span style={{ color: B.textMuted, fontWeight: 600 }}>Departure</span>
+                <span>{fmtDate(importPreview.newGroup.dep) || "—"}</span>
+                <span style={{ color: B.textMuted, fontWeight: 600 }}>Nationality</span>
+                <span>{importPreview.newGroup.nat || "—"}</span>
+              </div>
+            </div>
+            <div style={{ padding: "0 20px 18px", display: "flex", gap: 8 }}>
+              <button onClick={() => {
+                setGroups((prev) => [...prev, importPreview.newGroup]);
+                setImportMsg({ type: "success", text: `Imported "${importPreview.newGroup.group}" — ${importPreview.students.length} students, ${importPreview.leaders.length} GLs` });
+                setTimeout(() => setImportMsg(null), 6000);
+                setImportPreview(null);
+                if (fileRef.current) fileRef.current.value = "";
+              }} style={{ flex: 1, padding: "10px", background: B.navy, border: "none", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>
+                Import Group
+              </button>
+              <button onClick={() => { setImportPreview(null); if (fileRef.current) fileRef.current.value = ""; }}
+                style={{ padding: "10px 16px", background: "#f1f5f9", border: "1px solid " + B.border, color: B.textMuted, borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ padding: "12px 20px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <StatCard label="Groups" value={activeGroups.length} accent={B.navy} />
         <StatCard label="Students" value={totalStu} accent={B.red} />

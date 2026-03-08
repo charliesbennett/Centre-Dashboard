@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { B, uid } from "@/lib/constants";
 import { Fld, IcPlus, IcX, inputStyle, btnPrimary } from "@/components/ui";
 
@@ -9,13 +9,14 @@ const CAT_ICONS = { "Centre / Venue": "🏫", "Coaches & Transport": "🚌", Exc
 export default function ContactsTab({ contacts = [], setContacts }) {
   const [showAdd, setShowAdd] = useState(false);
   const [n, setN] = useState({ name: "", email: "", phone: "", role: "", cat: "Centre / Venue", notes: "" });
+  const nameRef = useRef(null);
   const fi = inputStyle;
 
   const addContact = () => {
     if (!n.name.trim() && !n.email.trim()) return;
     setContacts((p) => [...p, { ...n, id: uid() }]);
     setN({ name: "", email: "", phone: "", role: "", cat: "Centre / Venue", notes: "" });
-    setShowAdd(false);
+    setTimeout(() => nameRef.current?.focus(), 0);
   };
 
   return (
@@ -27,7 +28,7 @@ export default function ContactsTab({ contacts = [], setContacts }) {
 
       {showAdd && (
         <div style={{ background: B.white, borderBottom: `1px solid ${B.border}`, padding: "10px 20px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
-          <Fld label="Name"><input value={n.name} onChange={(e) => setN((p) => ({ ...p, name: e.target.value }))} style={fi} /></Fld>
+          <Fld label="Name"><input ref={nameRef} value={n.name} onChange={(e) => setN((p) => ({ ...p, name: e.target.value }))} style={fi} /></Fld>
           <Fld label="Email"><input value={n.email} onChange={(e) => setN((p) => ({ ...p, email: e.target.value }))} style={{ ...fi, minWidth: 180 }} /></Fld>
           <Fld label="Phone"><input value={n.phone} onChange={(e) => setN((p) => ({ ...p, phone: e.target.value }))} style={{ ...fi, width: 110 }} /></Fld>
           <Fld label="Role"><input value={n.role} onChange={(e) => setN((p) => ({ ...p, role: e.target.value }))} style={{ ...fi, minWidth: 130 }} /></Fld>
