@@ -15,7 +15,7 @@ const AIRPORTS = ["Heathrow", "Gatwick", "Stansted", "Luton", "Manchester", "Bir
 const TERMINALS = ["T1", "T2", "T3", "T4", "T5", "North", "South", "N/A"];
 const UKLC_OPTIONS = ["Yes", "No", "Arr Only", "Dep Only", "TBC"];
 
-export default function TransfersTab({ groups = [], transfers = [], setTransfers }) {
+export default function TransfersTab({ groups = [], transfers = [], setTransfers, readOnly = false }) {
   const [view, setView] = useState("overview"); // overview | arrivals | departures | timeline
   const [editId, setEditId] = useState(null);
   const fi = inputStyle;
@@ -159,8 +159,8 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
         </td>
         <td style={tdStyle}>
           <div style={{ display: "flex", gap: 2 }}>
-            <IconBtn onClick={() => setEditId(isEd ? null : t.id)}>{isEd ? <IcCheck /> : <IcEdit />}</IconBtn>
-            <IconBtn danger onClick={() => del(t.id)}><IcTrash /></IconBtn>
+            {!readOnly && <IconBtn onClick={() => setEditId(isEd ? null : t.id)}>{isEd ? <IcCheck /> : <IcEdit />}</IconBtn>}
+            {!readOnly && <IconBtn danger onClick={() => del(t.id)}><IcTrash /></IconBtn>}
           </div>
         </td>
       </tr>
@@ -191,17 +191,17 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
       <div style={{ background: B.white, borderBottom: "1px solid " + B.border, padding: "8px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 10, color: B.textMuted }}>{transfers.length} transfers {"\u00b7"} {totalPax} total pax</span>
         <div style={{ display: "flex", gap: 6 }}>
-          {transfers.length > 0 && (
+          {!readOnly && transfers.length > 0 && (
             <button onClick={syncUpdate} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: "1px solid " + B.border, background: B.white, color: B.textMuted }}>
               {"\ud83d\udd04"} Update from Groups
             </button>
           )}
-          <button onClick={addManual} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: "1px solid " + B.border, background: B.white, color: B.navy, display: "flex", alignItems: "center", gap: 4 }}>
+          {!readOnly && <button onClick={addManual} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: "1px solid " + B.border, background: B.white, color: B.navy, display: "flex", alignItems: "center", gap: 4 }}>
             <IcPlus /> Add Transfer
-          </button>
-          <button onClick={sync} style={{ ...btnPrimary, background: B.navy }}>
+          </button>}
+          {!readOnly && <button onClick={sync} style={{ ...btnPrimary, background: B.navy }}>
             <IcWand /> Sync from Students{unsyncedCount > 0 ? ` (+${unsyncedCount})` : ""}
-          </button>
+          </button>}
         </div>
       </div>
 

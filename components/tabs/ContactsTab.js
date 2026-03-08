@@ -6,7 +6,7 @@ import { Fld, IcPlus, IcX, inputStyle, btnPrimary } from "@/components/ui";
 const CATEGORIES = ["Centre / Venue", "Coaches & Transport", "Excursions", "DJ / Entertainment", "Medical / Emergency", "UKLC Head Office", "Other"];
 const CAT_ICONS = { "Centre / Venue": "🏫", "Coaches & Transport": "🚌", Excursions: "🎯", "DJ / Entertainment": "🎵", "Medical / Emergency": "🏥", "UKLC Head Office": "🏢", Other: "📋" };
 
-export default function ContactsTab({ contacts = [], setContacts }) {
+export default function ContactsTab({ contacts = [], setContacts, readOnly = false }) {
   const [showAdd, setShowAdd] = useState(false);
   const [n, setN] = useState({ name: "", email: "", phone: "", role: "", cat: "Centre / Venue", notes: "" });
   const nameRef = useRef(null);
@@ -23,7 +23,7 @@ export default function ContactsTab({ contacts = [], setContacts }) {
     <div>
       <div style={{ background: B.white, borderBottom: `1px solid ${B.border}`, padding: "8px 20px", display: "flex", justifyContent: "space-between" }}>
         <span style={{ fontSize: 11, color: B.textMuted }}>{contacts.length} contacts</span>
-        <button onClick={() => setShowAdd(!showAdd)} style={btnPrimary}><IcPlus /> Add Contact</button>
+        {!readOnly && <button onClick={() => setShowAdd(!showAdd)} style={btnPrimary}><IcPlus /> Add Contact</button>}
       </div>
 
       {showAdd && (
@@ -60,10 +60,10 @@ export default function ContactsTab({ contacts = [], setContacts }) {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
                 {contacts.filter((x) => x.cat === cat).map((x) => (
                   <div key={x.id} style={{ background: B.white, border: `1px solid ${B.border}`, borderRadius: 10, padding: "14px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", position: "relative" }}>
-                    <button onClick={() => setContacts((p) => p.filter((z) => z.id !== x.id))}
+                    {!readOnly && <button onClick={() => setContacts((p) => p.filter((z) => z.id !== x.id))}
                       style={{ position: "absolute", top: 8, right: 8, background: "none", border: "none", color: B.textLight, cursor: "pointer" }}>
                       <IcX />
-                    </button>
+                    </button>}
                     <div style={{ fontWeight: 800, fontSize: 14, color: B.navy, paddingRight: 24 }}>{x.name || "Unnamed"}</div>
                     {x.role && <div style={{ fontSize: 11, color: B.textMuted, marginTop: 2 }}>{x.role}</div>}
                     <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>

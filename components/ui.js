@@ -144,3 +144,5 @@ export function IcMountain()  { return <Ic d="M8 3l4 8 5-5 5 15H2L8 3z" />; }
 export function IcBuilding()  { return <Ic d="M3 21h18M3 10h18M3 7l9-4 9 4M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3" />; }
 export function IcStar()      { return <Ic d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />; }
 export function IcSparkles()  { return <Ic d="M5 3l1.5 1.5M5 21l1.5-1.5M19 3l-1.5 1.5M19 21l-1.5-1.5M12 2v2M12 20v2M2 12h2M20 12h2M8.5 8.5l7 7M15.5 8.5l-7 7" sw={1.5} />; }
+export function IcUserCog()  { return <Ic s={15} d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM19 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM19 8v1M19 13v1M16.6 9.5l-.87.5M21.4 11l-.87.5M16.6 12.5l-.87-.5M21.4 9l-.87-.5" />; }
+export function IcLogout()   { return <Ic s={15} d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />; }

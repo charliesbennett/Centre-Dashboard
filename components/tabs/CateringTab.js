@@ -5,7 +5,7 @@ import { StatCard, Fld, TableWrap, IconBtn, IcPlus, IcTrash, inputStyle, thStyle
 
 const DIET_TYPES = ["Vegetarian", "Vegan", "Halal", "Kosher", "Gluten-Free", "Dairy-Free", "Nut Allergy", "Egg Allergy", "Fish Allergy", "Other"];
 
-export default function CateringTab({ groups, staff, progStart, progEnd, excDays, cateringData, setCateringData }) {
+export default function CateringTab({ groups, staff, progStart, progEnd, excDays, cateringData, setCateringData, readOnly = false }) {
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
   const teamSize = staff.length;
   const cd = cateringData || {};
@@ -272,7 +272,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
                       const isOverridden = overrides[cellKey] !== undefined;
                       const isEd = editingCell === cellKey;
                       return (
-                        <td key={s} onClick={() => !isEd && startEdit(s, m)} style={{
+                        <td key={s} onClick={() => !readOnly && !isEd && startEdit(s, m)} style={{
                           textAlign: "center", padding: "4px 1px", cursor: "pointer",
                           fontWeight: v ? 800 : 400, color: v ? (isOverridden ? "#ea580c" : B.navy) : B.textLight,
                           fontSize: v ? 11 : 9, borderLeft: "1px solid " + B.borderLight,
@@ -302,7 +302,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
           {overrideCount > 0 && (
             <div style={{ padding: "6px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontSize: 9, color: "#ea580c" }}>{"\u26a0\ufe0f"} {overrideCount} cells manually overridden (shown in orange)</span>
-              <button onClick={() => update("overrides", {})} style={{ fontSize: 9, color: B.textMuted, background: "transparent", border: "1px solid " + B.border, borderRadius: 4, padding: "3px 8px", cursor: "pointer", fontFamily: "inherit" }}>Reset All Overrides</button>
+              {!readOnly && <button onClick={() => update("overrides", {})} style={{ fontSize: 9, color: B.textMuted, background: "transparent", border: "1px solid " + B.border, borderRadius: 4, padding: "3px 8px", cursor: "pointer", fontFamily: "inherit" }}>Reset All Overrides</button>}
             </div>
           )}
         </div>
@@ -407,7 +407,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
 
           <div style={{ background: B.white, borderBottom: "1px solid " + B.border, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: B.textMuted }}>{dietary.length} dietary requirements</span>
-            <button onClick={() => setShowDietForm(!showDietForm)} style={btnPrimary}><IcPlus /> Add</button>
+            {!readOnly && <button onClick={() => setShowDietForm(!showDietForm)} style={btnPrimary}><IcPlus /> Add</button>}
           </div>
 
           {showDietForm && (
@@ -444,7 +444,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
                       <span style={{ background: "#fee2e2", color: "#dc2626", padding: "2px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800 }}>{d.type}</span>
                     </td>
                     <td style={{ ...tdStyle, fontSize: 10, color: B.textMuted }}>{d.details || "\u2014"}</td>
-                    <td style={tdStyle}><IconBtn danger onClick={() => update("dietary", dietary.filter((x) => x.id !== d.id))}><IcTrash /></IconBtn></td>
+                    <td style={tdStyle}>{!readOnly && <IconBtn danger onClick={() => update("dietary", dietary.filter((x) => x.id !== d.id))}><IcTrash /></IconBtn>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -458,7 +458,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
         <div style={{ padding: "0 12px 16px" }}>
           <div style={{ background: B.white, borderBottom: "1px solid " + B.border, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: B.textMuted }}>{specialMeals.length} special meals</span>
-            <button onClick={() => setShowSpecialForm(!showSpecialForm)} style={btnPrimary}><IcPlus /> Add Special Meal</button>
+            {!readOnly && <button onClick={() => setShowSpecialForm(!showSpecialForm)} style={btnPrimary}><IcPlus /> Add Special Meal</button>}
           </div>
 
           {showSpecialForm && (
@@ -489,7 +489,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
                     </td>
                     <td style={{ ...tdStyle, fontWeight: 600 }}>{s.description}</td>
                     <td style={{ ...tdStyle, fontWeight: 800, textAlign: "center" }}>{s.count}</td>
-                    <td style={tdStyle}><IconBtn danger onClick={() => update("specialMeals", specialMeals.filter((x) => x.id !== s.id))}><IcTrash /></IconBtn></td>
+                    <td style={tdStyle}>{!readOnly && <IconBtn danger onClick={() => update("specialMeals", specialMeals.filter((x) => x.id !== s.id))}><IcTrash /></IconBtn>}</td>
                   </tr>
                 ))}
               </tbody>

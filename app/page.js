@@ -1,9 +1,12 @@
 "use client";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { B, CENTRES, TABS } from "@/lib/constants";
-import { IcHome, IcGradCap, IcCalGrid, IcClipboard, IcFork, IcPlane, IcUsersTab, IcMapPin, IcKey, IcCoins, IcPhone, IcBuilding } from "@/components/ui";
+import { IcHome, IcGradCap, IcCalGrid, IcClipboard, IcFork, IcPlane, IcUsersTab, IcMapPin, IcKey, IcCoins, IcPhone, IcBuilding, IcUserCog, IcLogout } from "@/components/ui";
+import { useAuth } from "@/lib/useAuth";
+import LoginPage from "@/components/LoginPage";
 import { useSupabase } from "@/lib/useSupabase";
 import StudentsTab from "@/components/tabs/StudentsTab";
+import UsersTab from "@/components/tabs/UsersTab";
 import RotaTab from "@/components/tabs/RotaTab";
 import ProgrammesTab from "@/components/tabs/ProgrammesTab";
 import CateringTab from "@/components/tabs/CateringTab";
@@ -16,6 +19,7 @@ import RoomingTab from "@/components/tabs/RoomingTab";
 import HomeTab from "@/components/tabs/HomeTab";
 
 export default function Dashboard() {
+  const auth = useAuth();
   const [tab, setTab] = useState("home");
   const [centreId, setCentreId] = useState("");
   const [centreName, setCentreName] = useState("");
@@ -36,6 +40,31 @@ export default function Dashboard() {
     if (db.settings.prog_start) setManualStart(db.settings.prog_start);
     if (db.settings.prog_end) setManualEnd(db.settings.prog_end);
   }, [db.settings]);
+
+  // Auto-lock centre for non-HO users
+  useEffect(() => {
+    if (auth.isAuthenticated && !auth.isHeadOffice && auth.userCentreId && db.centres.length > 0) {
+      const c = db.centres.find((x) => x.id === auth.userCentreId);
+      if (c && centreId !== c.id) { setCentreId(c.id); setCentreName(c.name); }
+    }
+  }, [auth.isAuthenticated, auth.isHeadOffice, auth.userCentreId, db.centres]);
+
+  const ROLE_LABELS = {
+    head_office: "Head Office", centre_manager: "Centre Manager",
+    course_director: "Course Director", excursion_activity_manager: "Excursions & Activities",
+    safeguarding_welfare: "Safeguarding & Welfare", teacher: "Teacher",
+    activity_leader: "Activity Leader", sports_activity_instructor: "Sports & Activity Instructor",
+    house_parent: "House Parent",
+  };
+  const READ_ONLY_ROLES = ["teacher", "activity_leader", "sports_activity_instructor", "house_parent"];
+  const isReadOnly = READ_ONLY_ROLES.includes(auth.userRole);
+
+  if (auth.loading) return (
+    <div style={{ minHeight: "100vh", background: B.navy, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: 32, height: 32, border: "3px solid rgba(255,255,255,0.2)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+    </div>
+  );
+  if (!auth.isAuthenticated) return <LoginPage onLogin={auth.login} error={auth.error} />;
 
   const isMinistay = centreName.toLowerCase().includes("ministay");
   const { progStart, progEnd } = useMemo(() => {
@@ -279,8 +308,9 @@ export default function Dashboard() {
     home: <IcHome />, students: <IcGradCap />, rota: <IcCalGrid />,
     programmes: <IcClipboard />, catering: <IcFork />, transfers: <IcPlane />,
     team: <IcUsersTab />, excursions: <IcMapPin />, rooming: <IcKey />,
-    pettycash: <IcCoins />, contacts: <IcPhone />,
+    pettycash: <IcCoins />, contacts: <IcPhone />, users: <IcUserCog />,
   };
+  const visibleTabs = TABS.filter((t) => t.id !== "users" || auth.isHeadOffice);
 
   const renderTab = () => {
     if (!centreId) return (
@@ -301,23 +331,24 @@ export default function Dashboard() {
     const activeGroups = (db.groups || []).filter((g) => !g.archived);
     switch (tab) {
       case "home": return <HomeTab groups={db.groups} staff={db.staff} excDays={db.excDays} progGrid={db.progGrid} rotaGrid={db.rotaGrid} progStart={progStart} progEnd={progEnd} />;
-      case "students": return <StudentsTab groups={db.groups} setGroups={setGroups} />;
-      case "rota": return <RotaTab staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} groups={activeGroups} rotaGrid={db.rotaGrid} setRotaGrid={setRotaGrid} />;
-      case "programmes": return <ProgrammesTab groups={activeGroups} progStart={progStart} progEnd={progEnd} centre={centreName} excDays={db.excDays} setExcDays={setExcDays} progGrid={db.progGrid} setProgGrid={setProgGrid} settings={db.settings} saveSetting={db.saveSetting} />;
-      case "catering": return <CateringTab groups={activeGroups} staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} cateringData={cateringData} setCateringData={setCateringData} />;
-      case "transfers": return <TransfersTab groups={activeGroups} transfers={db.transfers} setTransfers={setTransfers} />;
-      case "team": return <TeamTab staff={db.staff} setStaff={setStaff} />;
-      case "excursions": return <ExcursionsTab excDays={db.excDays} setExcDays={setExcDays} groups={activeGroups} progStart={progStart} progEnd={progEnd} excursions={db.excursions} setExcursions={setExcursions} centre={centreName} progGrid={db.progGrid} settings={db.settings} />;
+      case "students": return <StudentsTab groups={db.groups} setGroups={setGroups} readOnly={isReadOnly} />;
+      case "rota": return <RotaTab staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} groups={activeGroups} rotaGrid={db.rotaGrid} setRotaGrid={setRotaGrid} readOnly={isReadOnly} />;
+      case "programmes": return <ProgrammesTab groups={activeGroups} progStart={progStart} progEnd={progEnd} centre={centreName} excDays={db.excDays} setExcDays={setExcDays} progGrid={db.progGrid} setProgGrid={setProgGrid} settings={db.settings} saveSetting={db.saveSetting} readOnly={isReadOnly} />;
+      case "catering": return <CateringTab groups={activeGroups} staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} cateringData={cateringData} setCateringData={setCateringData} readOnly={isReadOnly} />;
+      case "transfers": return <TransfersTab groups={activeGroups} transfers={db.transfers} setTransfers={setTransfers} readOnly={isReadOnly} />;
+      case "team": return <TeamTab staff={db.staff} setStaff={setStaff} readOnly={isReadOnly} />;
+      case "excursions": return <ExcursionsTab excDays={db.excDays} setExcDays={setExcDays} groups={activeGroups} progStart={progStart} progEnd={progEnd} excursions={db.excursions} setExcursions={setExcursions} centre={centreName} progGrid={db.progGrid} settings={db.settings} readOnly={isReadOnly} />;
       case "rooming": return <RoomingTab
         groups={db.groups} progStart={progStart} progEnd={progEnd}
         roomingHouses={db.roomingHouses} setRoomingHouses={setRoomingHouses}
         roomingRooms={db.roomingRooms} setRoomingRooms={setRoomingRooms}
         roomingAssignments={db.roomingAssignments} setRoomingAssignments={setRoomingAssignments}
         roomingOverrides={roomingOverrides} setRoomingOverrides={setRoomingOverrides}
-        centreId={centreId}
+        centreId={centreId} readOnly={isReadOnly}
       />;
-      case "pettycash": return <PettyCashTab pettyCash={pettyCash} setPettyCash={setPettyCash} />;
-      case "contacts": return <ContactsTab contacts={contacts} setContacts={setContacts} />;
+      case "pettycash": return <PettyCashTab pettyCash={pettyCash} setPettyCash={setPettyCash} readOnly={isReadOnly} />;
+      case "contacts": return <ContactsTab contacts={contacts} setContacts={setContacts} readOnly={isReadOnly} />;
+      case "users": return <UsersTab centres={db.centres} />;
       default: return null;
     }
   };
@@ -367,15 +398,23 @@ export default function Dashboard() {
 
         {/* Right: controls */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
-          <select value={centreName} onChange={(e) => handleCentreChange(e.target.value)} style={{
-            background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
-            color: "#fff", padding: "8px 14px", borderRadius: 8, fontSize: 12,
-            fontFamily: "'Open Sans', sans-serif", fontWeight: 600, maxWidth: 260, cursor: "pointer",
-            backdropFilter: "blur(4px)",
-          }}>
-            <option value="" style={{ color: "#333", background: "#1c3048" }}>Select Centre…</option>
-            {db.centres.map((c) => <option key={c.id} value={c.name} style={{ color: "#333", background: "#fff" }}>{c.name}</option>)}
-          </select>
+          {/* Centre: dropdown for HO, locked text for others */}
+          {auth.isHeadOffice ? (
+            <select value={centreName} onChange={(e) => handleCentreChange(e.target.value)} style={{
+              background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
+              color: "#fff", padding: "8px 14px", borderRadius: 8, fontSize: 12,
+              fontFamily: "'Open Sans', sans-serif", fontWeight: 600, maxWidth: 260, cursor: "pointer",
+              backdropFilter: "blur(4px)",
+            }}>
+              <option value="" style={{ color: "#333", background: "#1c3048" }}>Select Centre…</option>
+              {db.centres.map((c) => <option key={c.id} value={c.name} style={{ color: "#333", background: "#fff" }}>{c.name}</option>)}
+            </select>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "8px 14px" }}>
+              <span style={{ color: "rgba(255,255,255,0.6)", display: "flex" }}><IcBuilding /></span>
+              <span style={{ fontSize: 12, color: "#fff", fontWeight: 600 }}>{centreName || "No centre assigned"}</span>
+            </div>
+          )}
 
           <div style={{
             display: "flex", alignItems: "center", gap: 8,
@@ -390,6 +429,20 @@ export default function Dashboard() {
               <span style={{ fontSize: 9, color: B.yellow, fontWeight: 800, marginLeft: 2, fontFamily: "'Raleway', sans-serif" }}>Auto: {progStart.slice(5)} → {progEnd.slice(5)}</span>
             )}
           </div>
+
+          {/* User badge */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "7px 12px" }}>
+            <span style={{ color: "rgba(255,255,255,0.7)", display: "flex" }}><IcUserCog /></span>
+            <div>
+              <div style={{ fontSize: 11, color: "#fff", fontWeight: 700, lineHeight: 1.2 }}>{auth.userName}</div>
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", lineHeight: 1.2 }}>{ROLE_LABELS[auth.userRole] || auth.userRole}</div>
+            </div>
+          </div>
+
+          {/* Logout */}
+          <button onClick={auth.logout} title="Sign out" style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.8)", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
+            <IcLogout /> Sign out
+          </button>
         </div>
       </header>
 
@@ -402,7 +455,7 @@ export default function Dashboard() {
         padding: "0 12px", display: "flex", overflowX: "auto", gap: 0,
         boxShadow: "0 2px 12px rgba(28,48,72,0.08)", flexShrink: 0,
       }}>
-        {TABS.map((t) => {
+        {visibleTabs.map((t) => {
           const active = tab === t.id;
           return (
             <button key={t.id} onClick={() => setTab(t.id)} className="nav-tab" style={{

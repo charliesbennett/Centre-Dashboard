@@ -10,7 +10,7 @@ const COACH_STATUS = {
   Paid: { color: "#5b21b6", bg: "#ede9fe" },
 };
 
-export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, progEnd, excursions, setExcursions, centre, progGrid, settings }) {
+export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, progEnd, excursions, setExcursions, centre, progGrid, settings, readOnly = false }) {
   const isMinistay = /mini[\s-]?stay/i.test(centre || "");
   const [showCoachForm, setShowCoachForm] = useState(null);
   const [coachForm, setCoachForm] = useState({ company: "", phone: "", cost: "", pickupTime: "", dropoffTime: "", vehicle: "Coach", notes: "", status: "Pending" });
@@ -292,9 +292,9 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                       onKeyDown={(e) => e.key === "Enter" && saveDest(exc.date, destValue)}
                       style={{ ...fi, width: 180, fontSize: 11 }} placeholder="e.g. London Eye" />
                   ) : (
-                    <span onClick={() => { setEditingDest(exc.date); setDestValue(exc.destination); }}
-                      style={{ fontSize: 11, fontWeight: 700, color: exc.destination ? B.navy : B.textLight, cursor: "pointer", padding: "3px 8px", borderRadius: 4, border: "1px dashed " + (exc.destination ? "transparent" : B.border), minWidth: 120 }}>
-                      {exc.destination || "Click to set..."}
+                    <span onClick={() => { if (!readOnly) { setEditingDest(exc.date); setDestValue(exc.destination); } }}
+                      style={{ fontSize: 11, fontWeight: 700, color: exc.destination ? B.navy : B.textLight, cursor: readOnly ? "default" : "pointer", padding: "3px 8px", borderRadius: 4, border: "1px dashed " + (exc.destination ? "transparent" : B.border), minWidth: 120 }}>
+                      {exc.destination || (readOnly ? "—" : "Click to set...")}
                     </span>
                   )}
                 </div>
@@ -308,9 +308,9 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                     onKeyDown={(e) => e.key === "Enter" && saveNotes(exc.date, notesValue)}
                     style={{ ...fi, fontSize: 10, flex: 1 }} placeholder="Any notes..." />
                 ) : (
-                  <span onClick={() => { setEditingNotes(exc.date); setNotesValue(exc.notes || ""); }}
-                    style={{ fontSize: 10, color: exc.notes ? B.navy : B.textLight, cursor: "pointer", flex: 1, padding: "2px 6px", borderRadius: 4, border: "1px dashed " + (exc.notes ? "transparent" : B.border) }}>
-                    {exc.notes || "Click to add notes..."}
+                  <span onClick={() => { if (!readOnly) { setEditingNotes(exc.date); setNotesValue(exc.notes || ""); } }}
+                    style={{ fontSize: 10, color: exc.notes ? B.navy : B.textLight, cursor: readOnly ? "default" : "pointer", flex: 1, padding: "2px 6px", borderRadius: 4, border: "1px dashed " + (exc.notes ? "transparent" : B.border) }}>
+                    {exc.notes || (readOnly ? "—" : "Click to add notes...")}
                   </span>
                 )}
               </div>
@@ -346,7 +346,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                             ) : <StatusBadge status={c.status} map={COACH_STATUS} />}</td>
                             <td style={{ ...tdStyle, fontSize: 9, color: B.textMuted, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis" }}>{isEd ? <input value={editCoachForm.notes || ""} onChange={(e) => setEditCoachForm((p) => ({ ...p, notes: e.target.value }))} style={{ ...ecFi, width: 100 }} /> : c.notes || "\u2014"}</td>
                             <td style={tdStyle}>
-                              <div style={{ display: "flex", gap: 2 }}>
+                              {!readOnly && <div style={{ display: "flex", gap: 2 }}>
                                 {isEd ? (
                                   <>
                                     <IconBtn onClick={() => saveCoachEdit(exc.date)}><IcCheck /></IconBtn>
@@ -359,7 +359,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                                     <IconBtn danger onClick={() => removeCoach(exc.date, c.id)}><IcTrash /></IconBtn>
                                   </>
                                 )}
-                              </div>
+                              </div>}
                             </td>
                           </tr>
                         );
@@ -389,7 +389,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                     <button onClick={() => setShowCoachForm(null)} style={{ padding: "5px 10px", background: "transparent", border: "1px solid " + B.border, color: B.textMuted, borderRadius: 5, cursor: "pointer", fontSize: 10, fontWeight: 600, fontFamily: "inherit", height: 30 }}>Cancel</button>
                   </div>
                 ) : (
-                  <button onClick={() => setShowCoachForm(exc.date)} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", background: "transparent", border: "1px dashed " + B.border, borderRadius: 5, cursor: "pointer", fontSize: 10, fontWeight: 600, fontFamily: "inherit", color: B.textMuted }}>
+                  !readOnly && <button onClick={() => setShowCoachForm(exc.date)} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", background: "transparent", border: "1px dashed " + B.border, borderRadius: 5, cursor: "pointer", fontSize: 10, fontWeight: 600, fontFamily: "inherit", color: B.textMuted }}>
                     <IcPlus /> Add Coach
                   </button>
                 )}

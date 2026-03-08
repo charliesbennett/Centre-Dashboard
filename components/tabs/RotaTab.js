@@ -19,7 +19,7 @@ function getGroupLessonSlot(group, dateStr) {
   return weekNum % 2 === 0 ? group.lessonSlot : (group.lessonSlot === "AM" ? "PM" : "AM");
 }
 
-export default function RotaTab({ staff, progStart, progEnd, excDays, groups, rotaGrid, setRotaGrid }) {
+export default function RotaTab({ staff, progStart, progEnd, excDays, groups, rotaGrid, setRotaGrid, readOnly = false }) {
   const [showRatios, setShowRatios] = useState(true);
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState("");
@@ -444,11 +444,11 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
           <button onClick={() => setShowRatios(!showRatios)} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: "1px solid "+(showRatios ? B.navy : B.border), background: showRatios ? B.navy : B.white, color: showRatios ? B.white : B.textMuted, display: "flex", alignItems: "center", gap: 4 }}>
             Ratios {ratioAlerts.length > 0 && <span style={{ background: B.danger, color: B.white, borderRadius: 8, padding: "1px 5px", fontSize: 8 }}>{ratioAlerts.length}</span>}
           </button>
-          <button onClick={() => {
+          {!readOnly && <button onClick={() => {
             const hasData = Object.values(rotaGrid).some((v) => v);
             if (hasData && !window.confirm("Auto-generate will overwrite all existing rota entries. Continue?")) return;
             autoGenerate();
-          }} style={{ ...btnPrimary, background: B.navy }}><IcWand /> {hasRotaData ? "Re-generate" : "Auto-Generate"}</button>
+          }} style={{ ...btnPrimary, background: B.navy }}><IcWand /> {hasRotaData ? "Re-generate" : "Auto-Generate"}</button>}
         </div>
       </div>
 
@@ -582,8 +582,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                       const isEd = editingCell === key;
                       return (
                         <td key={key}
-                          onClick={() => on && !isEd && cycleCell(s.id, ds, sl)}
-                          onDoubleClick={(e) => { e.preventDefault(); if (on) startEdit(key, v); }}
+                          onClick={() => !readOnly && on && !isEd && cycleCell(s.id, ds, sl)}
+                          onDoubleClick={(e) => { e.preventDefault(); if (!readOnly && on) startEdit(key, v); }}
                           style={{
                             padding: "1px", borderLeft: sl === "AM" ? "2px solid "+B.border : "1px solid "+B.borderLight,
                             textAlign: "center", cursor: on ? "pointer" : "default",

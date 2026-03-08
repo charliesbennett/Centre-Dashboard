@@ -32,7 +32,7 @@ export default function RoomingTab({
   roomingRooms = [], setRoomingRooms,
   roomingAssignments = [], setRoomingAssignments,
   roomingOverrides = {}, setRoomingOverrides,
-  centreId = "",
+  centreId = "", readOnly = false,
 }) {
   const [view, setView] = useState("overview");
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
@@ -581,10 +581,10 @@ export default function RoomingTab({
             {overrideCount > 0 && (
               <>
                 <span style={{ fontSize: 9, color: "#ea580c", fontWeight: 700 }}>{overrideCount} override{overrideCount !== 1 ? "s" : ""}</span>
-                <button onClick={() => setRoomingOverrides({})} style={{
+                {!readOnly && <button onClick={() => setRoomingOverrides({})} style={{
                   fontSize: 9, color: B.textMuted, background: "transparent",
                   border: "1px solid " + B.border, borderRadius: 4, padding: "2px 8px", cursor: "pointer", fontFamily: "inherit",
-                }}>Reset All</button>
+                }}>Reset All</button>}
               </>
             )}
             <button onClick={handlePrintOverview} style={{ ...btnNavy, fontSize: 9, padding: "3px 10px", marginLeft: "auto" }}>
@@ -629,7 +629,7 @@ export default function RoomingTab({
                       const isOverridden = roomingOverrides[cellKey] !== undefined;
                       const isEd = editingCell === cellKey;
                       return (
-                        <td key={ds} onClick={() => !isEd && startCellEdit(g.id, ds)} style={{
+                        <td key={ds} onClick={() => !readOnly && !isEd && startCellEdit(g.id, ds)} style={{
                           textAlign: "center", padding: "4px 1px", cursor: "pointer",
                           borderLeft: "1px solid " + B.borderLight,
                           fontWeight: v ? 800 : 400,
@@ -720,11 +720,11 @@ export default function RoomingTab({
                   {roomingHouses.length} house{roomingHouses.length !== 1 ? "s" : ""} · {roomingRooms.length} rooms · {totalBeds} beds total
                 </span>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={() => setShowImport(true)} style={{ ...btnNavy, background: "#7c3aed", display: "flex", alignItems: "center", gap: 5 }}>
+                  {!readOnly && <button onClick={() => setShowImport(true)} style={{ ...btnNavy, background: "#7c3aed", display: "flex", alignItems: "center", gap: 5 }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     Import Excel
-                  </button>
-                  <button onClick={() => setShowAddHouse(true)} style={btnPrimary}><IcPlus /> Add House</button>
+                  </button>}
+                  {!readOnly && <button onClick={() => setShowAddHouse(true)} style={btnPrimary}><IcPlus /> Add House</button>}
                 </div>
               </div>
 
@@ -771,14 +771,14 @@ export default function RoomingTab({
                         {houseRooms.length} rooms · {houseBeds} beds
                         {houseOccupied > 0 && <> · <span style={{ color: B.success }}>{houseOccupied} assigned</span></>}
                       </span>
-                      <div style={{ marginLeft: "auto", display: "flex", gap: 4 }} onClick={(e) => e.stopPropagation()}>
+                      {!readOnly && <div style={{ marginLeft: "auto", display: "flex", gap: 4 }} onClick={(e) => e.stopPropagation()}>
                         {editingHouseId === house.id ? (
                           <IconBtn onClick={() => updateHouseName(house.id)}><IcCheck /></IconBtn>
                         ) : (
                           <IconBtn onClick={() => { setEditingHouseId(house.id); setEditingHouseName(house.name); }}><IcEdit /></IconBtn>
                         )}
                         <IconBtn danger onClick={() => { if (confirm("Delete " + house.name + " and all its rooms?")) deleteHouse(house.id); }}><IcTrash /></IconBtn>
-                      </div>
+                      </div>}
                     </div>
 
                     {isExpanded && (
@@ -833,10 +833,10 @@ export default function RoomingTab({
                                           </div>
                                         ))}
                                         {roomAssigns.length > 2 && <div style={{ fontSize: 8, color: B.textLight }}>+{roomAssigns.length - 2} more</div>}
-                                        <div style={{ display: "flex", gap: 2, position: "absolute", top: 4, right: 4 }}>
+                                        {!readOnly && <div style={{ display: "flex", gap: 2, position: "absolute", top: 4, right: 4 }}>
                                           <IconBtn onClick={() => { setEditingRoomId(room.id); setEditingRoom({ roomName: room.roomName, floorLabel: room.floorLabel, capacity: room.capacity }); }}><IcEdit /></IconBtn>
                                           <IconBtn danger onClick={() => deleteRoom(room.id)}><IcTrash /></IconBtn>
-                                        </div>
+                                        </div>}
                                       </>
                                     )}
                                   </div>
@@ -865,7 +865,7 @@ export default function RoomingTab({
                             <button onClick={() => setShowAddRoom(null)} style={{ color: B.textMuted, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 10 }}>Cancel</button>
                           </div>
                         ) : (
-                          <button onClick={() => { setShowAddRoom(house.id); setNewRoom({ floorLabel: "", roomName: "", capacity: 2 }); }}
+                          !readOnly && <button onClick={() => { setShowAddRoom(house.id); setNewRoom({ floorLabel: "", roomName: "", capacity: 2 }); }}
                             style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, color: "#0891b2", background: "transparent", border: "1px dashed #bae6fd", borderRadius: 5, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit" }}>
                             <IcPlus /> Add Room
                           </button>
@@ -975,6 +975,7 @@ export default function RoomingTab({
                                           <div style={{ width: 6, height: 6, borderRadius: "50%", background: groupColor || B.border, flexShrink: 0 }} />
                                           <input
                                             value={a?.occupantName || ""}
+                                            disabled={readOnly}
                                             onChange={(e) => e.target.value
                                               ? setSlot(room.id, slotIdx, { occupantName: e.target.value, groupId: a?.groupId || "" })
                                               : clearSlot(room.id, slotIdx)

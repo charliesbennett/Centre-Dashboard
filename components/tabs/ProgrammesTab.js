@@ -15,7 +15,7 @@ function getGroupLessonSlot(g, ds) {
   return weekNum % 2 === 0 ? g.lessonSlot : (g.lessonSlot === "AM" ? "PM" : "AM");
 }
 
-export default function ProgrammesTab({ groups, progStart, progEnd, centre, excDays, setExcDays, progGrid, setProgGrid, settings, saveSetting }) {
+export default function ProgrammesTab({ groups, progStart, progEnd, centre, excDays, setExcDays, progGrid, setProgGrid, settings, saveSetting, readOnly = false }) {
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
   const isLondon = LONDON_CENTRES.includes(centre);
   const isMinistay = /mini[\s-]?stay/i.test(centre || "");
@@ -135,7 +135,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   const toggleExc = (dStr) => { setExcDays(p => { const c = p[dStr]; if (!c) return {...p,[dStr]:"Full"}; if (c==="Full") return {...p,[dStr]:"Half"}; const n={...p}; delete n[dStr]; return n; }); };
   const quickPick = (key, val) => { setGrid(p => ({...p, [key]: val})); setQuickPickCell(null); };
   const handleCellClick = (key, sl, on, e) => {
-    if (!on || !isMinistay) return; const rect = e.currentTarget.getBoundingClientRect(); setQpPos({top: rect.bottom, left: rect.left});
+    if (readOnly || !on || !isMinistay) return; const rect = e.currentTarget.getBoundingClientRect(); setQpPos({top: rect.bottom, left: rect.left});
     if (editingCell === key) return;
     setQuickPickCell(quickPickCell === key ? null : key);
   };
@@ -179,11 +179,11 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           {m==="all"?"\ud83d\udc65 All Groups":m==="group"?"\ud83d\udc64 By Group":"\ud83d\udcc4 Templates"}</button>)}
         {isMinistay && <button onClick={()=>setShowTemplateModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+B.border,background:settings?.ministay_template?"#dcfce7":B.white,color:settings?.ministay_template?B.success:B.textMuted,marginLeft:4}}>
           {"\ud83d\udcc4"} {settings?.ministay_template ? "Edit Template" : "Set Up Template"}</button>}
-        <button onClick={() => {
+        {!readOnly && <button onClick={() => {
           const hasData = Object.values(progGrid).some((v) => v);
           if (hasData && !window.confirm("Auto-populate will overwrite all existing programme cells. Continue?")) return;
           autoPop();
-        }} style={{...btnPrimary,background:B.navy,marginLeft:4}}><IcWand/> Auto-Populate</button>
+        }} style={{...btnPrimary,background:B.navy,marginLeft:4}}><IcWand/> Auto-Populate</button>}
       </div>
     </div>
 
@@ -234,7 +234,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
             <td style={{...tdStyle,fontWeight:800,textAlign:"center",fontSize:10}}>{(g.stu||0)+(g.gl||0)}</td>
             <td style={{...tdStyle,textAlign:"center"}}><span style={{background:g.lessonSlot==="PM"?"#fae8ff":"#dbeafe",color:g.lessonSlot==="PM"?"#9333ea":"#1e40af",padding:"2px 6px",borderRadius:3,fontSize:8,fontWeight:800}}>{g.lessonSlot||"AM"}</span></td>
             {dates.map(d=>slots.map(sl=>{const s=dayKey(d),key=g.id+"-"+s+"-"+sl,val=grid[key],on=inRange(s,g.arr,g.dep),cls=classify(val),isEd=editingCell===key,isQP=quickPickCell===key;
-              return<td key={key} onClick={(e)=>handleCellClick(key,sl,on,e)} onDoubleClick={()=>on&&startEdit(key,val)} style={{padding:"2px 3px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,verticalAlign:"middle",minWidth:64,maxWidth:100,background:!on?"#f5f5f5":cls.bg,cursor:on?"pointer":"default",position:"relative"}}>
+              return<td key={key} onClick={(e)=>handleCellClick(key,sl,on,e)} onDoubleClick={()=>!readOnly&&on&&startEdit(key,val)} style={{padding:"2px 3px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,verticalAlign:"middle",minWidth:64,maxWidth:100,background:!on?"#f5f5f5":cls.bg,cursor:on?"pointer":"default",position:"relative"}}>
                 {isEd?<input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} style={{width:"100%",fontSize:9,padding:"3px",border:"1px solid "+B.navy,borderRadius:2,fontFamily:"inherit"}}/>:
                 val?<div style={{color:cls.color,fontSize:9,fontWeight:600,padding:"3px 4px",borderRadius:2,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:96}} title={val}>{val}</div>:
                 on?<div style={{height:18}}/>:<div style={{height:18}}/>}
@@ -275,7 +275,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           <tbody>{slots.map(sl=><tr key={sl} style={{borderBottom:"1px solid "+B.borderLight}}>
             <td style={{...tdStyle,fontWeight:800,fontSize:8,color:sl==="EVE"?"#92400e":B.textMuted,textAlign:"center"}}>{sl}</td>
             {dates.filter(d=>inRange(dayKey(d),selGroup.arr,selGroup.dep)).map(d=>{const key=selGroup.id+"-"+dayKey(d)+"-"+sl,val=grid[key],cls=classify(val),isEd=editingCell===key,isQP=quickPickCell===key;
-              return<td key={key} onClick={(e)=>handleCellClick(key,sl,true,e)} onDoubleClick={()=>startEdit(key,val)} style={{padding:"4px 6px",borderLeft:"1px solid "+B.borderLight,verticalAlign:"top",cursor:"pointer",position:"relative"}}>
+              return<td key={key} onClick={(e)=>handleCellClick(key,sl,true,e)} onDoubleClick={()=>!readOnly&&startEdit(key,val)} style={{padding:"4px 6px",borderLeft:"1px solid "+B.borderLight,verticalAlign:"top",cursor:"pointer",position:"relative"}}>
                 {isEd?<input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} style={{width:"100%",fontSize:9,padding:"4px",border:"1px solid "+B.navy,borderRadius:3,fontFamily:"inherit"}}/>:
                 <div style={{background:cls.bg,color:cls.color,padding:"4px 6px",borderRadius:4,fontSize:9,fontWeight:600,minHeight:32,display:"flex",alignItems:"center"}}>{val||"\u2014"}</div>}
                 {isQP&&<div style={{position:"fixed",top:qpPos.top,left:qpPos.left,zIndex:9999,background:B.white,border:"1px solid "+B.border,borderRadius:6,boxShadow:"0 4px 12px rgba(0,0,0,0.15)",padding:"4px 0",minWidth:160,maxHeight:220,overflowY:"auto"}}>

@@ -5,7 +5,7 @@ import { Fld, StatCard, IconBtn, IcPlus, IcTrash, inputStyle } from "@/component
 
 const TODAY = dayKey(new Date());
 
-export default function PettyCashTab({ pettyCash = {}, setPettyCash }) {
+export default function PettyCashTab({ pettyCash = {}, setPettyCash, readOnly = false }) {
   const income = pettyCash.income || [];
   const expenses = pettyCash.expenses || [];
   const opening = pettyCash.opening || 0;
@@ -40,8 +40,8 @@ export default function PettyCashTab({ pettyCash = {}, setPettyCash }) {
       </div>
 
       <div style={{ background: B.white, borderBottom: `1px solid ${B.border}`, padding: "10px 20px", display: "flex", gap: 10, alignItems: "center" }}>
-        <Fld label="Opening (£)"><input type="number" step="0.01" value={opening} onChange={(e) => setOpening(+e.target.value || 0)} style={{ ...fi, width: 80 }} /></Fld>
-        <Fld label="To ROM (£)"><input type="number" step="0.01" value={toRom} onChange={(e) => setToRom(+e.target.value || 0)} style={{ ...fi, width: 80 }} /></Fld>
+        <Fld label="Opening (£)"><input type="number" step="0.01" value={opening} onChange={(e) => setOpening(+e.target.value || 0)} style={{ ...fi, width: 80 }} disabled={readOnly} /></Fld>
+        <Fld label="To ROM (£)"><input type="number" step="0.01" value={toRom} onChange={(e) => setToRom(+e.target.value || 0)} style={{ ...fi, width: 80 }} disabled={readOnly} /></Fld>
       </div>
 
       <div style={{ padding: "12px 20px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -49,9 +49,9 @@ export default function PettyCashTab({ pettyCash = {}, setPettyCash }) {
         <div style={{ background: B.white, borderRadius: 10, border: `1px solid ${B.border}`, overflow: "hidden" }}>
           <div style={{ padding: "8px 12px", background: B.successBg, borderBottom: `1px solid ${B.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 800, fontSize: 11, color: B.success }}>Cash In</span>
-            <button onClick={() => setShowAddInc(!showAddInc)} style={{ display: "flex", alignItems: "center", gap: 3, padding: "3px 8px", background: B.success, color: B.white, border: "none", borderRadius: 4, cursor: "pointer", fontSize: 9, fontWeight: 700, fontFamily: "inherit" }}>
+            {!readOnly && <button onClick={() => setShowAddInc(!showAddInc)} style={{ display: "flex", alignItems: "center", gap: 3, padding: "3px 8px", background: B.success, color: B.white, border: "none", borderRadius: 4, cursor: "pointer", fontSize: 9, fontWeight: 700, fontFamily: "inherit" }}>
               <IcPlus /> Add
-            </button>
+            </button>}
           </div>
           {showAddInc && (
             <div style={{ padding: "8px 12px", borderBottom: `1px solid ${B.borderLight}`, display: "flex", gap: 5, flexWrap: "wrap", alignItems: "flex-end" }}>
@@ -80,7 +80,7 @@ export default function PettyCashTab({ pettyCash = {}, setPettyCash }) {
               </span>
               <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                 <span style={{ fontWeight: 800, color: B.success }}>{fmtMoney(+i.amt)}</span>
-                <IconBtn danger onClick={() => setPettyCash((p) => ({ ...p, income: (p.income || []).filter((z) => z.id !== i.id) }))}><IcTrash /></IconBtn>
+                {!readOnly && <IconBtn danger onClick={() => setPettyCash((p) => ({ ...p, income: (p.income || []).filter((z) => z.id !== i.id) }))}><IcTrash /></IconBtn>}
               </div>
             </div>
           ))}
@@ -95,9 +95,9 @@ export default function PettyCashTab({ pettyCash = {}, setPettyCash }) {
         <div style={{ background: B.white, borderRadius: 10, border: `1px solid ${B.border}`, overflow: "hidden" }}>
           <div style={{ padding: "8px 12px", background: B.dangerBg, borderBottom: `1px solid ${B.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 800, fontSize: 11, color: B.danger }}>Cash Out</span>
-            <button onClick={() => setShowAddExp(!showAddExp)} style={{ display: "flex", alignItems: "center", gap: 3, padding: "3px 8px", background: B.danger, color: B.white, border: "none", borderRadius: 4, cursor: "pointer", fontSize: 9, fontWeight: 700, fontFamily: "inherit" }}>
+            {!readOnly && <button onClick={() => setShowAddExp(!showAddExp)} style={{ display: "flex", alignItems: "center", gap: 3, padding: "3px 8px", background: B.danger, color: B.white, border: "none", borderRadius: 4, cursor: "pointer", fontSize: 9, fontWeight: 700, fontFamily: "inherit" }}>
               <IcPlus /> Add
-            </button>
+            </button>}
           </div>
           {showAddExp && (
             <div style={{ padding: "8px 12px", borderBottom: `1px solid ${B.borderLight}`, display: "flex", gap: 5, flexWrap: "wrap", alignItems: "flex-end" }}>
@@ -126,7 +126,7 @@ export default function PettyCashTab({ pettyCash = {}, setPettyCash }) {
               </span>
               <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                 <span style={{ fontWeight: 800, color: B.danger }}>{fmtMoney(+e.amt)}</span>
-                <IconBtn danger onClick={() => setPettyCash((p) => ({ ...p, expenses: (p.expenses || []).filter((z) => z.id !== e.id) }))}><IcTrash /></IconBtn>
+                {!readOnly && <IconBtn danger onClick={() => setPettyCash((p) => ({ ...p, expenses: (p.expenses || []).filter((z) => z.id !== e.id) }))}><IcTrash /></IconBtn>}
               </div>
             </div>
           ))}

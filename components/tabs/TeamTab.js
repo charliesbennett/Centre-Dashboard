@@ -30,7 +30,7 @@ function StaffForm({ value, onChange, onSave, onCancel, saveLabel = "Save" }) {
   );
 }
 
-export default function TeamTab({ staff, setStaff }) {
+export default function TeamTab({ staff, setStaff, readOnly = false }) {
   const [showAdd, setShowAdd] = useState(false);
   const [n, setN] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
@@ -57,7 +57,7 @@ export default function TeamTab({ staff, setStaff }) {
       </div>
       <div style={{ background: B.white, borderBottom: `1px solid ${B.border}`, padding: "8px 20px", display: "flex", justifyContent: "space-between" }}>
         <span style={{ fontSize: 10, color: B.success, fontWeight: 600 }}>✓ Staff flow to Rota + Catering</span>
-        <button onClick={() => { setShowAdd(!showAdd); setEditId(null); }} style={btnPrimary}><IcPlus /> Add Staff</button>
+        {!readOnly && <button onClick={() => { setShowAdd(!showAdd); setEditId(null); }} style={btnPrimary}><IcPlus /> Add Staff</button>}
       </div>
 
       {showAdd && (
@@ -104,12 +104,12 @@ export default function TeamTab({ staff, setStaff }) {
                       ) : "—"}
                     </td>
                     <td style={{ ...tdStyle, display: "flex", gap: 4 }}>
-                      <IconBtn onClick={() => editId === x.id ? setEditId(null) : startEdit(x)} title="Edit"><IcEdit /></IconBtn>
-                      <IconBtn danger onClick={() => {
+                      {!readOnly && <IconBtn onClick={() => editId === x.id ? setEditId(null) : startEdit(x)} title="Edit"><IcEdit /></IconBtn>}
+                      {!readOnly && <IconBtn danger onClick={() => {
                         if (window.confirm(`Remove ${x.name} from the team? This will also clear their rota entries.`)) {
                           setStaff((p) => p.filter((z) => z.id !== x.id));
                         }
-                      }}><IcTrash /></IconBtn>
+                      }}><IcTrash /></IconBtn>}
                     </td>
                   </tr>
                   {editId === x.id && (

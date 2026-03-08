@@ -4,7 +4,7 @@ import { B, MEALS, PROGRAMMES, uid, fmtDate } from "@/lib/constants";
 import { Fld, StatCard, TableWrap, IconBtn, IcPlus, IcTrash, IcSearch, inputStyle, thStyle, tdStyle, btnPrimary } from "@/components/ui";
 import * as XLSX from "xlsx";
 
-export default function StudentsTab({ groups = [], setGroups }) {
+export default function StudentsTab({ groups = [], setGroups, readOnly = false }) {
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState("");
   const [importMsg, setImportMsg] = useState(null);
@@ -210,13 +210,13 @@ export default function StudentsTab({ groups = [], setGroups }) {
           <IcSearch />
           <input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ background: "none", border: "none", fontSize: 12, width: 130, fontFamily: "inherit", color: B.text }} />
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
+        {!readOnly && <div style={{ display: "flex", gap: 6 }}>
           <label style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", background: B.navy, border: "none", color: B.white, borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
             {"\ud83d\udce5"} Import Excel
             <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleImport} style={{ display: "none" }} />
           </label>
           <button onClick={() => setShowAdd(!showAdd)} style={btnPrimary}><IcPlus /> Add Manual</button>
-        </div>
+        </div>}
       </div>
 
       {showAdd && (
@@ -264,15 +264,15 @@ export default function StudentsTab({ groups = [], setGroups }) {
                     <td style={tdStyle}>{fmtDate(x.dep)}</td>
                     <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
                       <div style={{ display: "flex", gap: 2 }}>
-                        <button onClick={() => toggleArchive(x.id)} title={x.archived ? "Unarchive" : "Archive"} style={{
+                        {!readOnly && <button onClick={() => toggleArchive(x.id)} title={x.archived ? "Unarchive" : "Archive"} style={{
                           background: "none", border: "none", cursor: "pointer", padding: 3, fontSize: 12,
                           color: x.archived ? "#f59e0b" : B.textMuted, borderRadius: 4,
-                        }}>{x.archived ? "\ud83d\udcc2" : "\ud83d\uddc3\ufe0f"}</button>
-                        <IconBtn danger onClick={() => {
+                        }}>{x.archived ? "\ud83d\udcc2" : "\ud83d\uddc3\ufe0f"}</button>}
+                        {!readOnly && <IconBtn danger onClick={() => {
                           if (window.confirm(`Delete "${x.group}"? This will permanently remove the group, all students and programme data.`)) {
                             setGroups((p) => p.filter((z) => z.id !== x.id));
                           }
-                        }}><IcTrash /></IconBtn>
+                        }}><IcTrash /></IconBtn>}
                       </div>
                     </td>
                   </tr>
