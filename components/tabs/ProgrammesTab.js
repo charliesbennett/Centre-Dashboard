@@ -45,8 +45,11 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     : { weeks: [{ week: 1, days: Object.entries(t || {}).map(([day, v]) => ({ day, ...v })) }] };
 
   // Write a template into ng for the given groups.
-  // - weekIdx relative to each group's arrival (not programme start)
-  // - swaps AM/PM if the group's lesson slot differs from the template's lesson slot
+  // - Arrival day → PM = ARRIVAL, AM blank
+  // - Departure day → AM = DEPARTURE, PM blank
+  // - All other in-range days: template data, skipping any "depart"/"arriv" placeholder values
+  //   from the template (so DEPARTURE baked into week 2 Sunday never stamps mid-stay groups)
+  // - weekIdx relative to each group's arrival; swaps AM/PM when group's lesson slot differs
   const applyTmplInto = (tmpl, targetGroups, ng) => {
     if (!tmpl?.weeks?.length) return;
     const weekMaps = tmpl.weeks.map(wk => { const m = {}; wk.days.forEach(d => { m[d.day] = d; }); return m; });
@@ -56,18 +59,21 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       dates.forEach(d => {
         const s = dayKey(d);
         if (!inRange(s, g.arr, g.dep)) return;
+        // Arrival / departure days: fixed markers, no template data
+        if (g.arr && s === g.arr) { ng[g.id+"-"+s+"-PM"] = "ARRIVAL"; return; }
+        if (g.dep && s === g.dep) { ng[g.id+"-"+s+"-AM"] = "DEPARTURE"; return; }
+        // Inner days: apply template, but ignore any depart/arrival placeholder values
         const daysSince = Math.floor((d.getTime() - gArrMs) / 86400000);
         const weekIdx = Math.floor(daysSince / 7) % weekMaps.length;
         const dayData = weekMaps[weekIdx]?.[DOW[d.getDay()]];
         if (!dayData) return;
-        // Detect lesson slot in template, swap if group's slot differs
         const tmplSlot = /lesson/i.test(dayData.am || "") ? "AM" : /lesson/i.test(dayData.pm || "") ? "PM" : null;
         const grpSlot = getGroupLessonSlot(g, s);
         const swap = tmplSlot && grpSlot !== tmplSlot;
-        const amV = swap ? dayData.pm : dayData.am;
-        const pmV = swap ? dayData.am : dayData.pm;
-        if (amV) ng[g.id+"-"+s+"-AM"] = amV;
-        if (pmV) ng[g.id+"-"+s+"-PM"] = pmV;
+        const amV = (swap ? dayData.pm : dayData.am) || "";
+        const pmV = (swap ? dayData.am : dayData.pm) || "";
+        if (amV && !/depart|arriv/i.test(amV)) ng[g.id+"-"+s+"-AM"] = amV;
+        if (pmV && !/depart|arriv/i.test(pmV)) ng[g.id+"-"+s+"-PM"] = pmV;
       });
     });
   };
