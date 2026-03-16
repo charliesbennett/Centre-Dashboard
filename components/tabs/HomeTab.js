@@ -1,6 +1,6 @@
 "use client";
 import { useMemo } from "react";
-import { B, dayKey, dayName, fmtDate, ACTIVITY_TYPES, SESSION_TYPES, ROLES } from "@/lib/constants";
+import { B, dayKey, dayName, fmtDate, ACTIVITY_TYPES, SESSION_TYPES, ROLES, calcLessonSplit } from "@/lib/constants";
 import { StatCard, IcPlaneUp, IcPlaneDn, IcCake, IcBus, IcMountain, IcSparkles } from "@/components/ui";
 
 // ── Helpers ────────────────────────────────────────────────
@@ -199,6 +199,12 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
     };
   }, [today, progStart, progEnd, todayDate]);
 
+  // ── AM/PM lesson split for today ──────────────────────
+  const { amToday, pmToday } = useMemo(() => {
+    const split = calcLessonSplit(activeGroups, [today]);
+    return { amToday: split[today]?.am || 0, pmToday: split[today]?.pm || 0 };
+  }, [activeGroups, today]);
+
   // ── Quote of the day ───────────────────────────────────
   const dayOfYear = Math.floor((todayDate - new Date(todayDate.getFullYear(), 0, 0)) / 86400000);
   const quote = QUOTES[dayOfYear % QUOTES.length];
@@ -263,6 +269,12 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
         <StatCard label="Students" value={onSiteStudents} accent={B.red} />
         <StatCard label="Group Leaders" value={onSiteGLs} accent="#7c3aed" />
         <StatCard label="UKLC Staff" value={onSiteStaff.length} accent="#0891b2" />
+        {(amToday > 0 || pmToday > 0) && (
+          <>
+            <StatCard label="AM Lessons" value={amToday} accent="#1e40af" />
+            <StatCard label="PM Lessons" value={pmToday} accent="#166534" />
+          </>
+        )}
         {arrivingToday.length > 0 && (
           <StatCard label="Arriving" value={arrivingToday.length + (arrivingToday.length === 1 ? " group" : " groups")} accent={B.success} />
         )}
@@ -314,6 +326,11 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                   <span style={{ fontSize: 8, color: B.textLight, background: "#f1f5f9", padding: "1px 5px", borderRadius: 3 }}>
                     {(g.stu || 0) + (g.gl || 0)} pax
                   </span>
+                  {today !== g.arr && today !== g.dep && (
+                    <span style={{ fontSize: 8, fontWeight: 800, padding: "1px 5px", borderRadius: 3, background: g.lessonSlot === "PM" ? "#dcfce7" : "#dbeafe", color: g.lessonSlot === "PM" ? "#166534" : "#1e40af" }}>
+                      {(() => { const slot = calcLessonSplit([g], [today])[today]; return slot?.am > 0 ? "AM Lessons" : slot?.pm > 0 ? "PM Lessons" : ""; })()}
+                    </span>
+                  )}
                 </div>
                 <div style={{ display: "flex", gap: 6, paddingLeft: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>

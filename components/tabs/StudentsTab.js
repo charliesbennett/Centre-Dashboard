@@ -1,10 +1,10 @@
 "use client";
-import { useState, useRef } from "react";
-import { B, MEALS, PROGRAMMES, uid, fmtDate } from "@/lib/constants";
+import { useState, useRef, useMemo } from "react";
+import { B, MEALS, PROGRAMMES, uid, fmtDate, dayKey, dayName, isWeekend, genDates, calcLessonSplit } from "@/lib/constants";
 import { Fld, StatCard, TableWrap, IconBtn, IcPlus, IcTrash, IcSearch, inputStyle, thStyle, tdStyle, btnPrimary } from "@/components/ui";
 import * as XLSX from "xlsx";
 
-export default function StudentsTab({ groups = [], setGroups, readOnly = false }) {
+export default function StudentsTab({ groups = [], setGroups, progStart, progEnd, readOnly = false }) {
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState("");
   const [importMsg, setImportMsg] = useState(null);
@@ -217,6 +217,9 @@ export default function StudentsTab({ groups = [], setGroups, readOnly = false }
   const activeGroups = groups.filter((x) => !x.archived);
   const archivedGroups = groups.filter((x) => x.archived);
 
+  const lessonDates = useMemo(() => (progStart && progEnd ? genDates(progStart, progEnd) : []), [progStart, progEnd]);
+  const lessonSplit = useMemo(() => calcLessonSplit(activeGroups, lessonDates), [activeGroups, lessonDates]);
+
   const toggleArchive = (groupId) => {
     setGroups((prev) => prev.map((g) => g.id === groupId ? { ...g, archived: !g.archived } : g));
   };
@@ -280,6 +283,47 @@ export default function StudentsTab({ groups = [], setGroups, readOnly = false }
             color: showArchived ? "#92400e" : B.textMuted,
           }}>{showArchived ? "\ud83d\udcc2 Hide Archived" : "\ud83d\uddc3\ufe0f Show Archived"} ({archivedGroups.length})</button>
         )}
+      </div>
+
+      {/* ── Lesson split ────────────────────────────────── */}
+      {lessonDates.length > 0 && activeGroups.length > 0 && (
+        <div style={{ borderTop: "1px solid " + B.border, borderBottom: "1px solid " + B.border, background: B.white }}>
+          <div style={{ padding: "6px 20px 4px", fontSize: 10, fontWeight: 800, color: B.navy }}>📚 AM / PM Lesson Split</div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ borderCollapse: "collapse", fontSize: 10, width: "100%" }}>
+              <thead>
+                <tr>
+                  <th style={{ ...thStyle, position: "sticky", left: 0, background: "#f8fafc", zIndex: 2, minWidth: 60, textAlign: "left" }}>Session</th>
+                  {lessonDates.map((d) => {
+                    const ds = dayKey(d); const we = isWeekend(d); const split = lessonSplit[ds];
+                    const hasLessons = split && (split.am > 0 || split.pm > 0);
+                    return <th key={ds} style={{ ...thStyle, textAlign: "center", minWidth: 52, padding: "3px 4px", background: we ? "#fef2f2" : hasLessons ? "#f8fafc" : "#fafafa" }}>
+                      <div style={{ fontSize: 7, color: B.textMuted }}>{d.getDate()}/{d.getMonth()+1}</div>
+                      <div style={{ fontSize: 9, fontWeight: 800, color: we ? B.red : B.navy }}>{dayName(d)}</div>
+                    </th>;
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {["AM","PM"].map((slot) => (
+                  <tr key={slot} style={{ borderBottom: slot === "AM" ? "1px solid " + B.borderLight : "none" }}>
+                    <td style={{ ...thStyle, position: "sticky", left: 0, background: slot === "AM" ? "#dbeafe" : "#dcfce7", zIndex: 1, fontSize: 9, fontWeight: 800, color: slot === "AM" ? "#1e40af" : "#166534", padding: "4px 8px" }}>{slot} Lessons</td>
+                    {lessonDates.map((d) => {
+                      const ds = dayKey(d); const val = lessonSplit[ds]?.[slot.toLowerCase()] || 0; const we = isWeekend(d);
+                      return <td key={ds} style={{ textAlign: "center", padding: "4px 2px", borderLeft: "1px solid " + B.borderLight, background: we ? "#fef2f2" : "transparent" }}>
+                        {val > 0 ? <span style={{ fontWeight: 700, color: slot === "AM" ? "#1e40af" : "#166534", fontSize: 10 }}>{val}</span>
+                          : <span style={{ color: B.textLight, fontSize: 9 }}>—</span>}
+                      </td>;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <div style={{ padding: "0 20px 0", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
       </div>
 
       {importMsg && (

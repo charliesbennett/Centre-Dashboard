@@ -340,6 +340,34 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
               </td>;}))}
           </tr>)}
         </tbody>
+        {!isMinistay && (() => {
+          const split = {};
+          dates.forEach(d => {
+            const ds = dayKey(d);
+            let am = 0, pm = 0;
+            groups.forEach(g => {
+              if (!inRange(ds, g.arr, g.dep) || ds === g.arr || ds === g.dep) return;
+              const slot = getGroupLessonSlot(g, ds);
+              const pax = (g.stu || 0) + (g.gl || 0);
+              if (slot === "AM") am += pax; else pm += pax;
+            });
+            split[ds] = { am, pm };
+          });
+          const hasAny = dates.some(d => { const s = split[dayKey(d)]; return s && (s.am > 0 || s.pm > 0); });
+          if (!hasAny) return null;
+          return <tfoot>{["AM","PM"].map(slot => (
+            <tr key={slot} style={{borderTop: slot === "AM" ? "2px solid " + B.navy : "none"}}>
+              <td colSpan={4} style={{...tdStyle, position:"sticky", left:0, zIndex:1, background: slot==="AM"?"#dbeafe":"#dcfce7", fontWeight:800, fontSize:9, color: slot==="AM"?"#1e40af":"#166534", padding:"4px 8px", textAlign:"right", minWidth:250}}>{slot} Lessons</td>
+              {dates.map(d => {
+                const ds = dayKey(d); const we = isWeekend(d); const val = split[ds]?.[slot.toLowerCase()] || 0;
+                return <td key={ds} colSpan={slots.length} style={{textAlign:"center", padding:"4px 2px", borderLeft:"2px solid "+B.border, background: we?"#fef2f2": slot==="AM"?"#eff6ff":"#f0fdf4"}}>
+                  {val > 0 ? <span style={{fontWeight:800, color: slot==="AM"?"#1e40af":"#166534", fontSize:10}}>{val}</span>
+                    : <span style={{color:B.textLight, fontSize:9}}>—</span>}
+                </td>;
+              })}
+            </tr>
+          ))}</tfoot>;
+        })()}
       </table></TableWrap>
       <div style={{padding:"6px 12px",fontSize:9,color:B.textMuted}}>{isMinistay ? "Click cell for quick-pick \u00b7 Double-click for custom text \u00b7 Click date headers for exc days" : "Double-click to edit \u00b7 Click date headers for exc days \u00b7 Lessons follow Wk1 slot, flip each week"}</div>
     </div>}
