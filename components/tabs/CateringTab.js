@@ -12,11 +12,14 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
   const dietary = cd.dietary || [];
   const specialMeals = cd.specialMeals || [];
   const overrides = cd.overrides || {};
-  const [view, setView] = useState("grid"); // grid | dietary | specials | groups
+  const offsiteMeals = cd.offsiteMeals || [];
+  const [view, setView] = useState("grid"); // grid | groups | dietary | specials | offsite
   const [showDietForm, setShowDietForm] = useState(false);
   const [showSpecialForm, setShowSpecialForm] = useState(false);
   const [dietForm, setDietForm] = useState({ name: "", group: "", type: "Vegetarian", details: "" });
   const [specialForm, setSpecialForm] = useState({ date: "", meal: "Dinner", description: "", count: 1 });
+  const [showOffsiteForm, setShowOffsiteForm] = useState(false);
+  const [offsiteForm, setOffsiteForm] = useState({ groupId: "", date: "", meal: "Dinner", pax: "", note: "" });
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState("");
   const printRef = useRef(null);
@@ -65,8 +68,16 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
         totals[s]["Dinner"] += pax;
       });
     });
+
+    // Subtract offsite meals
+    offsiteMeals.forEach((o) => {
+      if (totals[o.date] && totals[o.date][o.meal] !== undefined) {
+        totals[o.date][o.meal] = Math.max(0, totals[o.date][o.meal] - (o.pax || 0));
+      }
+    });
+
     return totals;
-  }, [dates, groups, teamSize, excDays]);
+  }, [dates, groups, teamSize, excDays, offsiteMeals]);
 
   // Per-group data
   const groupData = useMemo(() => {
@@ -120,6 +131,16 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
     return m;
   }, [autoData, overrides, dates]);
 
+  // Offsite meals: map of "date-meal" → total pax deducted (for grid indicators)
+  const offsiteByCell = useMemo(() => {
+    const map = {};
+    offsiteMeals.forEach((o) => {
+      const key = o.date + "-" + o.meal;
+      map[key] = (map[key] || 0) + (o.pax || 0);
+    });
+    return map;
+  }, [offsiteMeals]);
+
   // Dietary summary
   const dietSummary = useMemo(() => {
     const counts = {};
@@ -162,6 +183,17 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
     update("dietary", [...dietary, { ...dietForm, id: uid() }]);
     setDietForm({ name: "", group: "", type: "Vegetarian", details: "" });
     setShowDietForm(false);
+  };
+
+  // Add offsite meal
+  const addOffsite = () => {
+    const g = groups.find((x) => x.id === offsiteForm.groupId);
+    if (!offsiteForm.groupId || !offsiteForm.date || !offsiteForm.meal) return;
+    const pax = parseInt(offsiteForm.pax) || (g ? (g.stu || 0) + (g.gl || 0) : 0);
+    const entry = { id: uid(), groupId: offsiteForm.groupId, groupName: g ? g.group : "", date: offsiteForm.date, meal: offsiteForm.meal, pax, note: offsiteForm.note };
+    update("offsiteMeals", [...offsiteMeals, entry]);
+    setOffsiteForm({ groupId: "", date: "", meal: "Dinner", pax: "", note: "" });
+    setShowOffsiteForm(false);
   };
 
   // Add special meal
@@ -215,13 +247,14 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
         <StatCard label="Dietary" value={dietary.length} accent="#dc2626" />
         <StatCard label="Specials" value={specialMeals.length} accent="#7c3aed" />
         {overrideCount > 0 && <StatCard label="Overrides" value={overrideCount} accent="#ea580c" />}
+        {offsiteMeals.length > 0 && <StatCard label="Offsite" value={offsiteMeals.length} accent="#0891b2" />}
         <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
-          {["grid", "groups", "dietary", "specials"].map((v) => (
+          {["grid", "groups", "dietary", "specials", "offsite"].map((v) => (
             <button key={v} onClick={() => setView(v)} style={{
               padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer",
               border: "1px solid " + (view === v ? B.navy : B.border),
               background: view === v ? B.navy : B.white, color: view === v ? B.white : B.textMuted,
-            }}>{v === "grid" ? "\ud83c\udf7d\ufe0f Meals" : v === "groups" ? "\ud83d\udc65 By Group" : v === "dietary" ? "\u26a0\ufe0f Dietary" : "\u2b50 Specials"}</button>
+            }}>{v === "grid" ? "\ud83c\udf7d\ufe0f Meals" : v === "groups" ? "\ud83d\udc65 By Group" : v === "dietary" ? "\u26a0\ufe0f Dietary" : v === "specials" ? "\u2b50 Specials" : "\ud83d\ude8c Offsite"}</button>
           ))}
           <button onClick={handlePrint} style={{ ...btnPrimary, background: B.navy, marginLeft: 4 }}>{"\ud83d\udda8\ufe0f"} Print</button>
         </div>
@@ -282,7 +315,14 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
                             <input autoFocus value={editValue} onChange={(e) => setEditValue(e.target.value)}
                               onBlur={commitEdit} onKeyDown={(e) => e.key === "Enter" && commitEdit()}
                               style={{ width: 32, fontSize: 10, textAlign: "center", border: "1px solid " + B.navy, borderRadius: 2, padding: "2px", fontFamily: "inherit" }} />
-                          ) : v || "\u2014"}
+                          ) : (
+                            <>
+                              {v || "\u2014"}
+                              {offsiteByCell[cellKey] && (
+                                <div style={{ fontSize: 7, color: "#0891b2", fontWeight: 700, lineHeight: 1 }}>−{offsiteByCell[cellKey]} offsite</div>
+                              )}
+                            </>
+                          )}
                         </td>
                       );
                     })}
@@ -490,6 +530,85 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
                     <td style={{ ...tdStyle, fontWeight: 600 }}>{s.description}</td>
                     <td style={{ ...tdStyle, fontWeight: 800, textAlign: "center" }}>{s.count}</td>
                     <td style={tdStyle}>{!readOnly && <IconBtn danger onClick={() => update("specialMeals", specialMeals.filter((x) => x.id !== s.id))}><IcTrash /></IconBtn>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableWrap>
+        </div>
+      )}
+
+      {/* ── OFFSITE MEALS VIEW ─────────────────────────── */}
+      {view === "offsite" && (
+        <div style={{ padding: "0 12px 16px" }}>
+          <div style={{ background: B.white, borderBottom: "1px solid " + B.border, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: B.textMuted }}>{offsiteMeals.length} offsite meal{offsiteMeals.length !== 1 ? "s" : ""} logged</span>
+              <div style={{ fontSize: 9, color: B.textMuted, marginTop: 2 }}>Each entry reduces the catering total for that meal. The main grid shows a blue "−n offsite" indicator on affected cells.</div>
+            </div>
+            {!readOnly && <button onClick={() => setShowOffsiteForm(!showOffsiteForm)} style={btnPrimary}><IcPlus /> Log Offsite Meal</button>}
+          </div>
+
+          {showOffsiteForm && (
+            <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderTop: "none", padding: "10px 12px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
+              <Fld label="Group">
+                <select value={offsiteForm.groupId}
+                  onChange={(e) => {
+                    const g = groups.find((x) => x.id === e.target.value);
+                    setOffsiteForm((p) => ({ ...p, groupId: e.target.value, pax: g ? String((g.stu || 0) + (g.gl || 0)) : "" }));
+                  }}
+                  style={{ ...fi, width: 160, cursor: "pointer" }}>
+                  <option value="">— select group —</option>
+                  {groups.map((g) => <option key={g.id} value={g.id}>{g.group} ({(g.stu || 0) + (g.gl || 0)} pax)</option>)}
+                </select>
+              </Fld>
+              <Fld label="Date">
+                <input type="date" value={offsiteForm.date}
+                  onChange={(e) => setOffsiteForm((p) => ({ ...p, date: e.target.value }))}
+                  style={{ ...fi }} />
+              </Fld>
+              <Fld label="Meal">
+                <select value={offsiteForm.meal}
+                  onChange={(e) => setOffsiteForm((p) => ({ ...p, meal: e.target.value }))}
+                  style={{ ...fi, width: 120, cursor: "pointer" }}>
+                  {["Breakfast", "Lunch", "Packed Lunch", "Dinner"].map((m) => <option key={m}>{m}</option>)}
+                </select>
+              </Fld>
+              <Fld label="Pax">
+                <input type="number" min={1} value={offsiteForm.pax}
+                  onChange={(e) => setOffsiteForm((p) => ({ ...p, pax: e.target.value }))}
+                  style={{ ...fi, width: 65 }} placeholder="auto" />
+              </Fld>
+              <Fld label="Note (optional)">
+                <input value={offsiteForm.note}
+                  onChange={(e) => setOffsiteForm((p) => ({ ...p, note: e.target.value }))}
+                  style={{ ...fi, width: 200 }} placeholder="e.g. Restaurant trip, agent dinner..." />
+              </Fld>
+              <button onClick={addOffsite} style={{ padding: "5px 14px", background: B.navy, border: "none", color: B.white, borderRadius: 5, cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit", height: 30 }}>Add</button>
+              <button onClick={() => setShowOffsiteForm(false)} style={{ background: "none", border: "none", color: B.textMuted, cursor: "pointer", fontFamily: "inherit", fontSize: 10 }}>Cancel</button>
+            </div>
+          )}
+
+          <TableWrap>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+              <thead>
+                <tr>{["Date", "Group", "Meal", "Pax removed", "Note", ""].map((h) => <th key={h} style={thStyle}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {offsiteMeals.length === 0 ? (
+                  <tr><td colSpan={6} style={{ textAlign: "center", padding: 36, color: B.textLight }}>
+                    No offsite meals logged — use this to record when a group eats out, reducing the catering count for that meal
+                  </td></tr>
+                ) : offsiteMeals.sort((a, b) => (a.date || "").localeCompare(b.date || "")).map((o) => (
+                  <tr key={o.id} style={{ borderBottom: "1px solid " + B.borderLight }}>
+                    <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{fmtDate(o.date)}</td>
+                    <td style={{ ...tdStyle, fontWeight: 600 }}>{o.groupName || o.groupId}</td>
+                    <td style={tdStyle}>
+                      <span style={{ background: MEAL_COLORS[o.meal] + "20", color: MEAL_COLORS[o.meal], padding: "2px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800 }}>{o.meal}</span>
+                    </td>
+                    <td style={{ ...tdStyle, fontWeight: 800, textAlign: "center", color: "#0891b2" }}>−{o.pax}</td>
+                    <td style={{ ...tdStyle, color: B.textMuted, fontSize: 10 }}>{o.note || "\u2014"}</td>
+                    <td style={tdStyle}>{!readOnly && <IconBtn danger onClick={() => update("offsiteMeals", offsiteMeals.filter((x) => x.id !== o.id))}><IcTrash /></IconBtn>}</td>
                   </tr>
                 ))}
               </tbody>
