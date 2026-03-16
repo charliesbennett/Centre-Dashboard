@@ -40,48 +40,76 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   };
   const [groupTemplateTarget, setGroupTemplateTarget] = useState(null); // groupId being edited
 
-  // Auto-populate from a programmeData template (day-of-week, multi-week)
-  // targetGroup: if set, only apply to that group (preserving other groups' cells)
-  const autoPopFromTemplate = (tmpl, targetGroup = null) => {
+  // Normalise template to {weeks:[...]} format
+  const normaliseTmpl = (t) => t?.weeks ? t
+    : { weeks: [{ week: 1, days: Object.entries(t || {}).map(([day, v]) => ({ day, ...v })) }] };
+
+  // Write a template into ng for the given groups.
+  // - weekIdx relative to each group's arrival (not programme start)
+  // - swaps AM/PM if the group's lesson slot differs from the template's lesson slot
+  const applyTmplInto = (tmpl, targetGroups, ng) => {
     if (!tmpl?.weeks?.length) return;
-    const weekMaps = tmpl.weeks.map(wk => {
-      const m = {};
-      wk.days.forEach(d => { m[d.day] = d; });
-      return m;
-    });
-    const progStartMs = dates.length > 0 ? dates[0].getTime() : 0;
+    const weekMaps = tmpl.weeks.map(wk => { const m = {}; wk.days.forEach(d => { m[d.day] = d; }); return m; });
     const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-    const targetGroups = targetGroup ? [targetGroup] : groups;
-    const ng = targetGroup ? { ...grid } : {};
     targetGroups.forEach(g => {
+      const gArrMs = g.arr ? new Date(g.arr).getTime() : (dates[0]?.getTime() || 0);
       dates.forEach(d => {
         const s = dayKey(d);
         if (!inRange(s, g.arr, g.dep)) return;
-        if (g.arr && s === dayKey(new Date(g.arr))) { ng[g.id+"-"+s+"-PM"] = "ARRIVAL"; return; }
-        if (g.dep && s === dayKey(new Date(g.dep))) { ng[g.id+"-"+s+"-AM"] = "DEPARTURE"; return; }
-        const daysSince = Math.floor((d.getTime() - progStartMs) / 86400000);
-        const weekIdx = weekMaps.length > 0 ? Math.floor(daysSince / 7) % weekMaps.length : 0;
+        const daysSince = Math.floor((d.getTime() - gArrMs) / 86400000);
+        const weekIdx = Math.floor(daysSince / 7) % weekMaps.length;
         const dayData = weekMaps[weekIdx]?.[DOW[d.getDay()]];
-        if (dayData) {
-          if (dayData.am) ng[g.id+"-"+s+"-AM"] = dayData.am;
-          if (dayData.pm) ng[g.id+"-"+s+"-PM"] = dayData.pm;
-        }
+        if (!dayData) return;
+        // Detect lesson slot in template, swap if group's slot differs
+        const tmplSlot = /lesson/i.test(dayData.am || "") ? "AM" : /lesson/i.test(dayData.pm || "") ? "PM" : null;
+        const grpSlot = getGroupLessonSlot(g, s);
+        const swap = tmplSlot && grpSlot !== tmplSlot;
+        const amV = swap ? dayData.pm : dayData.am;
+        const pmV = swap ? dayData.am : dayData.pm;
+        if (amV) ng[g.id+"-"+s+"-AM"] = amV;
+        if (pmV) ng[g.id+"-"+s+"-PM"] = pmV;
       });
     });
+  };
+
+  // Default logic (no template) for a single group into ng
+  const defaultPopGroup = (g, ng) => {
+    dates.forEach(d => {
+      const s = dayKey(d), day = d.getDay(), we = isWeekend(d);
+      if (!inRange(s, g.arr, g.dep)) return;
+      if (g.arr && s === dayKey(new Date(g.arr))) { ng[g.id+"-"+s+"-PM"] = "ARRIVAL"; return; }
+      if (g.dep && s === dayKey(new Date(g.dep))) { ng[g.id+"-"+s+"-AM"] = "DEPARTURE"; return; }
+      if (excDays[s] === "Full") { ng[g.id+"-"+s+"-AM"] = "Full Exc"; ng[g.id+"-"+s+"-PM"] = "Full Exc"; return; }
+      if (we) { ng[g.id+"-"+s+"-AM"] = "Full Exc"; ng[g.id+"-"+s+"-PM"] = "Full Exc"; return; }
+      const ls = getGroupLessonSlot(g, s);
+      const spec = g.prog === "Multi-Activity" ? "Multi-Activity" : g.prog === "Intensive English" ? "English+" : g.prog === "Performing Arts" ? "Perf Arts" : g.prog || "Multi-Activity";
+      if (excDays[s] === "Half") {
+        if (ls === "AM") { ng[g.id+"-"+s+"-AM"] = "Lessons"; ng[g.id+"-"+s+"-PM"] = "Half Exc"; }
+        else { ng[g.id+"-"+s+"-AM"] = "Half Exc"; ng[g.id+"-"+s+"-PM"] = "Lessons"; }
+        return;
+      }
+      if (isLondon && (day === 1 || day === 3 || day === 5)) {
+        if (ls === "AM") { ng[g.id+"-"+s+"-AM"] = "Lessons"; ng[g.id+"-"+s+"-PM"] = "Half Exc"; }
+        else { ng[g.id+"-"+s+"-AM"] = "Half Exc"; ng[g.id+"-"+s+"-PM"] = "Lessons"; }
+      } else {
+        if (ls === "AM") { ng[g.id+"-"+s+"-AM"] = "Lessons"; ng[g.id+"-"+s+"-PM"] = spec; }
+        else { ng[g.id+"-"+s+"-AM"] = spec; ng[g.id+"-"+s+"-PM"] = "Lessons"; }
+      }
+    });
+  };
+
+  // Explicit "Apply to all/specific group" from template view or by-group toolbar
+  const autoPopFromTemplate = (tmpl, targetGroup = null) => {
+    const targetGroups = targetGroup ? [targetGroup] : groups;
+    const ng = targetGroup ? { ...grid } : {};
+    applyTmplInto(normaliseTmpl(tmpl), targetGroups, ng);
     setGrid(ng);
   };
 
-  // Apply a custom template (object or {weeks:[...]} format) to a group (or all groups)
   const applyCustomTemplate = (tmplObjOrWeeks, targetGroup = null) => {
-    if (tmplObjOrWeeks?.weeks) {
-      autoPopFromTemplate(tmplObjOrWeeks, targetGroup);
-    } else {
-      const days = Object.entries(tmplObjOrWeeks).map(([day, v]) => ({ day, ...v }));
-      autoPopFromTemplate({ weeks: [{ week: 1, days }] }, targetGroup);
-    }
+    autoPopFromTemplate(normaliseTmpl(tmplObjOrWeeks), targetGroup);
   };
 
-  // Apply whatever template is configured for a specific group
   const applyGroupTemplate = (g) => {
     const config = groupTemplates[g.id];
     if (!config) return;
@@ -89,24 +117,20 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       const tmpl = centreProgs[config.templateIndex];
       if (tmpl) autoPopFromTemplate(tmpl, g);
     } else if (config.type === "custom" && config.template) {
-      applyCustomTemplate(config.template, g);
+      autoPopFromTemplate(normaliseTmpl(config.template), g);
     }
   };
 
-  // Auto-populate: summer uses weekly flip logic, ministay uses saved template
+  // Auto-Populate button: respects per-group templates, correct lesson slot swap, week calc from arrival
   const autoPop = () => {
     if (isMinistay) {
       let template = null;
-      if (settings?.ministay_template) {
-        try { template = JSON.parse(settings.ministay_template); } catch {}
-      }
-      if (!template) {
-        setShowTemplateModal(true);
-        return;
-      }
-      // Detect format: numeric keys ("1","2"…) = relative-day; day names = legacy
+      if (settings?.ministay_template) { try { template = JSON.parse(settings.ministay_template); } catch {} }
+      if (!template) { setShowTemplateModal(true); return; }
       const isRelative = Object.keys(template).some((k) => /^\d+$/.test(k));
       const ng = {};
+      const newExcDays = {};
+      const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
       groups.forEach((g) => {
         const arrTime = g.arr ? new Date(g.arr + "T00:00:00").getTime() : null;
         dates.forEach((d) => {
@@ -114,94 +138,35 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           if (!inRange(s, g.arr, g.dep)) return;
           if (g.arr && s === dayKey(new Date(g.arr))) { ng[g.id+"-"+s+"-PM"] = "ARRIVAL"; return; }
           if (g.dep && s === dayKey(new Date(g.dep))) { ng[g.id+"-"+s+"-AM"] = "DEPARTURE"; return; }
-          let day;
-          if (isRelative && arrTime) {
-            const dayNum = Math.round((d.getTime() - arrTime) / 86400000) + 1;
-            day = template[String(dayNum)];
-          } else {
-            const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-            day = template[DOW[d.getDay()]];
-          }
+          const dayNum = isRelative && arrTime ? Math.round((d.getTime() - arrTime) / 86400000) + 1 : null;
+          const day = dayNum ? template[String(dayNum)] : template[DOW[d.getDay()]];
           if (day) {
             if (day.am) ng[g.id+"-"+s+"-AM"] = day.am;
             if (day.pm) ng[g.id+"-"+s+"-PM"] = day.pm;
             if (day.eve) ng[g.id+"-"+s+"-EVE"] = day.eve;
+            if (day.exc === "Full") newExcDays[s] = "Full";
+            else if (day.exc === "Half" && !newExcDays[s]) newExcDays[s] = "Half";
           }
-        });
-      });
-      // Also set excDays from template exc field
-      const newExcDays = {};
-      groups.forEach((g) => {
-        const gArrTime = g.arr ? new Date(g.arr + "T00:00:00").getTime() : null;
-        if (!gArrTime) return;
-        dates.forEach((d) => {
-          const s = dayKey(d);
-          if (!inRange(s, g.arr, g.dep)) return;
-          let day;
-          if (isRelative) {
-            const dayNum = Math.round((d.getTime() - gArrTime) / 86400000) + 1;
-            day = template[String(dayNum)];
-          } else {
-            const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-            day = template[DOW[d.getDay()]];
-          }
-          if (day?.exc === "Full") newExcDays[s] = "Full";
-          else if (day?.exc === "Half" && !newExcDays[s]) newExcDays[s] = "Half";
         });
       });
       setExcDays(newExcDays);
       setGrid(ng);
       return;
     }
-    // Non-ministay: check for a saved summer programme_template first
-    let summerTemplate = null;
-    if (settings?.programme_template) {
-      try { summerTemplate = JSON.parse(settings.programme_template); } catch {}
-    }
-    if (summerTemplate) {
-      // Support new multi-week format {weeks:[...]} and old flat {Monday:{...},...}
-      if (summerTemplate.weeks) {
-        autoPopFromTemplate(summerTemplate);
-      } else {
-        autoPopFromTemplate({ weeks: [{ week: 1, days: Object.entries(summerTemplate).map(([day, v]) => ({ day, ...v })) }] });
-      }
-      return;
-    }
+    // Non-ministay: build ng per-group, using per-group template if set, else default template, else built-in logic
+    let defaultTmpl = null;
+    if (settings?.programme_template) { try { defaultTmpl = normaliseTmpl(JSON.parse(settings.programme_template)); } catch {} }
     const ng = {};
-    const DOW_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
     groups.forEach((g) => {
-      dates.forEach((d) => {
-        const s = dayKey(d);
-        if (!inRange(s, g.arr, g.dep)) return;
-        const we = isWeekend(d);
-        const day = d.getDay();
-
-        if (g.arr && s === dayKey(new Date(g.arr))) { ng[g.id+"-"+s+"-PM"] = "ARRIVAL"; return; }
-        if (g.dep && s === dayKey(new Date(g.dep))) { ng[g.id+"-"+s+"-AM"] = "DEPARTURE"; return; }
-        if (excDays[s] === "Full") { ng[g.id+"-"+s+"-AM"] = "Full Exc"; ng[g.id+"-"+s+"-PM"] = "Full Exc"; return; }
-        if (we) { ng[g.id+"-"+s+"-AM"] = "Full Exc"; ng[g.id+"-"+s+"-PM"] = "Full Exc"; return; }
-        if (excDays[s] === "Half") {
-          const ls = getGroupLessonSlot(g, s);
-          if (ls === "AM") { ng[g.id+"-"+s+"-AM"] = "Lessons"; ng[g.id+"-"+s+"-PM"] = "Half Exc"; }
-          else { ng[g.id+"-"+s+"-AM"] = "Half Exc"; ng[g.id+"-"+s+"-PM"] = "Lessons"; }
-          return;
-        }
-
-        // Normal weekday: use lessonSlot
-        const ls = getGroupLessonSlot(g, s);
-        const spec = g.prog === "Multi-Activity" ? "Multi-Activity"
-          : g.prog === "Intensive English" ? "English+"
-          : g.prog === "Performing Arts" ? "Perf Arts"
-          : g.prog || "Multi-Activity";
-
-        if (isLondon && (day === 1 || day === 3 || day === 5)) {
-          if (ls === "AM") { ng[g.id+"-"+s+"-AM"] = "Lessons"; ng[g.id+"-"+s+"-PM"] = "Half Exc"; }
-          else { ng[g.id+"-"+s+"-AM"] = "Half Exc"; ng[g.id+"-"+s+"-PM"] = "Lessons"; }
-        } else {
-          if (ls === "AM") { ng[g.id+"-"+s+"-AM"] = "Lessons"; ng[g.id+"-"+s+"-PM"] = spec; }
-          else { ng[g.id+"-"+s+"-AM"] = spec; ng[g.id+"-"+s+"-PM"] = "Lessons"; }
-        }
-      });
+      const config = groupTemplates[g.id];
+      if (config?.type === "builtin") {
+        const tmpl = centreProgs[config.templateIndex];
+        if (tmpl) { applyTmplInto(normaliseTmpl(tmpl), [g], ng); return; }
+      } else if (config?.type === "custom" && config.template) {
+        applyTmplInto(normaliseTmpl(config.template), [g], ng); return;
+      }
+      // No per-group template: use default template or built-in logic
+      if (defaultTmpl) { applyTmplInto(defaultTmpl, [g], ng); } else { defaultPopGroup(g, ng); }
     });
     setGrid(ng);
   };
