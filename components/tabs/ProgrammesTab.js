@@ -28,6 +28,37 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const activeTemplate = selectedTemplate !== null ? centreProgs[selectedTemplate] : null;
 
+  // Auto-populate from a programmeData template (day-of-week, multi-week)
+  const autoPopFromTemplate = (tmpl) => {
+    if (!tmpl?.weeks?.length) return;
+    // Build per-week day-of-week lookup
+    const weekMaps = tmpl.weeks.map(wk => {
+      const m = {};
+      wk.days.forEach(d => { m[d.day] = d; });
+      return m;
+    });
+    const progStartMs = dates.length > 0 ? dates[0].getTime() : 0;
+    const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const ng = {};
+    groups.forEach(g => {
+      dates.forEach(d => {
+        const s = dayKey(d);
+        if (!inRange(s, g.arr, g.dep)) return;
+        if (g.arr && s === dayKey(new Date(g.arr))) { ng[g.id+"-"+s+"-PM"] = "ARRIVAL"; return; }
+        if (g.dep && s === dayKey(new Date(g.dep))) { ng[g.id+"-"+s+"-AM"] = "DEPARTURE"; return; }
+        // Which week of the programme (cycles back if template is shorter than programme)
+        const daysSince = Math.floor((d.getTime() - progStartMs) / 86400000);
+        const weekIdx = Math.floor(daysSince / 7) % weekMaps.length;
+        const dayData = weekMaps[weekIdx][DOW[d.getDay()]];
+        if (dayData) {
+          if (dayData.am) ng[g.id+"-"+s+"-AM"] = dayData.am;
+          if (dayData.pm) ng[g.id+"-"+s+"-PM"] = dayData.pm;
+        }
+      });
+    });
+    setGrid(ng);
+  };
+
   // Auto-populate: summer uses weekly flip logic, ministay uses saved template
   const autoPop = () => {
     if (isMinistay) {
@@ -302,7 +333,13 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         ):<div style={{fontSize:11,color:B.warning,fontWeight:600}}>Select a centre in the header to see templates</div>}
       </div>
       {activeTemplate && <div style={{padding:"0 12px 16px"}}>
-        <div style={{padding:"8px 8px 4px",fontSize:10,color:B.textMuted}}>{activeTemplate.centre} {"\u00b7"} {activeTemplate.nights} {"\u00b7"} {activeTemplate.period}</div>
+        <div style={{padding:"8px 8px 4px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+          <span style={{fontSize:10,color:B.textMuted}}>{activeTemplate.centre} {"\u00b7"} {activeTemplate.nights} {"\u00b7"} {activeTemplate.period}</span>
+          {!readOnly && groups.length > 0 && <button onClick={()=>{
+            if (Object.values(progGrid).some(v=>v) && !window.confirm("Auto-populate will overwrite all existing programme cells. Continue?")) return;
+            autoPopFromTemplate(activeTemplate);
+          }} style={{...btnPrimary,background:B.navy,fontSize:10}}><IcWand/> Apply to All Groups</button>}
+        </div>
         {activeTemplate.weeks.map(wk=><div key={wk.week} style={{marginBottom:12}}>
           <div style={{padding:"6px 8px",fontWeight:800,fontSize:11,color:B.navy}}>Week {wk.week}</div>
           <TableWrap><table style={{minWidth:1200,width:"100%",borderCollapse:"collapse",fontSize:10}}>
