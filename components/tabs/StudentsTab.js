@@ -208,6 +208,19 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
 
   const [expanded, setExpanded] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [editingGroup, setEditingGroup] = useState(null);
+  const [editDraft, setEditDraft] = useState({});
+
+  const openEdit = (g, e) => {
+    e.stopPropagation();
+    setEditDraft({ agent: g.agent||"", group: g.group||"", nat: g.nat||"", stu: g.stu||0, gl: g.gl||0, arr: g.arr||"", dep: g.dep||"", firstMeal: g.firstMeal||"Dinner", lastMeal: g.lastMeal||"Packed Lunch", prog: g.prog||"Multi-Activity", lessonSlot: g.lessonSlot||"AM" });
+    setEditingGroup(g.id);
+  };
+
+  const saveEdit = () => {
+    setGroups((prev) => prev.map((g) => g.id === editingGroup ? { ...g, ...editDraft, stu: +editDraft.stu||0, gl: +editDraft.gl||0 } : g));
+    setEditingGroup(null);
+  };
   const filtered = groups.filter((x) =>
     (showArchived ? x.archived : !x.archived) &&
     (!search || (x.agent + " " + x.group + " " + x.nat).toLowerCase().includes(search.toLowerCase()))
@@ -270,6 +283,44 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
           </div>
         </div>
       )}
+
+      {/* ── Edit group modal ─────────────────────────────── */}
+      {editingGroup && (() => {
+        const ed = editDraft;
+        const set = (k, v) => setEditDraft((p) => ({ ...p, [k]: v }));
+        return (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+            <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+              <div style={{ background: B.navy, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>Edit Group</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>Changes apply immediately to all tabs</div>
+                </div>
+                <button onClick={() => setEditingGroup(null)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: 18, fontFamily: "inherit" }}>✕</button>
+              </div>
+              <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <Fld label="Agent"><input value={ed.agent} onChange={(e) => set("agent", e.target.value)} style={inputStyle} /></Fld>
+                  <Fld label="Group Name"><input value={ed.group} onChange={(e) => set("group", e.target.value)} style={inputStyle} /></Fld>
+                  <Fld label="Nationality"><input value={ed.nat} onChange={(e) => set("nat", e.target.value)} style={inputStyle} /></Fld>
+                  <Fld label="Programme"><select value={ed.prog} onChange={(e) => set("prog", e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}>{PROGRAMMES.map((s) => <option key={s}>{s}</option>)}</select></Fld>
+                  <Fld label="Students"><input type="number" min={0} value={ed.stu} onChange={(e) => set("stu", e.target.value)} style={{ ...inputStyle, width: "100%" }} /></Fld>
+                  <Fld label="Group Leaders"><input type="number" min={0} value={ed.gl} onChange={(e) => set("gl", e.target.value)} style={{ ...inputStyle, width: "100%" }} /></Fld>
+                  <Fld label="Arrival Date"><input type="date" value={ed.arr} onChange={(e) => set("arr", e.target.value)} style={inputStyle} /></Fld>
+                  <Fld label="Departure Date"><input type="date" value={ed.dep} onChange={(e) => set("dep", e.target.value)} style={inputStyle} /></Fld>
+                  <Fld label="First Meal"><select value={ed.firstMeal} onChange={(e) => set("firstMeal", e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}>{MEALS.map((m) => <option key={m}>{m}</option>)}</select></Fld>
+                  <Fld label="Last Meal"><select value={ed.lastMeal} onChange={(e) => set("lastMeal", e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}>{MEALS.map((m) => <option key={m}>{m}</option>)}</select></Fld>
+                  <Fld label="Wk1 Lesson Slot"><select value={ed.lessonSlot} onChange={(e) => set("lessonSlot", e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}><option value="AM">AM</option><option value="PM">PM</option></select></Fld>
+                </div>
+              </div>
+              <div style={{ padding: "0 20px 18px", display: "flex", gap: 8 }}>
+                <button onClick={saveEdit} style={{ flex: 1, padding: "10px", background: B.navy, border: "none", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>Save Changes</button>
+                <button onClick={() => setEditingGroup(null)} style={{ padding: "10px 16px", background: "#f1f5f9", border: "1px solid " + B.border, color: B.textMuted, borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div style={{ padding: "12px 20px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <StatCard label="Groups" value={activeGroups.length} accent={B.navy} />
@@ -391,6 +442,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
                     <td style={tdStyle}>{fmtDate(x.dep)}</td>
                     <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
                       <div style={{ display: "flex", gap: 2 }}>
+                        {!readOnly && <button onClick={(e) => openEdit(x, e)} title="Edit group" style={{ background: "none", border: "none", cursor: "pointer", padding: 3, fontSize: 12, color: B.navy, borderRadius: 4 }}>✏️</button>}
                         {!readOnly && <button onClick={() => toggleArchive(x.id)} title={x.archived ? "Unarchive" : "Archive"} style={{
                           background: "none", border: "none", cursor: "pointer", padding: 3, fontSize: 12,
                           color: x.archived ? "#f59e0b" : B.textMuted, borderRadius: 4,
