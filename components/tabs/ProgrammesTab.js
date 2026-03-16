@@ -71,10 +71,14 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     setGrid(ng);
   };
 
-  // Apply a custom Mon-Sun template object to a group (or all groups)
-  const applyCustomTemplate = (tmplObj, targetGroup = null) => {
-    const days = Object.entries(tmplObj).map(([day, v]) => ({ day, ...v }));
-    autoPopFromTemplate({ weeks: [{ week: 1, days }] }, targetGroup);
+  // Apply a custom template (object or {weeks:[...]} format) to a group (or all groups)
+  const applyCustomTemplate = (tmplObjOrWeeks, targetGroup = null) => {
+    if (tmplObjOrWeeks?.weeks) {
+      autoPopFromTemplate(tmplObjOrWeeks, targetGroup);
+    } else {
+      const days = Object.entries(tmplObjOrWeeks).map(([day, v]) => ({ day, ...v }));
+      autoPopFromTemplate({ weeks: [{ week: 1, days }] }, targetGroup);
+    }
   };
 
   // Apply whatever template is configured for a specific group
@@ -155,7 +159,12 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       try { summerTemplate = JSON.parse(settings.programme_template); } catch {}
     }
     if (summerTemplate) {
-      autoPopFromTemplate({ weeks: [{ week: 1, days: Object.entries(summerTemplate).map(([day, v]) => ({ day, ...v })) }] });
+      // Support new multi-week format {weeks:[...]} and old flat {Monday:{...},...}
+      if (summerTemplate.weeks) {
+        autoPopFromTemplate(summerTemplate);
+      } else {
+        autoPopFromTemplate({ weeks: [{ week: 1, days: Object.entries(summerTemplate).map(([day, v]) => ({ day, ...v })) }] });
+      }
       return;
     }
     const ng = {};

@@ -59,27 +59,54 @@ function loadMinistay(json) {
   } catch { return emptyMinistay(); }
 }
 
-function loadSummer(json) {
-  if (!json) return emptySummer();
+// Summer weeks: array of day-name maps [{Monday:{am,pm,exc},...}, ...]
+function loadSummerWeeks(json) {
+  if (!json) return [emptySummer()];
   try {
     const p = JSON.parse(json);
+    // New format: {weeks:[{week:N, days:[{day,am,pm,...},...]},...]}
+    if (p.weeks && Array.isArray(p.weeks)) {
+      return p.weeks.map((wk) => {
+        const map = emptySummer();
+        wk.days.forEach((d) => { if (map[d.day] !== undefined) map[d.day] = { am: d.am || "", pm: d.pm || "", exc: d.exc || "" }; });
+        return map;
+      });
+    }
+    // Old flat format: {Monday:{am,pm,exc},...}
     const t = emptySummer();
     SUMMER_DAYS.forEach((d) => { if (p[d]) t[d] = { am:"", pm:"", exc:"", ...p[d] }; });
-    return t;
-  } catch { return emptySummer(); }
+    return [t];
+  } catch { return [emptySummer()]; }
+}
+
+function summerWeeksToJson(weeks) {
+  return JSON.stringify({
+    weeks: weeks.map((wk, i) => ({
+      week: i + 1,
+      days: SUMMER_DAYS.map((day) => ({ day, ...(wk[day] || { am:"", pm:"", exc:"" }) })),
+    })),
+  });
 }
 
 export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, mode = "ministay" }) {
   const isSummer = mode === "summer";
   const DAYS = isSummer ? SUMMER_DAYS : MINISTAY_DAYS;
-  const [template, setTemplate] = useState(() => isSummer ? loadSummer(currentJson) : loadMinistay(currentJson));
+  // Summer: array of week day-maps; ministay: single day-map
+  const [weeks,    setWeeks]    = useState(() => isSummer ? loadSummerWeeks(currentJson) : null);
+  const [template, setTemplate] = useState(() => isSummer ? null : loadMinistay(currentJson));
+  const [activeWeek, setActiveWeek] = useState(0);
   const [parsing,  setParsing]  = useState(false);
   const [msg,      setMsg]      = useState(null);
   const [fileName, setFileName] = useState("");
   const [rows,     setRows]     = useState([]);
 
-  const update = (day, slot, val) =>
-    setTemplate((p) => ({ ...p, [day]: { ...p[day], [slot]: val } }));
+  const update = (day, slot, val) => {
+    if (isSummer) {
+      setWeeks((p) => p.map((w, i) => i === activeWeek ? { ...w, [day]: { ...w[day], [slot]: val } } : w));
+    } else {
+      setTemplate((p) => ({ ...p, [day]: { ...p[day], [slot]: val } }));
+    }
+  };
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];
@@ -93,15 +120,17 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, m
       const result = await parseProgrammeExcel(file);
       if (result.rows) setRows(result.rows);
       if (result.ok) {
-        if (isSummer && result.dayNameTemplate) {
-          // Convert to summer day-name keys (no eve slot)
-          const t = emptySummer();
-          SUMMER_DAYS.forEach((d) => {
-            if (result.dayNameTemplate[d]) {
-              t[d] = { am: result.dayNameTemplate[d].am || "", pm: result.dayNameTemplate[d].pm || "", exc: result.dayNameTemplate[d].exc || "" };
-            }
+        if (isSummer && result.weekTemplates) {
+          // Convert all extracted weeks to summer day-name format
+          const loadedWeeks = result.weekTemplates.map((wt) => {
+            const w = emptySummer();
+            SUMMER_DAYS.forEach((d) => {
+              if (wt[d]) w[d] = { am: wt[d].am || "", pm: wt[d].pm || "", exc: wt[d].exc || "" };
+            });
+            return w;
           });
-          setTemplate(t);
+          setWeeks(loadedWeeks);
+          setActiveWeek(0);
         } else {
           setTemplate(result.template);
         }
@@ -124,7 +153,7 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, m
       <div style={{ background:B.navy, padding:"10px 16px", display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
         <div style={{ fontWeight:800, fontSize:13, color:B.white, flex:1 }}>{isSummer ? "Summer Programme Template" : "Ministay Programme Template"}</div>
         <div style={{ fontSize:9, color:"rgba(255,255,255,0.4)" }}>{isSummer ? "Define a Mon–Sun weekly pattern — repeats every week for all groups" : "Upload the Excel spreadsheet → auto-extracted → review → save"}</div>
-        <button onClick={() => onSave(JSON.stringify(template))}
+        <button onClick={() => onSave(isSummer ? summerWeeksToJson(weeks) : JSON.stringify(template))}
           style={{ padding:"7px 18px", background:B.red, color:B.white, border:"none", borderRadius:6, fontWeight:800, fontSize:11, cursor:"pointer", fontFamily:"inherit" }}>
           ✓ Save Template
         </button>
@@ -189,9 +218,19 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, m
         {/* Right: template editor */}
         <div style={{ width:"45%", background:B.bg, display:"flex", flexDirection:"column", minHeight:0 }}>
           <div style={{ padding:"8px 14px", background:B.white, borderBottom:"1px solid "+B.border, flexShrink:0 }}>
-            <div style={{ fontSize:10, fontWeight:700, color:B.navy }}>{isSummer ? "Weekly Programme Pattern" : "Weekly Programme Template"}</div>
-            <div style={{ fontSize:9, color:B.textMuted, marginTop:1 }}>{isSummer ? "Mon–Sun pattern repeats every week. Arrival/departure days are set automatically." : "Relative to arrival — Day 1 = arrival, Day 7 = departure (6 nights). Auto-populate adjusts for any start day."}</div>
+            <div style={{ fontSize:10, fontWeight:700, color:B.navy }}>{isSummer ? "Programme Template" : "Weekly Programme Template"}</div>
+            <div style={{ fontSize:9, color:B.textMuted, marginTop:1 }}>{isSummer ? "Each week has its own Mon–Sun pattern. Arrival/departure days are set automatically." : "Relative to arrival — Day 1 = arrival, Day 7 = departure (6 nights). Auto-populate adjusts for any start day."}</div>
           </div>
+          {/* Week tabs (summer only) */}
+          {isSummer && (
+            <div style={{ padding:"6px 12px", background:B.white, borderBottom:"1px solid "+B.border, display:"flex", gap:4, alignItems:"center", flexShrink:0 }}>
+              {weeks.map((_, i) => (
+                <button key={i} onClick={() => setActiveWeek(i)} style={{ padding:"3px 12px", borderRadius:4, fontSize:10, fontWeight:700, fontFamily:"inherit", cursor:"pointer", border: activeWeek===i ? "2px solid "+B.navy : "1px solid "+B.border, background: activeWeek===i ? B.navy : B.white, color: activeWeek===i ? B.white : B.navy }}>Week {i+1}</button>
+              ))}
+              <button onClick={() => { setWeeks((p) => [...p, emptySummer()]); setActiveWeek(weeks.length); }} style={{ padding:"3px 10px", borderRadius:4, fontSize:10, fontWeight:700, fontFamily:"inherit", cursor:"pointer", border:"1px dashed "+B.border, background:B.white, color:B.textMuted }}>+ Add Week</button>
+              {weeks.length > 1 && <button onClick={() => { setWeeks((p) => p.filter((_,i) => i !== activeWeek)); setActiveWeek(Math.max(0, activeWeek-1)); }} style={{ padding:"3px 8px", borderRadius:4, fontSize:9, fontWeight:700, fontFamily:"inherit", cursor:"pointer", border:"1px solid #fecaca", background:"#fff1f2", color:B.red }}>Remove</button>}
+            </div>
+          )}
 
           {msg && (
             <div style={{ padding:"7px 14px", background:msg.ok?"#dcfce7":"#fef3c7", borderBottom:"1px solid "+(msg.ok?"#86efac":"#fde68a"), fontSize:9, color:msg.ok?"#166534":"#92400e", fontWeight:600, flexShrink:0 }}>
@@ -220,12 +259,14 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, m
               const border  = isFirst ? "#bfdbfe" : isLast ? "#fecaca" : isWeekend ? "#fecaca" : B.borderLight;
               const label   = isSummer ? day : MINISTAY_LABELS[day];
               const slots   = isSummer ? ["am","pm"] : ["am","pm","eve"];
+              // Read from correct source: summer uses weeks[activeWeek], ministay uses template
+              const dayData = isSummer ? (weeks[activeWeek]?.[day] || {}) : (template[day] || {});
               return (
                 <div key={day} style={{ marginBottom:5, background:B.white, borderRadius:6, border:"1px solid "+(isFirst?"#bfdbfe":isLast||isWeekend?"#fecaca":B.border), overflow:"hidden" }}>
                   <div style={{ padding:"5px 10px", background:bg, borderBottom:"1px solid "+border, display:"flex", alignItems:"center", gap:8 }}>
                     <span style={{ fontWeight:800, fontSize:10, color:accent, flex:1 }}>{label}</span>
-                    <select value={template[day]?.exc || ""} onChange={(e) => update(day, "exc", e.target.value)}
-                      style={{ fontSize:8, padding:"2px 5px", borderRadius:3, border:"1px solid "+B.border, background: template[day]?.exc ? EXC_COLORS[template[day].exc]+"20" : B.white, color: EXC_COLORS[template[day]?.exc || ""], fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                    <select value={dayData.exc || ""} onChange={(e) => update(day, "exc", e.target.value)}
+                      style={{ fontSize:8, padding:"2px 5px", borderRadius:3, border:"1px solid "+B.border, background: dayData.exc ? EXC_COLORS[dayData.exc]+"20" : B.white, color: EXC_COLORS[dayData.exc || ""], fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                       {EXC_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                   </div>
@@ -234,23 +275,23 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, m
                       <div key={slot} style={{ flex:1, padding:"5px 6px", borderRight:si<slots.length-1?"1px solid "+B.borderLight:"none" }}>
                         <div style={{ fontSize:7, fontWeight:800, color:SLOT_COLORS[slot], marginBottom:2, textTransform:"uppercase" }}>{slot}</div>
                         <input
-                          value={template[day]?.[slot] || ""}
+                          value={dayData[slot] || ""}
                           onChange={(e) => update(day, slot, e.target.value)}
                           list={`tmpl-${slot}-opts`}
                           placeholder="—"
-                          style={{ width:"100%", padding:"3px 5px", fontSize:9, fontFamily:"inherit", border:"1px solid "+B.border, borderRadius:3, color:SLOT_COLORS[slot], fontWeight:template[day]?.[slot]?700:400, background:template[day]?.[slot]?SLOT_COLORS[slot]+"10":B.white, boxSizing:"border-box" }}
+                          style={{ width:"100%", padding:"3px 5px", fontSize:9, fontFamily:"inherit", border:"1px solid "+B.border, borderRadius:3, color:SLOT_COLORS[slot], fontWeight:dayData[slot]?700:400, background:dayData[slot]?SLOT_COLORS[slot]+"10":B.white, boxSizing:"border-box" }}
                         />
                       </div>
                     ))}
                   </div>
-                  {template[day]?.exc && (
-                    <div style={{ padding:"4px 8px 6px", borderTop:"1px solid "+B.borderLight, background:EXC_COLORS[template[day].exc]+"10" }}>
-                      <div style={{ fontSize:7, fontWeight:800, color:EXC_COLORS[template[day].exc], marginBottom:2 }}>EXCURSION DESTINATION</div>
+                  {dayData.exc && (
+                    <div style={{ padding:"4px 8px 6px", borderTop:"1px solid "+B.borderLight, background:EXC_COLORS[dayData.exc]+"10" }}>
+                      <div style={{ fontSize:7, fontWeight:800, color:EXC_COLORS[dayData.exc], marginBottom:2 }}>EXCURSION DESTINATION</div>
                       <input
-                        value={template[day]?.exc_dest || ""}
+                        value={dayData.exc_dest || ""}
                         onChange={(e) => update(day, "exc_dest", e.target.value)}
                         placeholder="e.g. Oxford with walking tour"
-                        style={{ width:"100%", padding:"3px 5px", fontSize:9, fontFamily:"inherit", border:"1px solid "+B.border, borderRadius:3, color:EXC_COLORS[template[day].exc], fontWeight:700, background:B.white, boxSizing:"border-box" }}
+                        style={{ width:"100%", padding:"3px 5px", fontSize:9, fontFamily:"inherit", border:"1px solid "+B.border, borderRadius:3, color:EXC_COLORS[dayData.exc], fontWeight:700, background:B.white, boxSizing:"border-box" }}
                       />
                     </div>
                   )}
