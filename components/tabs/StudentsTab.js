@@ -45,6 +45,24 @@ export default function StudentsTab({ groups = [], setGroups, readOnly = false }
         const groupSheet = wb.SheetNames.find((n) => n.toLowerCase().includes("group") || n === "Sheet1") || wb.SheetNames[0];
         const ws = wb.Sheets[groupSheet];
 
+        // Convert 0-based col index to letter(s): 0→A, 25→Z, 26→AA
+        const colLetter = (idx) => {
+          let s = "";
+          while (idx >= 0) { s = String.fromCharCode(65 + (idx % 26)) + s; idx = Math.floor(idx / 26) - 1; }
+          return s;
+        };
+
+        // Build header-text → column-letter map for a given row
+        const buildColMap = (row, maxCol = 30) => {
+          const map = {};
+          for (let c = 0; c < maxCol; c++) {
+            const cl = colLetter(c);
+            const v = ws[cl + row]?.v;
+            if (v) map[String(v).toLowerCase().trim()] = cl;
+          }
+          return map;
+        };
+
         const agentName = cellVal(ws, "D2", "B2", "C2");
         const groupName = cellVal(ws, "L2", "M2", "K2");
         const centre = cellVal(ws, "L4", "M4", "K4");
@@ -57,34 +75,99 @@ export default function StudentsTab({ groups = [], setGroups, readOnly = false }
         const depAirport = ws["I4"]?.v || "";
         const depFlight = ws["J4"]?.v || "";
 
+        // Find student header row (rows 5–15)
+        let studentHeaderRow = 8;
+        let stuColMap = {};
+        for (let r = 5; r <= 15; r++) {
+          const map = buildColMap(r);
+          if (map["first name"] && (map["arrival date"] || map["arrival"])) {
+            studentHeaderRow = r;
+            stuColMap = map;
+            break;
+          }
+        }
+
+        const stuFnCol  = stuColMap["first name"] || "C";
+        const stuSnCol  = stuColMap["surname"] || stuColMap["last name"] || stuColMap["family name"] || "D";
+        const stuDobCol = stuColMap["date of birth"] || stuColMap["dob"] || "E";
+        const stuAgeCol = stuColMap["age"] || "F";
+        const stuSexCol = stuColMap["gender"] || stuColMap["sex"] || "G";
+        const stuNatCol = stuColMap["nationality"] || "J";
+        const stuAccCol = stuColMap["accommodation"] || "K";
+        const stuArrCol = stuColMap["arrival date"] || stuColMap["arrival"] || "L";
+        const stuDepCol = stuColMap["departure date"] || stuColMap["departure"] || "M";
+        const stuSp1Col = stuColMap["specialism 1"] || stuColMap["specialism1"] || stuColMap["specialism"] || "N";
+        const stuMedCol = stuColMap["medical"] || stuColMap["medical information"] || "P";
+        const stuSwmCol = stuColMap["swimming"] || stuColMap["swimming ability"] || "V";
+
+        // Scan student rows; stop when we hit a "Group Leader" label
+        const stuStart = studentHeaderRow + 1;
+        let stuEnd = stuStart;
+        let glLabelRow = null;
+        for (let r = stuStart; r <= stuStart + 100; r++) {
+          let isGLLabel = false;
+          for (let c = 0; c < 5; c++) {
+            const v = ws[colLetter(c) + r]?.v;
+            if (v && String(v).toLowerCase().includes("group leader")) { isGLLabel = true; glLabelRow = r; break; }
+          }
+          if (isGLLabel) break;
+          stuEnd = r;
+        }
+
         const students = [];
-        for (let r = 9; r <= 58; r++) {
-          const firstName = ws["C" + r]?.v;
-          const surname = ws["D" + r]?.v;
+        for (let r = stuStart; r <= stuEnd; r++) {
+          const firstName = ws[stuFnCol + r]?.v;
+          const surname = ws[stuSnCol + r]?.v;
           if (!firstName && !surname) continue;
           students.push({
             id: uid(), type: "student",
             firstName: String(firstName || "").trim(), surname: String(surname || "").trim(),
-            dob: excelDate(ws["E" + r]), age: ws["F" + r]?.v || "", sex: ws["G" + r]?.v || "",
-            nationality: ws["J" + r]?.v || "", accommodation: ws["K" + r]?.v || "",
-            arrDate: excelDate(ws["L" + r]), depDate: excelDate(ws["M" + r]),
-            specialism1: ws["N" + r]?.v || "", medical: ws["P" + r]?.v || "",
-            swimming: ws["V" + r]?.v || "",
+            dob: excelDate(ws[stuDobCol + r]), age: ws[stuAgeCol + r]?.v || "", sex: ws[stuSexCol + r]?.v || "",
+            nationality: ws[stuNatCol + r]?.v || "", accommodation: ws[stuAccCol + r]?.v || "",
+            arrDate: excelDate(ws[stuArrCol + r]), depDate: excelDate(ws[stuDepCol + r]),
+            specialism1: ws[stuSp1Col + r]?.v || "", medical: ws[stuMedCol + r]?.v || "",
+            swimming: ws[stuSwmCol + r]?.v || "",
           });
         }
 
+        // Find GL header row (1–3 rows after the "Group Leader" label)
+        let glHeaderRow = null;
+        let glColMap = {};
+        if (glLabelRow) {
+          for (let r = glLabelRow + 1; r <= glLabelRow + 3; r++) {
+            const map = buildColMap(r);
+            if (map["first name"] || map["arrival date"] || map["arrival"]) {
+              glHeaderRow = r;
+              glColMap = map;
+              break;
+            }
+          }
+        }
+
+        const glFnCol  = glColMap["first name"] || "B";
+        const glSnCol  = glColMap["surname"] || glColMap["last name"] || glColMap["family name"] || "C";
+        const glDobCol = glColMap["date of birth"] || glColMap["dob"] || "D";
+        const glAgeCol = glColMap["age"] || "E";
+        const glSexCol = glColMap["gender"] || glColMap["sex"] || "F";
+        const glNatCol = glColMap["nationality"] || "I";
+        const glArrCol = glColMap["arrival date"] || glColMap["arrival"] || "J";
+        const glDepCol = glColMap["departure date"] || glColMap["departure"] || "K";
+        const glMedCol = glColMap["medical"] || glColMap["medical information"] || "L";
+        const glMobCol = glColMap["mobile"] || glColMap["mobile number"] || glColMap["phone"] || "M";
+
+        const glStart = glHeaderRow ? glHeaderRow + 1 : (glLabelRow ? glLabelRow + 2 : 61);
         const leaders = [];
-        for (let r = 61; r <= 66; r++) {
-          const firstName = ws["B" + r]?.v;
-          const surname = ws["C" + r]?.v;
+        for (let r = glStart; r <= glStart + 20; r++) {
+          const firstName = ws[glFnCol + r]?.v;
+          const surname = ws[glSnCol + r]?.v;
           if (!firstName && !surname) continue;
           leaders.push({
             id: uid(), type: "gl",
             firstName: String(firstName || "").trim(), surname: String(surname || "").trim(),
-            dob: excelDate(ws["D" + r]), age: ws["E" + r]?.v || "", sex: ws["F" + r]?.v || "",
-            nationality: ws["I" + r]?.v || "",
-            arrDate: excelDate(ws["J" + r]), depDate: excelDate(ws["K" + r]),
-            medical: ws["L" + r]?.v || "", mobile: ws["M" + r]?.v || "",
+            dob: excelDate(ws[glDobCol + r]), age: ws[glAgeCol + r]?.v || "", sex: ws[glSexCol + r]?.v || "",
+            nationality: ws[glNatCol + r]?.v || "",
+            arrDate: excelDate(ws[glArrCol + r]), depDate: excelDate(ws[glDepCol + r]),
+            medical: ws[glMedCol + r]?.v || "", mobile: ws[glMobCol + r]?.v || "",
           });
         }
 
@@ -101,7 +184,7 @@ export default function StudentsTab({ groups = [], setGroups, readOnly = false }
           stu: students.length, gl: leaders.length,
           arr: earliestArr, dep: latestDep,
           firstMeal: "Dinner", lastMeal: "Packed Lunch", prog: "Multi-Activity",
-          lessonSlot: "AM", // Default: AM lessons Week 1
+          lessonSlot: "AM",
           centre,
           arrAirport: String(arrAirport || "").trim(), arrFlight: String(arrFlight || "").trim(), arrTime: String(arrTime || "").trim(),
           depAirport: String(depAirport || "").trim(), depFlight: String(depFlight || "").trim(), depTime: String(depTime || "").trim(),
