@@ -28,10 +28,22 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const activeTemplate = selectedTemplate !== null ? centreProgs[selectedTemplate] : null;
 
+  // Per-group templates stored in settings.group_templates as { [groupId]: config }
+  // config: { type: "builtin", templateIndex: number } | { type: "custom", template: object }
+  const groupTemplates = useMemo(() => {
+    try { return JSON.parse(settings?.group_templates || "{}"); } catch { return {}; }
+  }, [settings?.group_templates]);
+  const saveGroupTemplate = (groupId, config) => {
+    const updated = { ...groupTemplates };
+    if (config === null) delete updated[groupId]; else updated[groupId] = config;
+    if (saveSetting) saveSetting("group_templates", JSON.stringify(updated));
+  };
+  const [groupTemplateTarget, setGroupTemplateTarget] = useState(null); // groupId being edited
+
   // Auto-populate from a programmeData template (day-of-week, multi-week)
-  const autoPopFromTemplate = (tmpl) => {
+  // targetGroup: if set, only apply to that group (preserving other groups' cells)
+  const autoPopFromTemplate = (tmpl, targetGroup = null) => {
     if (!tmpl?.weeks?.length) return;
-    // Build per-week day-of-week lookup
     const weekMaps = tmpl.weeks.map(wk => {
       const m = {};
       wk.days.forEach(d => { m[d.day] = d; });
@@ -39,17 +51,17 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     });
     const progStartMs = dates.length > 0 ? dates[0].getTime() : 0;
     const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-    const ng = {};
-    groups.forEach(g => {
+    const targetGroups = targetGroup ? [targetGroup] : groups;
+    const ng = targetGroup ? { ...grid } : {};
+    targetGroups.forEach(g => {
       dates.forEach(d => {
         const s = dayKey(d);
         if (!inRange(s, g.arr, g.dep)) return;
         if (g.arr && s === dayKey(new Date(g.arr))) { ng[g.id+"-"+s+"-PM"] = "ARRIVAL"; return; }
         if (g.dep && s === dayKey(new Date(g.dep))) { ng[g.id+"-"+s+"-AM"] = "DEPARTURE"; return; }
-        // Which week of the programme (cycles back if template is shorter than programme)
         const daysSince = Math.floor((d.getTime() - progStartMs) / 86400000);
-        const weekIdx = Math.floor(daysSince / 7) % weekMaps.length;
-        const dayData = weekMaps[weekIdx][DOW[d.getDay()]];
+        const weekIdx = weekMaps.length > 0 ? Math.floor(daysSince / 7) % weekMaps.length : 0;
+        const dayData = weekMaps[weekIdx]?.[DOW[d.getDay()]];
         if (dayData) {
           if (dayData.am) ng[g.id+"-"+s+"-AM"] = dayData.am;
           if (dayData.pm) ng[g.id+"-"+s+"-PM"] = dayData.pm;
@@ -57,6 +69,24 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       });
     });
     setGrid(ng);
+  };
+
+  // Apply a custom Mon-Sun template object to a group (or all groups)
+  const applyCustomTemplate = (tmplObj, targetGroup = null) => {
+    const days = Object.entries(tmplObj).map(([day, v]) => ({ day, ...v }));
+    autoPopFromTemplate({ weeks: [{ week: 1, days }] }, targetGroup);
+  };
+
+  // Apply whatever template is configured for a specific group
+  const applyGroupTemplate = (g) => {
+    const config = groupTemplates[g.id];
+    if (!config) return;
+    if (config.type === "builtin") {
+      const tmpl = centreProgs[config.templateIndex];
+      if (tmpl) autoPopFromTemplate(tmpl, g);
+    } else if (config.type === "custom" && config.template) {
+      applyCustomTemplate(config.template, g);
+    }
   };
 
   // Auto-populate: summer uses weekly flip logic, ministay uses saved template
@@ -210,6 +240,14 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         onClose={() => setShowTemplateModal(false)}
       />
     )}
+    {groupTemplateTarget && (
+      <ProgrammeTemplateModal
+        mode={isMinistay ? "ministay" : "summer"}
+        currentJson={groupTemplates[groupTemplateTarget]?.type === "custom" ? JSON.stringify(groupTemplates[groupTemplateTarget].template) : null}
+        onSave={(json) => { try { saveGroupTemplate(groupTemplateTarget, { type: "custom", template: JSON.parse(json) }); } catch {} setGroupTemplateTarget(null); }}
+        onClose={() => setGroupTemplateTarget(null)}
+      />
+    )}
     <div style={{background:B.white,borderBottom:"1px solid "+B.border,padding:"10px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}>
       <div style={{display:"flex",gap:8,alignItems:"center"}}>
         <span style={{fontSize:11,fontWeight:700,color:B.navy}}>{dates.length} days {"\u00b7"} {groups.length} groups</span>
@@ -304,13 +342,23 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           {g.group} <span style={{opacity:0.6}}>({(g.stu||0)+(g.gl||0)})</span></button>)}
       </div>
       {selGroup && <div style={{padding:"0 8px 16px",overflowX:"auto"}}>
-        <div style={{padding:"8px 12px",display:"flex",gap:16,fontSize:10,color:B.textMuted}}>
+        <div style={{padding:"8px 12px",display:"flex",gap:16,fontSize:10,color:B.textMuted,flexWrap:"wrap",alignItems:"center"}}>
           <span><strong style={{color:B.navy}}>Agent:</strong> {selGroup.agent}</span>
           <span><strong style={{color:B.navy}}>Pax:</strong> {(selGroup.stu||0)+(selGroup.gl||0)}</span>
           <span><strong style={{color:B.navy}}>Wk1 Lessons:</strong> {selGroup.lessonSlot||"AM"}</span>
           <span><strong style={{color:B.navy}}>Arr:</strong> {fmtDate(selGroup.arr)}</span>
           <span><strong style={{color:B.navy}}>Dep:</strong> {fmtDate(selGroup.dep)}</span>
         </div>
+        {/* Per-group template toolbar */}
+        {!readOnly && <div style={{padding:"6px 12px 8px",background:"#f8fafc",borderBottom:"1px solid "+B.border,display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+          <span style={{fontSize:9,fontWeight:800,color:B.textMuted,textTransform:"uppercase",letterSpacing:0.5}}>Template:</span>
+          {centreProgs.map((p,i)=>{const sel=groupTemplates[selGroup.id]?.type==="builtin"&&groupTemplates[selGroup.id]?.templateIndex===i;return<button key={i} onClick={()=>saveGroupTemplate(selGroup.id,{type:"builtin",templateIndex:i})} style={{padding:"3px 10px",borderRadius:4,fontSize:9,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:sel?"2px solid "+B.navy:"1px solid "+B.border,background:sel?B.navy:B.white,color:sel?B.white:B.navy}}>{p.nights||p.length}</button>;})}
+          {(()=>{const isCustom=groupTemplates[selGroup.id]?.type==="custom";return<button onClick={()=>setGroupTemplateTarget(selGroup.id)} style={{padding:"3px 10px",borderRadius:4,fontSize:9,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:isCustom?"2px solid #7c3aed":"1px solid "+B.border,background:isCustom?"#7c3aed":B.white,color:isCustom?B.white:B.textMuted}}>{isCustom?"\u270f\ufe0f Edit Custom":"\u2795 Custom Template"}</button>;})()}
+          {groupTemplates[selGroup.id] && <button onClick={()=>saveGroupTemplate(selGroup.id,null)} style={{padding:"3px 8px",borderRadius:4,fontSize:9,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+B.border,background:B.white,color:B.textMuted}}>Clear</button>}
+          {groupTemplates[selGroup.id]
+            ? <button onClick={()=>{if(Object.keys(grid).some(k=>k.startsWith(selGroup.id)&&grid[k])&&!window.confirm("This will overwrite "+selGroup.group+"'s existing programme. Continue?"))return;applyGroupTemplate(selGroup);}} style={{...btnPrimary,background:B.navy,fontSize:9,marginLeft:4}}><IcWand/> Apply to {selGroup.group}</button>
+            : <span style={{fontSize:9,color:B.textMuted,fontStyle:"italic"}}>Select a template above, then apply</span>}
+        </div>}
         <TableWrap><table style={{minWidth:1200,width:"100%",borderCollapse:"collapse",fontSize:10}}>
           <thead><tr><th style={{...thStyle,width:30}}></th>
             {dates.filter(d=>inRange(dayKey(d),selGroup.arr,selGroup.dep)).map(d=>{const s=dayKey(d),we=isWeekend(d),exc=excDays[s];return<th key={s} style={{...thStyle,textAlign:"center",minWidth:80,background:exc?"#fff7ed":we?"#fef2f2":"#f8fafc"}}>
