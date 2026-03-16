@@ -3,13 +3,18 @@ import { useState } from "react";
 import { B } from "@/lib/constants";
 import { parseProgrammeExcel } from "@/lib/parseProgrammeExcel";
 
-// Days are relative to arrival: Day 1 = arrival, Day 7 = departure (6-night stay)
-const DAYS = ["1","2","3","4","5","6","7"];
-const DAY_LABELS = {
+// Ministay: Day 1-7 relative to arrival
+const MINISTAY_DAYS = ["1","2","3","4","5","6","7"];
+const MINISTAY_LABELS = {
   "1": "Day 1 — Arrival",
   "2": "Day 2", "3": "Day 3", "4": "Day 4", "5": "Day 5", "6": "Day 6",
   "7": "Day 7 — Departure",
 };
+
+// Summer: Mon-Sun weekly pattern (repeats each week)
+const SUMMER_DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const SUMMER_WEEKEND = ["Saturday","Sunday"];
+
 const SLOT_OPTS = {
   am:  ["English Lessons","English Test","Orientation Tour","Sports & Games","Arts & Crafts","Half Day Excursion","Full Day Excursion","Free Time","ARRIVAL","DEPARTURE"],
   pm:  ["English Lessons","Multi-Activity","Half Day Excursion","Full Day Excursion","Sports & Games","Arts & Crafts","Paparazzi Challenge","Free Time","ARRIVAL","DEPARTURE"],
@@ -23,36 +28,51 @@ const EXC_OPTS = [
 ];
 const EXC_COLORS = { "": "#94a3b8", Full: "#ea580c", Half: "#0369a1" };
 
-function empty() {
+function emptyMinistay() {
   const t = {};
-  DAYS.forEach((d) => { t[d] = { am:"", pm:"", eve:"", exc:"" }; });
+  MINISTAY_DAYS.forEach((d) => { t[d] = { am:"", pm:"", eve:"", exc:"" }; });
+  return t;
+}
+function emptySummer() {
+  const t = {};
+  SUMMER_DAYS.forEach((d) => { t[d] = { am:"", pm:"", exc:"" }; });
   return t;
 }
 
-function load(json) {
-  if (!json) return empty();
+function loadMinistay(json) {
+  if (!json) return emptyMinistay();
   try {
     const p = JSON.parse(json);
-    // Support both new numeric format and legacy day-name format
     const isNumeric = Object.keys(p).some((k) => /^\d+$/.test(k));
     if (isNumeric) {
-      const t = empty();
-      DAYS.forEach((d) => { if (p[d]) t[d] = { am:"", pm:"", eve:"", exc:"", ...p[d] }; });
+      const t = emptyMinistay();
+      MINISTAY_DAYS.forEach((d) => { if (p[d]) t[d] = { am:"", pm:"", eve:"", exc:"", ...p[d] }; });
       return t;
     }
-    // Legacy: day-name format — migrate by treating Monday=Day1, Tuesday=Day2, etc.
     const legacyOrder = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-    const t = empty();
+    const t = emptyMinistay();
     legacyOrder.forEach((day, i) => {
       const key = String(i + 1);
-      if (p[day]) t[key] = { am:"", pm:"", eve:"", exc:"", ...p[day] };
+      if (p[day]) t[key] = { am:"", pm:"", eve:"", exc:"", ...p[key] };
     });
     return t;
-  } catch { return empty(); }
+  } catch { return emptyMinistay(); }
 }
 
-export default function ProgrammeTemplateModal({ currentJson, onSave, onClose }) {
-  const [template, setTemplate] = useState(() => load(currentJson));
+function loadSummer(json) {
+  if (!json) return emptySummer();
+  try {
+    const p = JSON.parse(json);
+    const t = emptySummer();
+    SUMMER_DAYS.forEach((d) => { if (p[d]) t[d] = { am:"", pm:"", exc:"", ...p[d] }; });
+    return t;
+  } catch { return emptySummer(); }
+}
+
+export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, mode = "ministay" }) {
+  const isSummer = mode === "summer";
+  const DAYS = isSummer ? SUMMER_DAYS : MINISTAY_DAYS;
+  const [template, setTemplate] = useState(() => isSummer ? loadSummer(currentJson) : loadMinistay(currentJson));
   const [parsing,  setParsing]  = useState(false);
   const [msg,      setMsg]      = useState(null);
   const [fileName, setFileName] = useState("");
@@ -91,8 +111,8 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
 
       {/* ── Header ─────────────────────────────────────────── */}
       <div style={{ background:B.navy, padding:"10px 16px", display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
-        <div style={{ fontWeight:800, fontSize:13, color:B.white, flex:1 }}>Ministay Programme Template</div>
-        <div style={{ fontSize:9, color:"rgba(255,255,255,0.4)" }}>Upload the Excel spreadsheet → auto-extracted → review → save</div>
+        <div style={{ fontWeight:800, fontSize:13, color:B.white, flex:1 }}>{isSummer ? "Summer Programme Template" : "Ministay Programme Template"}</div>
+        <div style={{ fontSize:9, color:"rgba(255,255,255,0.4)" }}>{isSummer ? "Define a Mon–Sun weekly pattern — repeats every week for all groups" : "Upload the Excel spreadsheet → auto-extracted → review → save"}</div>
         <button onClick={() => onSave(JSON.stringify(template))}
           style={{ padding:"7px 18px", background:B.red, color:B.white, border:"none", borderRadius:6, fontWeight:800, fontSize:11, cursor:"pointer", fontFamily:"inherit" }}>
           ✓ Save Template
@@ -158,8 +178,8 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
         {/* Right: template editor */}
         <div style={{ width:"45%", background:B.bg, display:"flex", flexDirection:"column", minHeight:0 }}>
           <div style={{ padding:"8px 14px", background:B.white, borderBottom:"1px solid "+B.border, flexShrink:0 }}>
-            <div style={{ fontSize:10, fontWeight:700, color:B.navy }}>Weekly Programme Template</div>
-            <div style={{ fontSize:9, color:B.textMuted, marginTop:1 }}>Relative to arrival — Day 1 = arrival, Day 7 = departure (6 nights). Auto-populate adjusts for any start day.</div>
+            <div style={{ fontSize:10, fontWeight:700, color:B.navy }}>{isSummer ? "Weekly Programme Pattern" : "Weekly Programme Template"}</div>
+            <div style={{ fontSize:9, color:B.textMuted, marginTop:1 }}>{isSummer ? "Mon–Sun pattern repeats every week. Arrival/departure days are set automatically." : "Relative to arrival — Day 1 = arrival, Day 7 = departure (6 nights). Auto-populate adjusts for any start day."}</div>
           </div>
 
           {msg && (
@@ -175,29 +195,32 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
 
           <div style={{ flex:1, overflow:"auto", padding:"8px 12px" }}>
             <div style={{ display:"flex", gap:16, fontSize:9, marginBottom:8 }}>
-              {["am","pm","eve"].map((s) => (
+              {(isSummer ? ["am","pm"] : ["am","pm","eve"]).map((s) => (
                 <span key={s} style={{ color:SLOT_COLORS[s], fontWeight:800 }}>■ {s.toUpperCase()}</span>
               ))}
             </div>
 
             {DAYS.map((day) => {
-              const isFirst = day === "1";
-              const isLast  = day === "7";
-              const accent  = isFirst ? "#1e40af" : isLast ? B.red : B.navy;
-              const bg      = isFirst ? "#eff6ff" : isLast ? "#fef2f2" : "#f8fafc";
-              const border  = isFirst ? "#bfdbfe" : isLast ? "#fecaca" : B.borderLight;
+              const isWeekend = isSummer && SUMMER_WEEKEND.includes(day);
+              const isFirst = !isSummer && day === "1";
+              const isLast  = !isSummer && day === "7";
+              const accent  = isFirst ? "#1e40af" : isLast ? B.red : isWeekend ? B.red : B.navy;
+              const bg      = isFirst ? "#eff6ff" : isLast ? "#fef2f2" : isWeekend ? "#fff1f2" : "#f8fafc";
+              const border  = isFirst ? "#bfdbfe" : isLast ? "#fecaca" : isWeekend ? "#fecaca" : B.borderLight;
+              const label   = isSummer ? day : MINISTAY_LABELS[day];
+              const slots   = isSummer ? ["am","pm"] : ["am","pm","eve"];
               return (
-                <div key={day} style={{ marginBottom:5, background:B.white, borderRadius:6, border:"1px solid "+(isFirst?"#bfdbfe":isLast?"#fecaca":B.border), overflow:"hidden" }}>
+                <div key={day} style={{ marginBottom:5, background:B.white, borderRadius:6, border:"1px solid "+(isFirst?"#bfdbfe":isLast||isWeekend?"#fecaca":B.border), overflow:"hidden" }}>
                   <div style={{ padding:"5px 10px", background:bg, borderBottom:"1px solid "+border, display:"flex", alignItems:"center", gap:8 }}>
-                    <span style={{ fontWeight:800, fontSize:10, color:accent, flex:1 }}>{DAY_LABELS[day]}</span>
+                    <span style={{ fontWeight:800, fontSize:10, color:accent, flex:1 }}>{label}</span>
                     <select value={template[day]?.exc || ""} onChange={(e) => update(day, "exc", e.target.value)}
                       style={{ fontSize:8, padding:"2px 5px", borderRadius:3, border:"1px solid "+B.border, background: template[day]?.exc ? EXC_COLORS[template[day].exc]+"20" : B.white, color: EXC_COLORS[template[day]?.exc || ""], fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                       {EXC_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                   </div>
                   <div style={{ display:"flex" }}>
-                    {["am","pm","eve"].map((slot, si) => (
-                      <div key={slot} style={{ flex:1, padding:"5px 6px", borderRight:si<2?"1px solid "+B.borderLight:"none" }}>
+                    {slots.map((slot, si) => (
+                      <div key={slot} style={{ flex:1, padding:"5px 6px", borderRight:si<slots.length-1?"1px solid "+B.borderLight:"none" }}>
                         <div style={{ fontSize:7, fontWeight:800, color:SLOT_COLORS[slot], marginBottom:2, textTransform:"uppercase" }}>{slot}</div>
                         <input
                           value={template[day]?.[slot] || ""}
@@ -231,7 +254,9 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose })
             ))}
 
             <div style={{ marginTop:8, padding:"7px 10px", background:"#fffbeb", border:"1px solid #fde68a", borderRadius:5, fontSize:9, color:"#92400e" }}>
-              <strong>Tip:</strong> Arrival and departure are set automatically regardless of what's in Day 1/Day 7. Leave EVE blank if no evening activity. This template works for any group arriving on any day of the week.
+              {isSummer
+                ? <><strong>Tip:</strong> Define a typical Mon–Sun week. Arrival/departure days are filled automatically. Weekends are highlighted in red as they are typically excursion days.</>
+                : <><strong>Tip:</strong> Arrival and departure are set automatically regardless of what's in Day 1/Day 7. Leave EVE blank if no evening activity. This template works for any group arriving on any day of the week.</>}
             </div>
           </div>
         </div>

@@ -119,7 +119,17 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       setGrid(ng);
       return;
     }
+    // Non-ministay: check for a saved summer programme_template first
+    let summerTemplate = null;
+    if (settings?.programme_template) {
+      try { summerTemplate = JSON.parse(settings.programme_template); } catch {}
+    }
+    if (summerTemplate) {
+      autoPopFromTemplate({ weeks: [{ week: 1, days: Object.entries(summerTemplate).map(([day, v]) => ({ day, ...v })) }] });
+      return;
+    }
     const ng = {};
+    const DOW_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
     groups.forEach((g) => {
       dates.forEach((d) => {
         const s = dayKey(d);
@@ -194,8 +204,9 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   return (<div>
     {showTemplateModal && (
       <ProgrammeTemplateModal
-        currentJson={settings?.ministay_template || null}
-        onSave={(json) => { if (saveSetting) saveSetting("ministay_template", json); setShowTemplateModal(false); }}
+        mode={isMinistay ? "ministay" : "summer"}
+        currentJson={isMinistay ? (settings?.ministay_template || null) : (settings?.programme_template || null)}
+        onSave={(json) => { if (saveSetting) saveSetting(isMinistay ? "ministay_template" : "programme_template", json); setShowTemplateModal(false); }}
         onClose={() => setShowTemplateModal(false)}
       />
     )}
@@ -208,8 +219,8 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       <div style={{display:"flex",gap:4}}>
         {["all","group","template"].map(m=><button key={m} onClick={()=>setViewMode(m)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+(viewMode===m?B.navy:B.border),background:viewMode===m?B.navy:B.white,color:viewMode===m?B.white:B.textMuted}}>
           {m==="all"?"\ud83d\udc65 All Groups":m==="group"?"\ud83d\udc64 By Group":"\ud83d\udcc4 Templates"}</button>)}
-        {isMinistay && <button onClick={()=>setShowTemplateModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+B.border,background:settings?.ministay_template?"#dcfce7":B.white,color:settings?.ministay_template?B.success:B.textMuted,marginLeft:4}}>
-          {"\ud83d\udcc4"} {settings?.ministay_template ? "Edit Template" : "Set Up Template"}</button>}
+        {!readOnly && <button onClick={()=>setShowTemplateModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+B.border,background:(isMinistay?settings?.ministay_template:settings?.programme_template)?"#dcfce7":B.white,color:(isMinistay?settings?.ministay_template:settings?.programme_template)?B.success:B.textMuted,marginLeft:4}}>
+          {"\ud83d\udcc4"} {(isMinistay ? settings?.ministay_template : settings?.programme_template) ? "Edit Template" : "Set Up Template"}</button>}
         {!readOnly && <button onClick={() => {
           const hasData = Object.values(progGrid).some((v) => v);
           if (hasData && !window.confirm("Auto-populate will overwrite all existing programme cells. Continue?")) return;
@@ -218,12 +229,15 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       </div>
     </div>
 
-    {/* Lesson slot summary */}
+    {/* Lesson slot summary + custom template status */}
     {groups.length > 0 && !isMinistay && (
-      <div style={{padding:"6px 20px",background:"#f0f9ff",borderBottom:"1px solid "+B.border,fontSize:10,display:"flex",gap:12,flexWrap:"wrap"}}>
+      <div style={{padding:"6px 20px",background:"#f0f9ff",borderBottom:"1px solid "+B.border,fontSize:10,display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
         <span style={{fontWeight:700,color:"#0369a1"}}>{"\ud83d\udcda"} Lesson slots:</span>
         {groups.map(g => <span key={g.id}><strong>{g.group}</strong>: Wk1 {g.lessonSlot || "AM"} / Wk2 {(g.lessonSlot||"AM")==="AM"?"PM":"AM"}</span>)}
         <span style={{color:"#64748b"}}>{"\u00b7"} Toggle in Students tab</span>
+        {settings?.programme_template
+          ? <span style={{color:"#16a34a",fontWeight:600,marginLeft:8}}>{"\u2713"} Custom template saved {"\u00b7"} Auto-Populate will use it</span>
+          : centreProgs.length === 0 && <span style={{color:"#92400e",fontWeight:600,marginLeft:8}}>No template yet {"\u00b7"} Click <strong>Set Up Template</strong> to define a weekly pattern</span>}
       </div>
     )}
     {groups.length > 0 && isMinistay && (
@@ -329,7 +343,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             {centreProgs.map((p,i)=><button key={i} onClick={()=>setSelectedTemplate(selectedTemplate===i?null:i)} style={{padding:"6px 14px",borderRadius:6,fontSize:11,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:selectedTemplate===i?"2px solid "+B.navy:"1px solid "+B.border,background:selectedTemplate===i?B.navy:B.white,color:selectedTemplate===i?B.white:B.navy}}>
               {p.nights} {p.period?("\u00b7 "+p.period.split("-")[0].trim()):""}</button>)}
-          </div></div>:<div style={{fontSize:11,color:B.textMuted}}>No templates for this centre</div>
+          </div></div>:<div style={{fontSize:11,color:B.textMuted,display:"flex",alignItems:"center",gap:10}}>No pre-built templates for this centre {!readOnly && <button onClick={()=>setShowTemplateModal(true)} style={{padding:"4px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+B.navy,background:B.navy,color:B.white}}>Set Up Custom Template</button>}</div>
         ):<div style={{fontSize:11,color:B.warning,fontWeight:600}}>Select a centre in the header to see templates</div>}
       </div>
       {activeTemplate && <div style={{padding:"0 12px 16px"}}>
