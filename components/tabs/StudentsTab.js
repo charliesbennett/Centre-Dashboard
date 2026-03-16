@@ -48,11 +48,11 @@ export default function StudentsTab({ groups = [], setGroups, readOnly = false }
         const agentName = cellVal(ws, "D2", "B2", "C2");
         const groupName = cellVal(ws, "L2", "M2", "K2");
         const centre = cellVal(ws, "L4", "M4", "K4");
-        const arrDate = excelDate(ws["G3"]?.v);
+        const arrDate = excelDate(ws["G3"]);
         const arrTime = ws["H3"]?.w || ws["H3"]?.v || "";
         const arrAirport = ws["I3"]?.v || "";
         const arrFlight = ws["J3"]?.v || "";
-        const depDate = excelDate(ws["G4"]?.v);
+        const depDate = excelDate(ws["G4"]);
         const depTime = ws["H4"]?.w || ws["H4"]?.v || "";
         const depAirport = ws["I4"]?.v || "";
         const depFlight = ws["J4"]?.v || "";
@@ -65,9 +65,9 @@ export default function StudentsTab({ groups = [], setGroups, readOnly = false }
           students.push({
             id: uid(), type: "student",
             firstName: String(firstName || "").trim(), surname: String(surname || "").trim(),
-            dob: excelDate(ws["E" + r]?.v), age: ws["F" + r]?.v || "", sex: ws["G" + r]?.v || "",
+            dob: excelDate(ws["E" + r]), age: ws["F" + r]?.v || "", sex: ws["G" + r]?.v || "",
             nationality: ws["J" + r]?.v || "", accommodation: ws["K" + r]?.v || "",
-            arrDate: excelDate(ws["L" + r]?.v), depDate: excelDate(ws["M" + r]?.v),
+            arrDate: excelDate(ws["L" + r]), depDate: excelDate(ws["M" + r]),
             specialism1: ws["N" + r]?.v || "", medical: ws["P" + r]?.v || "",
             swimming: ws["V" + r]?.v || "",
           });
@@ -81,9 +81,9 @@ export default function StudentsTab({ groups = [], setGroups, readOnly = false }
           leaders.push({
             id: uid(), type: "gl",
             firstName: String(firstName || "").trim(), surname: String(surname || "").trim(),
-            dob: excelDate(ws["D" + r]?.v), age: ws["E" + r]?.v || "", sex: ws["F" + r]?.v || "",
+            dob: excelDate(ws["D" + r]), age: ws["E" + r]?.v || "", sex: ws["F" + r]?.v || "",
             nationality: ws["I" + r]?.v || "",
-            arrDate: excelDate(ws["J" + r]?.v), depDate: excelDate(ws["K" + r]?.v),
+            arrDate: excelDate(ws["J" + r]), depDate: excelDate(ws["K" + r]),
             medical: ws["L" + r]?.v || "", mobile: ws["M" + r]?.v || "",
           });
         }
@@ -338,8 +338,22 @@ export default function StudentsTab({ groups = [], setGroups, readOnly = false }
   );
 }
 
-function excelDate(val) {
-  if (!val) return "";
+// Takes a full xlsx cell object (or a raw value for backwards compat).
+// Priority: formatted .w value (DD/MM/YYYY already) → numeric serial → Date → string fallback.
+function excelDate(cell) {
+  if (!cell) return "";
+  // If passed a raw primitive (legacy), wrap it
+  const w = typeof cell === "object" && !(cell instanceof Date) ? cell.w : null;
+  const val = typeof cell === "object" && !(cell instanceof Date) ? cell.v : cell;
+
+  // Try the cell's formatted display value first — Excel shows it as DD/MM/YYYY
+  if (w && typeof w === "string") {
+    const s = w.trim();
+    const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (m) return m[3] + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0");
+  }
+
+  if (val === undefined || val === null || val === "") return "";
   if (typeof val === "number") {
     const utcDays = Math.round(val - 25569);
     const ms = utcDays * 86400000;
