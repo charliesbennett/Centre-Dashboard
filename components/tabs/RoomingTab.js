@@ -103,6 +103,43 @@ export default function RoomingTab({
     setEditingCell(null);
   };
 
+  // ── OVERVIEW sub-view ───────────────────────────────────
+  const [overviewSub, setOverviewSub] = useState("beds");
+
+  // Beds grid rows: one entry per bed slot across all houses/rooms
+  const bedsGridRows = useMemo(() => {
+    const rows = [];
+    roomingHouses.forEach((house) => {
+      const houseRooms = roomingRooms.filter((r) => r.houseId === house.id);
+      if (houseRooms.length === 0) return;
+      rows.push({ type: "houseDivider", house });
+      houseRooms.forEach((room) => {
+        for (let slot = 0; slot < (room.capacity || 1); slot++) {
+          const a = roomingAssignments.find((x) => x.roomId === room.id && x.slotIndex === slot);
+          const g = a?.groupId ? activeGroups.find((x) => x.id === a.groupId) : null;
+          rows.push({ type: "slot", house, room, slot, assignment: a, group: g });
+        }
+      });
+    });
+    return rows;
+  }, [roomingHouses, roomingRooms, roomingAssignments, activeGroups]);
+
+  // Per-date totals for the beds grid footer
+  const bedsGridTotals = useMemo(() => {
+    const totals = {};
+    const totalSlots = bedsGridRows.filter((r) => r.type === "slot").length;
+    dates.forEach((d) => {
+      const ds = dayKey(d);
+      let occupied = 0;
+      bedsGridRows.forEach((r) => {
+        if (r.type !== "slot") return;
+        if (r.group && inBed(ds, r.group.arr, r.group.dep)) occupied++;
+      });
+      totals[ds] = { occupied, available: totalSlots - occupied };
+    });
+    return totals;
+  }, [bedsGridRows, dates]);
+
   // ── HOUSES state ────────────────────────────────────────
   const [showImport, setShowImport] = useState(false);
   const [houseView, setHouseView] = useState("setup");
@@ -290,6 +327,60 @@ export default function RoomingTab({
       w.document.write("</tr>");
     }
     w.document.write("</tbody></table></body></html>");
+    w.document.close();
+    w.print();
+  };
+
+  // ── Print: Heads on Beds grid ──────────────────────────
+  const handlePrintBedsGrid = () => {
+    const w = window.open("", "_blank");
+    w.document.write(`<html><head><title>Heads on Beds Grid</title><style>
+      body{font-family:sans-serif;font-size:9px;padding:12px}
+      h2{font-size:13px;margin:0 0 8px;color:#1c3048}
+      table{border-collapse:collapse}
+      th{background:#f0f0f0;font-size:7px;padding:3px 4px;border:1px solid #ccc;text-align:center;white-space:nowrap}
+      th.lbl{text-align:left;min-width:70px}
+      td{border:1px solid #e5e7eb;padding:2px 3px;font-size:8px;text-align:center;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis}
+      td.lbl{text-align:left;font-weight:600;color:#1c3048;min-width:70px}
+      tr.house-hdr td{background:#1c3048;color:#fff;font-weight:800;font-size:9px;padding:3px 6px;text-align:left}
+      tr.totals td{background:#1c3048;color:#fff;font-weight:800}
+      tr.avail td{background:#f0fdf4;color:#16a34a;font-weight:700}
+      @media print{body{padding:0}@page{size:A3 landscape;margin:10mm}}
+    </style></head><body>`);
+    w.document.write("<h2>Heads on Beds — Bed Slot Grid</h2>");
+    w.document.write('<table><thead><tr><th class="lbl">House</th><th class="lbl">Room</th><th>Bed</th>');
+    dates.forEach((d) => {
+      w.document.write(`<th>${dayName(d).slice(0, 2)}<br>${d.getDate()}/${d.getMonth() + 1}</th>`);
+    });
+    w.document.write("</tr></thead><tbody>");
+    bedsGridRows.forEach((row) => {
+      if (row.type === "houseDivider") {
+        w.document.write(`<tr class="house-hdr"><td colspan="${3 + dates.length}">${row.house.name}</td></tr>`);
+        return;
+      }
+      const { room, slot, group } = row;
+      w.document.write(`<tr><td class="lbl">${row.house.name}</td><td class="lbl">${room.roomName}</td><td style="color:#888">${slot + 1}</td>`);
+      dates.forEach((d) => {
+        const ds = dayKey(d);
+        const onSite = group ? inBed(ds, group.arr, group.dep) : false;
+        const gc = group && onSite ? GROUP_COLORS[activeGroups.indexOf(group) % GROUP_COLORS.length] : null;
+        w.document.write(`<td style="${gc ? `background:${gc}22;color:${gc};font-weight:700` : "color:#bbb"}">${onSite ? group.group.slice(0, 14) : ""}</td>`);
+      });
+      w.document.write("</tr>");
+    });
+    // Totals
+    w.document.write('<tr class="totals"><td colspan="3">OCCUPIED</td>');
+    dates.forEach((d) => {
+      const t = bedsGridTotals[dayKey(d)];
+      w.document.write(`<td>${t ? t.occupied || "—" : "—"}</td>`);
+    });
+    w.document.write("</tr>");
+    w.document.write('<tr class="avail"><td colspan="3">AVAILABLE</td>');
+    dates.forEach((d) => {
+      const t = bedsGridTotals[dayKey(d)];
+      w.document.write(`<td>${t && t.available > 0 ? "+" + t.available : t ? "0" : "—"}</td>`);
+    });
+    w.document.write("</tr></tbody></table></body></html>");
     w.document.close();
     w.print();
   };
@@ -574,116 +665,272 @@ export default function RoomingTab({
       {/* ── OVERVIEW VIEW ───────────────────────────────── */}
       {view === "overview" && (
         <div style={{ padding: "0 8px 16px", overflowX: "auto", maxWidth: "100vw" }}>
-          <div style={{ padding: "0 4px 6px", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: 9, color: B.textMuted, fontWeight: 600 }}>
-              Heads on beds per night (arrival inclusive, departure exclusive). Click to override.
-            </span>
-            {overrideCount > 0 && (
+          {/* Sub-view switcher */}
+          <div style={{ padding: "0 4px 8px", display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+            {[
+              { id: "beds", label: "\ud83d\udecf\ufe0f Heads on Beds" },
+              { id: "summary", label: "\ud83d\udcca Group Summary" },
+            ].map((sv) => (
+              <button key={sv.id} onClick={() => setOverviewSub(sv.id)} style={{
+                padding: "4px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700,
+                fontFamily: "inherit", cursor: "pointer",
+                border: "1px solid " + (overviewSub === sv.id ? B.navy : B.border),
+                background: overviewSub === sv.id ? B.navy : B.white,
+                color: overviewSub === sv.id ? B.white : B.textMuted,
+              }}>{sv.label}</button>
+            ))}
+            {overviewSub === "beds" && (
+              <button onClick={handlePrintBedsGrid} style={{ ...btnNavy, fontSize: 9, padding: "3px 10px", marginLeft: "auto" }}>
+                {"\ud83d\udda8\ufe0f"} Print Grid
+              </button>
+            )}
+            {overviewSub === "summary" && (
               <>
-                <span style={{ fontSize: 9, color: "#ea580c", fontWeight: 700 }}>{overrideCount} override{overrideCount !== 1 ? "s" : ""}</span>
-                {!readOnly && <button onClick={() => setRoomingOverrides({})} style={{
-                  fontSize: 9, color: B.textMuted, background: "transparent",
-                  border: "1px solid " + B.border, borderRadius: 4, padding: "2px 8px", cursor: "pointer", fontFamily: "inherit",
-                }}>Reset All</button>}
+                {overrideCount > 0 && (
+                  <>
+                    <span style={{ fontSize: 9, color: "#ea580c", fontWeight: 700 }}>{overrideCount} override{overrideCount !== 1 ? "s" : ""}</span>
+                    {!readOnly && <button onClick={() => setRoomingOverrides({})} style={{
+                      fontSize: 9, color: B.textMuted, background: "transparent",
+                      border: "1px solid " + B.border, borderRadius: 4, padding: "2px 8px", cursor: "pointer", fontFamily: "inherit",
+                    }}>Reset All</button>}
+                  </>
+                )}
+                <button onClick={handlePrintOverview} style={{ ...btnNavy, fontSize: 9, padding: "3px 10px", marginLeft: "auto" }}>
+                  {"\ud83d\udda8\ufe0f"} Print Grid
+                </button>
               </>
             )}
-            <button onClick={handlePrintOverview} style={{ ...btnNavy, fontSize: 9, padding: "3px 10px", marginLeft: "auto" }}>
-              {"\ud83d\udda8\ufe0f"} Print Grid
-            </button>
           </div>
 
-          <TableWrap>
-            <table style={{ minWidth: Math.max(600, dates.length * 38 + 160), borderCollapse: "collapse", fontSize: 10 }}>
-              <thead>
-                <tr>
-                  <th style={{ ...thStyle, width: 160, position: "sticky", left: 0, zIndex: 2, background: "#f8fafc" }}>Group</th>
-                  {dates.map((d) => {
-                    const s = dayKey(d);
-                    const we = isWeekend(d);
-                    return (
-                      <th key={s} style={{ ...thStyle, textAlign: "center", minWidth: 36, background: we ? "#fef2f2" : "#f8fafc" }}>
-                        <div style={{ fontWeight: 800, fontSize: 8, color: we ? B.red : B.navy }}>{dayName(d)}</div>
-                        <div style={{ fontSize: 7, color: B.textMuted }}>{d.getDate()}/{d.getMonth() + 1}</div>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {activeGroups.length === 0 ? (
-                  <tr>
-                    <td colSpan={dates.length + 1} style={{ textAlign: "center", padding: 36, color: B.textLight }}>
-                      No groups — add groups in the Students tab
-                    </td>
-                  </tr>
-                ) : activeGroups.map((g, gi) => (
-                  <tr key={g.id} style={{ borderBottom: "1px solid " + B.borderLight }}>
-                    <td style={{ padding: "5px 8px", position: "sticky", left: 0, background: B.white, zIndex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: 10, color: B.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 150 }}>{g.group}</div>
-                      <div style={{ fontSize: 8, color: B.textMuted }}>{(g.stu || 0) + (g.gl || 0)} pax · {fmtDate(g.arr)} {"\u2192"} {fmtDate(g.dep)}</div>
-                    </td>
-                    {dates.map((d) => {
-                      const ds = dayKey(d);
-                      const cellKey = g.id + "-" + ds;
-                      const v = bedsData[g.id]?.[ds] || 0;
-                      const isOverridden = roomingOverrides[cellKey] !== undefined;
-                      const isEd = editingCell === cellKey;
-                      return (
-                        <td key={ds} onClick={() => !readOnly && !isEd && startCellEdit(g.id, ds)} style={{
-                          textAlign: "center", padding: "4px 1px", cursor: "pointer",
-                          borderLeft: "1px solid " + B.borderLight,
-                          fontWeight: v ? 800 : 400,
-                          color: v ? (isOverridden ? "#ea580c" : B.navy) : B.textLight,
-                          fontSize: v ? 11 : 9,
-                          background: isOverridden ? "#fff7ed" : v ? GROUP_COLORS[gi % GROUP_COLORS.length] + "18" : "transparent",
-                        }}>
-                          {isEd ? (
-                            <input autoFocus value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={commitCellEdit}
-                              onKeyDown={(e) => e.key === "Enter" && commitCellEdit()}
-                              style={{ width: 32, fontSize: 10, textAlign: "center", border: "1px solid " + B.navy, borderRadius: 2, padding: 2, fontFamily: "inherit" }} />
-                          ) : v || "\u2014"}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+          {/* ── BEDS GRID (Excel-style heads on beds) ─────── */}
+          {overviewSub === "beds" && (
+            roomingHouses.length === 0 ? (
+              <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, padding: 40, textAlign: "center", color: B.textLight }}>
+                Set up houses and rooms in the <strong>Houses</strong> tab first
+              </div>
+            ) : (
+              <>
+                {/* Group colour legend */}
+                <div style={{ padding: "0 4px 8px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.5 }}>Groups:</span>
+                  {activeGroups.map((g, i) => (
+                    <span key={g.id} style={{ background: GROUP_COLORS[i % GROUP_COLORS.length] + "22", color: GROUP_COLORS[i % GROUP_COLORS.length], padding: "2px 8px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>
+                      {g.group}
+                    </span>
+                  ))}
+                  <span style={{ fontSize: 9, color: B.textMuted, marginLeft: 4 }}>· empty cell = available bed</span>
+                </div>
+                <TableWrap>
+                  <table style={{ borderCollapse: "collapse", fontSize: 10, minWidth: Math.max(400, dates.length * 80 + 220) }}>
+                    <thead>
+                      <tr>
+                        <th style={{ ...thStyle, position: "sticky", left: 0, zIndex: 3, background: "#f8fafc", minWidth: 90, textAlign: "left" }}>House</th>
+                        <th style={{ ...thStyle, position: "sticky", left: 90, zIndex: 3, background: "#f8fafc", minWidth: 80, textAlign: "left" }}>Room</th>
+                        <th style={{ ...thStyle, position: "sticky", left: 170, zIndex: 3, background: "#f8fafc", width: 32, textAlign: "center" }}>#</th>
+                        {dates.map((d) => {
+                          const we = isWeekend(d);
+                          return (
+                            <th key={dayKey(d)} style={{ ...thStyle, textAlign: "center", minWidth: 80, background: we ? "#fef2f2" : "#f8fafc" }}>
+                              <div style={{ fontWeight: 800, fontSize: 8, color: we ? B.red : B.navy }}>{dayName(d)}</div>
+                              <div style={{ fontSize: 7, color: B.textMuted }}>{d.getDate()}/{d.getMonth() + 1}</div>
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bedsGridRows.map((row, idx) => {
+                        if (row.type === "houseDivider") {
+                          const hRooms = roomingRooms.filter((r) => r.houseId === row.house.id);
+                          const hBeds = hRooms.reduce((s, r) => s + (r.capacity || 0), 0);
+                          return (
+                            <tr key={"house-" + row.house.id} style={{ background: B.navy }}>
+                              <td colSpan={3 + dates.length} style={{ padding: "5px 10px", color: B.white, fontWeight: 800, fontSize: 11, position: "sticky", left: 0 }}>
+                                {row.house.name}
+                                <span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.6)", marginLeft: 10 }}>
+                                  {hRooms.length} room{hRooms.length !== 1 ? "s" : ""} · {hBeds} bed{hBeds !== 1 ? "s" : ""}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        }
+                        const { house, room, slot, group } = row;
+                        const gc = group ? GROUP_COLORS[activeGroups.indexOf(group) % GROUP_COLORS.length] : null;
+                        // Alternate row shade per room for readability
+                        const roomIdx = roomingRooms.filter((r) => r.houseId === house.id).findIndex((r) => r.id === room.id);
+                        const rowBg = roomIdx % 2 === 0 ? B.white : "#f8fafc";
+                        return (
+                          <tr key={room.id + "-" + slot} style={{ borderBottom: "1px solid " + B.borderLight }}>
+                            <td style={{ padding: "4px 8px", position: "sticky", left: 0, zIndex: 1, background: rowBg, fontSize: 9, color: B.textMuted, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 90 }}>
+                              {house.name}
+                            </td>
+                            <td style={{ padding: "4px 8px", position: "sticky", left: 90, zIndex: 1, background: rowBg, fontWeight: 700, fontSize: 10, color: B.navy, whiteSpace: "nowrap" }}>
+                              {room.roomName}
+                            </td>
+                            <td style={{ padding: "4px 4px", position: "sticky", left: 170, zIndex: 1, background: rowBg, textAlign: "center", fontSize: 9, color: B.textMuted }}>
+                              {slot + 1}
+                            </td>
+                            {dates.map((d) => {
+                              const ds = dayKey(d);
+                              const onSite = group ? inBed(ds, group.arr, group.dep) : false;
+                              return (
+                                <td key={ds} style={{
+                                  padding: "4px 5px",
+                                  textAlign: "center",
+                                  borderLeft: "1px solid " + B.borderLight,
+                                  background: onSite ? gc + "22" : "transparent",
+                                  fontWeight: onSite ? 700 : 400,
+                                  color: onSite ? gc : B.borderLight,
+                                  fontSize: onSite ? 9 : 8,
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  maxWidth: 80,
+                                }}>
+                                  {onSite ? group.group.slice(0, 14) : "\u2014"}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                      {/* Totals footer */}
+                      <tr style={{ background: B.navy }}>
+                        <td colSpan={3} style={{ padding: "5px 10px", fontWeight: 800, color: B.white, fontSize: 10, position: "sticky", left: 0, zIndex: 1, background: B.navy }}>OCCUPIED</td>
+                        {dates.map((d) => {
+                          const ds = dayKey(d);
+                          const t = bedsGridTotals[ds];
+                          return (
+                            <td key={ds} style={{ textAlign: "center", padding: "5px 1px", fontWeight: 800, color: B.white, fontSize: 10, borderLeft: "1px solid rgba(255,255,255,0.15)" }}>
+                              {t ? (t.occupied || "\u2014") : "\u2014"}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                      <tr style={{ background: "#f0fdf4" }}>
+                        <td colSpan={3} style={{ padding: "5px 10px", fontWeight: 700, color: B.success, fontSize: 9, position: "sticky", left: 0, zIndex: 1, background: "#f0fdf4" }}>AVAILABLE</td>
+                        {dates.map((d) => {
+                          const ds = dayKey(d);
+                          const t = bedsGridTotals[ds];
+                          const avail = t ? t.available : 0;
+                          return (
+                            <td key={ds} style={{
+                              textAlign: "center", padding: "4px 1px", fontSize: 9, fontWeight: 700,
+                              color: avail > 0 ? B.success : avail === 0 ? B.warning : B.danger,
+                              borderLeft: "1px solid #bbf7d0",
+                            }}>
+                              {avail > 0 ? "+" + avail : avail === 0 ? "Full" : avail}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </tbody>
+                  </table>
+                </TableWrap>
+              </>
+            )
+          )}
 
-                <tr style={{ background: B.navy }}>
-                  <td style={{ padding: "6px 8px", fontWeight: 800, color: B.white, fontSize: 10, position: "sticky", left: 0, zIndex: 1, background: B.navy }}>TOTAL BEDS</td>
-                  {dates.map((d) => {
-                    const ds = dayKey(d);
-                    const tot = dailyTotals[ds] || 0;
-                    return (
-                      <td key={ds} style={{ textAlign: "center", padding: "5px 1px", fontWeight: 800, color: B.white, fontSize: 10, borderLeft: "1px solid rgba(255,255,255,0.15)" }}>
-                        {tot || "\u2014"}
-                      </td>
-                    );
-                  })}
-                </tr>
-
-                {totalBeds > 0 && (
-                  <tr style={{ background: "#f0fdf4" }}>
-                    <td style={{ padding: "5px 8px", fontWeight: 700, color: B.success, fontSize: 9, position: "sticky", left: 0, zIndex: 1, background: "#f0fdf4" }}>CAPACITY SPARE</td>
-                    {dates.map((d) => {
-                      const ds = dayKey(d);
-                      const spare = totalBeds - (dailyTotals[ds] || 0);
-                      return (
-                        <td key={ds} style={{
-                          textAlign: "center", padding: "4px 1px", fontSize: 9, fontWeight: 700,
-                          color: spare < 0 ? B.danger : spare === 0 ? B.warning : B.success,
-                          borderLeft: "1px solid #bbf7d0",
-                        }}>
-                          {spare > 0 ? "+" + spare : spare === 0 ? "=" : spare}
+          {/* ── GROUP SUMMARY (original overview) ─────────── */}
+          {overviewSub === "summary" && (
+            <>
+              <div style={{ padding: "0 4px 4px" }}>
+                <span style={{ fontSize: 9, color: B.textMuted, fontWeight: 600 }}>
+                  Heads on beds per night (arrival inclusive, departure exclusive). Click to override.
+                </span>
+              </div>
+              <TableWrap>
+                <table style={{ minWidth: Math.max(600, dates.length * 38 + 160), borderCollapse: "collapse", fontSize: 10 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...thStyle, width: 160, position: "sticky", left: 0, zIndex: 2, background: "#f8fafc" }}>Group</th>
+                      {dates.map((d) => {
+                        const s = dayKey(d);
+                        const we = isWeekend(d);
+                        return (
+                          <th key={s} style={{ ...thStyle, textAlign: "center", minWidth: 36, background: we ? "#fef2f2" : "#f8fafc" }}>
+                            <div style={{ fontWeight: 800, fontSize: 8, color: we ? B.red : B.navy }}>{dayName(d)}</div>
+                            <div style={{ fontSize: 7, color: B.textMuted }}>{d.getDate()}/{d.getMonth() + 1}</div>
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activeGroups.length === 0 ? (
+                      <tr>
+                        <td colSpan={dates.length + 1} style={{ textAlign: "center", padding: 36, color: B.textLight }}>
+                          No groups — add groups in the Students tab
                         </td>
-                      );
-                    })}
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </TableWrap>
+                      </tr>
+                    ) : activeGroups.map((g, gi) => (
+                      <tr key={g.id} style={{ borderBottom: "1px solid " + B.borderLight }}>
+                        <td style={{ padding: "5px 8px", position: "sticky", left: 0, background: B.white, zIndex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: 10, color: B.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 150 }}>{g.group}</div>
+                          <div style={{ fontSize: 8, color: B.textMuted }}>{(g.stu || 0) + (g.gl || 0)} pax · {fmtDate(g.arr)} {"\u2192"} {fmtDate(g.dep)}</div>
+                        </td>
+                        {dates.map((d) => {
+                          const ds = dayKey(d);
+                          const cellKey = g.id + "-" + ds;
+                          const v = bedsData[g.id]?.[ds] || 0;
+                          const isOverridden = roomingOverrides[cellKey] !== undefined;
+                          const isEd = editingCell === cellKey;
+                          return (
+                            <td key={ds} onClick={() => !readOnly && !isEd && startCellEdit(g.id, ds)} style={{
+                              textAlign: "center", padding: "4px 1px", cursor: "pointer",
+                              borderLeft: "1px solid " + B.borderLight,
+                              fontWeight: v ? 800 : 400,
+                              color: v ? (isOverridden ? "#ea580c" : B.navy) : B.textLight,
+                              fontSize: v ? 11 : 9,
+                              background: isOverridden ? "#fff7ed" : v ? GROUP_COLORS[gi % GROUP_COLORS.length] + "18" : "transparent",
+                            }}>
+                              {isEd ? (
+                                <input autoFocus value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onBlur={commitCellEdit}
+                                  onKeyDown={(e) => e.key === "Enter" && commitCellEdit()}
+                                  style={{ width: 32, fontSize: 10, textAlign: "center", border: "1px solid " + B.navy, borderRadius: 2, padding: 2, fontFamily: "inherit" }} />
+                              ) : v || "\u2014"}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                    <tr style={{ background: B.navy }}>
+                      <td style={{ padding: "6px 8px", fontWeight: 800, color: B.white, fontSize: 10, position: "sticky", left: 0, zIndex: 1, background: B.navy }}>TOTAL BEDS</td>
+                      {dates.map((d) => {
+                        const ds = dayKey(d);
+                        const tot = dailyTotals[ds] || 0;
+                        return (
+                          <td key={ds} style={{ textAlign: "center", padding: "5px 1px", fontWeight: 800, color: B.white, fontSize: 10, borderLeft: "1px solid rgba(255,255,255,0.15)" }}>
+                            {tot || "\u2014"}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    {totalBeds > 0 && (
+                      <tr style={{ background: "#f0fdf4" }}>
+                        <td style={{ padding: "5px 8px", fontWeight: 700, color: B.success, fontSize: 9, position: "sticky", left: 0, zIndex: 1, background: "#f0fdf4" }}>CAPACITY SPARE</td>
+                        {dates.map((d) => {
+                          const ds = dayKey(d);
+                          const spare = totalBeds - (dailyTotals[ds] || 0);
+                          return (
+                            <td key={ds} style={{
+                              textAlign: "center", padding: "4px 1px", fontSize: 9, fontWeight: 700,
+                              color: spare < 0 ? B.danger : spare === 0 ? B.warning : B.success,
+                              borderLeft: "1px solid #bbf7d0",
+                            }}>
+                              {spare > 0 ? "+" + spare : spare === 0 ? "=" : spare}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </TableWrap>
+            </>
+          )}
         </div>
       )}
 
