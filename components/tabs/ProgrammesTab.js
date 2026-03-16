@@ -4,6 +4,7 @@ import { B, ACTIVITY_TYPES, LONDON_CENTRES, genDates, dayKey, dayName, isWeekend
 import { Fld, TableWrap, IcWand, thStyle, tdStyle, btnPrimary, inputStyle } from "@/components/ui";
 import { getProgrammesForCentre } from "@/lib/programmeData";
 import ProgrammeTemplateModal from "@/components/ProgrammeTemplateModal";
+import MasterImportModal from "@/components/MasterImportModal";
 
 // Which lesson slot does this group have on this date?
 function getGroupLessonSlot(g, ds) {
@@ -178,6 +179,27 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   };
 
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showMasterModal, setShowMasterModal] = useState(false);
+
+  const handleMasterImport = (payload) => {
+    const ng = { ...grid };
+    payload.forEach(({ excelGroup, dashboardGroupId, updateMeta }) => {
+      if (!dashboardGroupId) return;
+      const dashGroup = groups.find((g) => g.id === dashboardGroupId);
+      if (!dashGroup) return;
+      const effectiveArr = (updateMeta && excelGroup.arr) ? excelGroup.arr : dashGroup.arr;
+      const effectiveDep = (updateMeta && excelGroup.dep) ? excelGroup.dep : dashGroup.dep;
+      Object.entries(excelGroup.cells).forEach(([slotKey, value]) => {
+        // slotKey = "2025-07-04-AM" — split on last hyphen-segment for slot
+        const parts = slotKey.split("-");
+        const slot = parts.pop();                    // "AM" or "PM"
+        const dateStr = parts.join("-");             // "2025-07-04"
+        if (!inRange(dateStr, effectiveArr, effectiveDep)) return;
+        ng[`${dashboardGroupId}-${dateStr}-${slot}`] = value;
+      });
+    });
+    setGrid(ng);
+  };
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState("");
   const [quickPickCell, setQuickPickCell] = useState(null); const [qpPos, setQpPos] = useState({top:0,left:0});
@@ -220,6 +242,14 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         onClose={() => setShowTemplateModal(false)}
       />
     )}
+    {showMasterModal && (
+      <MasterImportModal
+        groups={groups}
+        progGrid={grid}
+        onClose={() => setShowMasterModal(false)}
+        onImport={(payload) => { handleMasterImport(payload); setShowMasterModal(false); }}
+      />
+    )}
     {groupTemplateTarget && (
       <ProgrammeTemplateModal
         mode={isMinistay ? "ministay" : "summer"}
@@ -239,6 +269,8 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           {m==="all"?"\ud83d\udc65 All Groups":m==="group"?"\ud83d\udc64 By Group":"\ud83d\udcc4 Templates"}</button>)}
         {!readOnly && <button onClick={()=>setShowTemplateModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+B.border,background:(isMinistay?settings?.ministay_template:settings?.programme_template)?"#dcfce7":B.white,color:(isMinistay?settings?.ministay_template:settings?.programme_template)?B.success:B.textMuted,marginLeft:4}}>
           {"\ud83d\udcc4"} {(isMinistay ? settings?.ministay_template : settings?.programme_template) ? "Edit Template" : "Set Up Template"}</button>}
+        {!readOnly && <button onClick={() => setShowMasterModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid #0369a1",background:"#0369a1",color:"#fff",marginLeft:4}}>
+          📊 Import Master</button>}
         {!readOnly && <button onClick={() => {
           const hasData = Object.values(progGrid).some((v) => v);
           if (hasData && !window.confirm("Auto-populate will overwrite all existing programme cells. Continue?")) return;
