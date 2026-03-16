@@ -93,7 +93,18 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, m
       const result = await parseProgrammeExcel(file);
       if (result.rows) setRows(result.rows);
       if (result.ok) {
-        setTemplate(result.template);
+        if (isSummer && result.dayNameTemplate) {
+          // Convert to summer day-name keys (no eve slot)
+          const t = emptySummer();
+          SUMMER_DAYS.forEach((d) => {
+            if (result.dayNameTemplate[d]) {
+              t[d] = { am: result.dayNameTemplate[d].am || "", pm: result.dayNameTemplate[d].pm || "", exc: result.dayNameTemplate[d].exc || "" };
+            }
+          });
+          setTemplate(t);
+        } else {
+          setTemplate(result.template);
+        }
         setMsg({ ok: true, text: "Programme extracted — review the grid and correct anything that looks wrong, then save." + (result.debug ? " (" + result.debug + ")" : "") });
       } else {
         setMsg({ ok: false, text: result.error + " Review the spreadsheet preview and fill in the grid manually." });
