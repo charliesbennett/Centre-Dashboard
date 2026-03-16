@@ -721,7 +721,7 @@ export default function RoomingTab({
                   <span style={{ fontSize: 9, color: B.textMuted, marginLeft: 4 }}>· empty cell = available bed</span>
                 </div>
                 <TableWrap>
-                  <table style={{ borderCollapse: "collapse", fontSize: 10, minWidth: Math.max(400, dates.length * 80 + 220) }}>
+                  <table style={{ borderCollapse: "collapse", fontSize: 10, minWidth: Math.max(400, dates.length * 80 + 220), width: "100%" }}>
                     <thead>
                       <tr>
                         <th style={{ ...thStyle, position: "sticky", left: 0, zIndex: 3, background: "#f8fafc", minWidth: 90, textAlign: "left" }}>House</th>
@@ -840,7 +840,7 @@ export default function RoomingTab({
                 </span>
               </div>
               <TableWrap>
-                <table style={{ minWidth: Math.max(600, dates.length * 38 + 160), borderCollapse: "collapse", fontSize: 10 }}>
+                <table style={{ minWidth: Math.max(600, dates.length * 38 + 160), width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
                   <thead>
                     <tr>
                       <th style={{ ...thStyle, width: 160, position: "sticky", left: 0, zIndex: 2, background: "#f8fafc" }}>Group</th>
