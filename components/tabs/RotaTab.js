@@ -90,11 +90,15 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     const actStaff = staff.filter((s) => ["SAI","SC","EAC","EAL"].includes(s.role));
     const mgmt = staff.filter((s) => !["TAL","FTT","DRAMA","DANCE","SAI","SC","EAC","EAL"].includes(s.role));
 
-    // PASS 1: Assign induction, setup, day offs, special days for everyone
+    // PASS 1: Assign induction, setup, day offs for everyone
     const allStaff = [...mgmt, ...teachers, ...actStaff];
     const dayOffSets = {};
     const indSets = {};
     const setupSets = {};
+
+    // Global staff index for staggering day offs and AM/PM rotation
+    const staffGlobalIdx = {};
+    allStaff.forEach((s, i) => { staffGlobalIdx[s.id] = i; });
 
     allStaff.forEach((s) => {
       const tos = parseTimeOff(s.to);
@@ -114,10 +118,11 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       indSets[s.id] = ind;
       setupSets[s.id] = setup;
 
-      // Day offs
+      // Day offs — stagger by staff index so different people get different days off
       const progDays = onSiteDates.filter((wd) => !ind.has(wd.ds) && !setup.has(wd.ds));
       const doffs = new Set();
       const weeks = Math.ceil(progDays.length / 7);
+      const gIdx = staffGlobalIdx[s.id] || 0;
 
       if (s.role === "FTT") {
         let ws = 0;
@@ -129,10 +134,12 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
           ws += 7;
         }
       } else if (!["CM","CD","EAM","SWC"].includes(s.role)) {
+        const basePref = [3, 4, 2, 5, 1]; // Wed, Thu, Tue, Fri, Mon
         let ws = 0;
-        const pref = [3, 4, 2, 5, 1];
         for (let w = 0; w < weeks; w++) {
           const wk = progDays.slice(ws, ws + 7);
+          // Rotate preference start by (staffIndex + week) to spread days off across the team
+          const pref = basePref.map((_, i) => basePref[(i + gIdx + w) % basePref.length]);
           let placed = false;
           for (const pd of pref) {
             const m = wk.find((wd) => wd.date.getDay() === pd && !isFullDayOff(tos, wd.ds));
@@ -147,7 +154,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       }
       dayOffSets[s.id] = doffs;
 
-      // Fill induction, setup, day off, departure, arrival for all
+      // Fill induction, setup, day off, departure in Pass 1
+      // Arrival days are handled in Pass 2 so we can control how many staff do airport
       onSiteDates.forEach((wd) => {
         const { ds } = wd;
         if (ind.has(ds)) { ng[s.id+"-"+ds+"-AM"] = "Induction"; ng[s.id+"-"+ds+"-PM"] = "Induction"; return; }
@@ -155,15 +163,17 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         if (s.dep && ds === dayKey(new Date(s.dep))) { ng[s.id+"-"+ds+"-AM"] = "Airport"; return; }
         if (isFullDayOff(tos, ds) || doffs.has(ds)) {
           SLOTS.forEach((sl) => { ng[s.id+"-"+ds+"-"+sl] = "Day Off"; });
-          return;
-        }
-        if (allArrivalDates.has(ds)) {
-          if (s.role === "FTT") { SLOTS.forEach((sl) => { ng[s.id+"-"+ds+"-"+sl] = "Day Off"; }); }
-          else { ng[s.id+"-"+ds+"-AM"] = "Airport"; ng[s.id+"-"+ds+"-Eve"] = "Eve Ents"; }
-          return;
         }
       });
     });
+
+    // Pre-build arriving students per date for airport sizing
+    const arrivingStudentsByDate = {};
+    if (groups) {
+      groups.forEach((g) => {
+        if (g.arr) arrivingStudentsByDate[g.arr] = (arrivingStudentsByDate[g.arr] || 0) + (g.stu || 0) + (g.gl || 0);
+      });
+    }
 
     // PASS 2: For each programme day, allocate teachers based on lesson demand
     dates.forEach((d) => {
@@ -172,26 +182,47 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       const fe = excDays && excDays[ds] === "Full";
       const he = excDays && excDays[ds] === "Half";
       const dem = lessonDemand[ds];
+      const isArrDay = allArrivalDates.has(ds);
+      const weekNum = groupArrivalDate ? Math.max(0, Math.floor((new Date(ds) - new Date(groupArrivalDate)) / (7 * 86400000))) : 0;
 
-      // Get available teachers (not on day off, induction, setup, arrival, departure)
-      const availTeachers = teachers.filter((s) => {
+      // isAvail: not already assigned in Pass 1 (day off, induction, setup, departure airport)
+      const isAvail = (s) => {
         if (!inRange(ds, s.arr, s.dep)) return false;
-        if (ng[s.id+"-"+ds+"-AM"] === "Day Off" || ng[s.id+"-"+ds+"-AM"] === "Induction" || ng[s.id+"-"+ds+"-AM"] === "Setup" || ng[s.id+"-"+ds+"-AM"] === "Airport") return false;
-        return true;
-      });
+        const am = ng[s.id+"-"+ds+"-AM"];
+        return am !== "Day Off" && am !== "Induction" && am !== "Setup" && am !== "Airport";
+      };
 
-      const availAct = actStaff.filter((s) => {
-        if (!inRange(ds, s.arr, s.dep)) return false;
-        if (ng[s.id+"-"+ds+"-AM"] === "Day Off" || ng[s.id+"-"+ds+"-AM"] === "Induction" || ng[s.id+"-"+ds+"-AM"] === "Setup" || ng[s.id+"-"+ds+"-AM"] === "Airport") return false;
-        return true;
-      });
+      const availTeachers = teachers.filter(isAvail);
+      const availAct = actStaff.filter(isAvail);
 
-      // Weekend / Full Exc
+      // ── Arrival day: limited airport duty, rest do activities ──
+      if (isArrDay) {
+        const arriving = arrivingStudentsByDate[ds] || 0;
+        const airportNeed = Math.max(2, Math.ceil(arriving / 40));
+        let airportCount = 0;
+        // Assign Airport to first N available non-FTT staff (teachers first, then act)
+        const allAvailNonFTT = [...availTeachers.filter(s => s.role !== "FTT"), ...availAct];
+        allAvailNonFTT.forEach((s) => {
+          if (airportCount < airportNeed) {
+            ng[s.id+"-"+ds+"-AM"] = "Airport";
+            airportCount++;
+          } else {
+            ng[s.id+"-"+ds+"-AM"] = "Activities";
+            ng[s.id+"-"+ds+"-PM"] = "Activities";
+          }
+        });
+        // FTTs: Day Off on group arrival days
+        availTeachers.filter(s => s.role === "FTT").forEach((s) => {
+          SLOTS.forEach((sl) => { ng[s.id+"-"+ds+"-"+sl] = "Day Off"; });
+        });
+        return;
+      }
+
+      // ── Weekend / Full excursion ──
       if (we || fe) {
         availTeachers.forEach((s) => {
           if (s.role === "FTT") {
             if (d.getDay() === 0) { ng[s.id+"-"+ds+"-AM"] = "Lesson Prep"; ng[s.id+"-"+ds+"-PM"] = "Floating"; }
-            // Sat already Day Off from pass 1
           } else {
             ng[s.id+"-"+ds+"-AM"] = "Excursion"; ng[s.id+"-"+ds+"-PM"] = "Excursion";
           }
@@ -202,101 +233,68 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         return;
       }
 
-      // Weekday: allocate teachers to AM/PM based on demand
+      // ── Normal weekday: split TALs between AM and PM lessons ──
       const amNeed = dem ? dem.amTeachers : 0;
       const pmNeed = dem ? dem.pmTeachers : 0;
 
-      // Separate FTTs from TALs
       const ftts = availTeachers.filter((s) => s.role === "FTT");
       const tals = availTeachers.filter((s) => s.role !== "FTT");
 
-      // FTTs teach both AM+PM lessons — assign them to whichever slot needs more teachers
-      // Then allocate to cover both AM and PM demand
       let amAssigned = 0, pmAssigned = 0;
 
-      // Assign FTTs: they teach AM+PM, so they cover one slot of AM and one of PM
+      // FTTs teach both slots
       ftts.forEach((s) => {
-        if (amNeed > 0 && pmNeed > 0) {
-          // FTT can teach AM lessons for AM-group and PM lessons for PM-group
-          ng[s.id+"-"+ds+"-AM"] = "Lessons"; ng[s.id+"-"+ds+"-PM"] = "Lessons";
-          amAssigned++; pmAssigned++;
-        } else if (amNeed > amAssigned) {
-          ng[s.id+"-"+ds+"-AM"] = "Lessons"; ng[s.id+"-"+ds+"-PM"] = "Lessons";
-          amAssigned++;
-        } else if (pmNeed > pmAssigned) {
-          ng[s.id+"-"+ds+"-AM"] = "Lessons"; ng[s.id+"-"+ds+"-PM"] = "Lessons";
-          pmAssigned++;
-        } else {
-          ng[s.id+"-"+ds+"-AM"] = "Lessons"; ng[s.id+"-"+ds+"-PM"] = "Lessons";
-        }
+        ng[s.id+"-"+ds+"-AM"] = "Lessons"; ng[s.id+"-"+ds+"-PM"] = "Lessons";
+        amAssigned++; pmAssigned++;
       });
 
-      // TALs: assign to AM or PM lessons based on remaining demand
-      let talIdx = 0;
+      // TALs: split between AM and PM based on demand.
+      // Rotate weekly (gIdx + weekNum) so the same person doesn't always teach AM.
       tals.forEach((s) => {
-        const amStillNeed = amNeed - amAssigned;
-        const pmStillNeed = pmNeed - pmAssigned;
+        const gIdx = staffGlobalIdx[s.id] || 0;
+        const preferAM = ((gIdx + weekNum) % 2 === 0);
+        const remAM = amNeed - amAssigned;
+        const remPM = pmNeed - pmAssigned;
+
+        let teachAM;
+        if (remAM > 0 && remPM > 0) teachAM = preferAM;      // both needed: use rotation
+        else if (remAM > 0)          teachAM = true;           // only AM needed
+        else if (remPM > 0)          teachAM = false;          // only PM needed
+        else                         teachAM = preferAM;       // surplus: follow rotation
 
         if (he) {
-          // Half exc: lessons in their slot + half exc
-          if (amStillNeed > 0) {
-            ng[s.id+"-"+ds+"-AM"] = "Lessons"; ng[s.id+"-"+ds+"-PM"] = "Half Exc";
-            amAssigned++;
-          } else if (pmStillNeed > 0) {
-            ng[s.id+"-"+ds+"-AM"] = "Half Exc"; ng[s.id+"-"+ds+"-PM"] = "Lessons";
-            pmAssigned++;
+          if (remAM > 0) {
+            ng[s.id+"-"+ds+"-AM"] = "Lessons"; ng[s.id+"-"+ds+"-PM"] = "Half Exc"; amAssigned++;
+          } else if (remPM > 0) {
+            ng[s.id+"-"+ds+"-AM"] = "Half Exc"; ng[s.id+"-"+ds+"-PM"] = "Lessons"; pmAssigned++;
           } else {
             ng[s.id+"-"+ds+"-AM"] = "Lessons"; ng[s.id+"-"+ds+"-PM"] = "Half Exc";
           }
-        } else if (amStillNeed > 0) {
-          // AM teacher: Lessons AM, alternate PM Activities or Eve Ents
-          if (talIdx % 2 === 0) {
-            ng[s.id+"-"+ds+"-AM"] = "Lessons"; ng[s.id+"-"+ds+"-PM"] = "Activities";
-          } else {
-            ng[s.id+"-"+ds+"-AM"] = "Lessons"; ng[s.id+"-"+ds+"-Eve"] = "Eve Ents";
-          }
-          amAssigned++;
-        } else if (pmStillNeed > 0) {
-          // PM teacher: Activities AM, Lessons PM
-          if (talIdx % 2 === 0) {
-            ng[s.id+"-"+ds+"-AM"] = "Activities"; ng[s.id+"-"+ds+"-PM"] = "Lessons";
-          } else {
-            ng[s.id+"-"+ds+"-PM"] = "Lessons"; ng[s.id+"-"+ds+"-Eve"] = "Eve Ents";
-          }
-          pmAssigned++;
+        } else if (teachAM) {
+          ng[s.id+"-"+ds+"-AM"] = "Lessons"; ng[s.id+"-"+ds+"-PM"] = "Activities"; amAssigned++;
         } else {
-          // Surplus teacher: AM Lessons + PM Activities or Eve
-          if (talIdx % 2 === 0) {
-            ng[s.id+"-"+ds+"-AM"] = "Lessons"; ng[s.id+"-"+ds+"-PM"] = "Activities";
-          } else {
-            ng[s.id+"-"+ds+"-AM"] = "Lessons"; ng[s.id+"-"+ds+"-Eve"] = "Eve Ents";
-          }
+          ng[s.id+"-"+ds+"-AM"] = "Activities"; ng[s.id+"-"+ds+"-PM"] = "Lessons"; pmAssigned++;
         }
-        talIdx++;
       });
 
-      // Activity staff
-      let actIdx = 0;
+      // Activity staff: AM + PM Activities (Eve assigned by sweep below)
       availAct.forEach((s) => {
         if (he) {
           ng[s.id+"-"+ds+"-AM"] = "Activities"; ng[s.id+"-"+ds+"-PM"] = "Half Exc";
-        } else if (actIdx % 2 === 0) {
-          ng[s.id+"-"+ds+"-AM"] = "Activities"; ng[s.id+"-"+ds+"-PM"] = "Activities";
         } else {
-          ng[s.id+"-"+ds+"-PM"] = "Activities"; ng[s.id+"-"+ds+"-Eve"] = "Eve Ents";
+          ng[s.id+"-"+ds+"-AM"] = "Activities"; ng[s.id+"-"+ds+"-PM"] = "Activities";
         }
-        actIdx++;
       });
 
       // Mgmt
       mgmt.forEach((s) => {
         if (!inRange(ds, s.arr, s.dep)) return;
-        if (ng[s.id+"-"+ds+"-AM"]) return; // already set (day off, induction, etc.)
+        if (ng[s.id+"-"+ds+"-AM"]) return;
         ng[s.id+"-"+ds+"-AM"] = "Floating"; ng[s.id+"-"+ds+"-PM"] = "Floating";
       });
     });
 
-    // Evening coverage sweep
+    // Evening coverage sweep — rotate through staff so the same person isn't always on Eve
     dates.forEach((d) => {
       const ds = dayKey(d);
       if (!groupArrivalDate || ds < groupArrivalDate) return;
@@ -306,14 +304,17 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         if (v && v !== "Day Off") eveCount++;
       });
       if (eveCount === 0) {
-        for (const s of staff) {
+        // Find the first available staff member (rotate starting point by day index to spread load)
+        const dayIdx = dates.findIndex((x) => dayKey(x) === ds);
+        const orderedStaff = [...staff.slice(dayIdx % staff.length), ...staff.slice(0, dayIdx % staff.length)];
+        for (const s of orderedStaff) {
           if (!inRange(ds, s.arr, s.dep)) continue;
           if (s.role === "FTT") continue;
           const am = ng[s.id+"-"+ds+"-AM"];
           const pm = ng[s.id+"-"+ds+"-PM"];
           const eve = ng[s.id+"-"+ds+"-Eve"];
           if (am === "Day Off" || am === "Induction" || am === "Setup") continue;
-          if (am && pm && !eve && am !== "Excursion" && pm !== "Excursion") {
+          if (am && pm && !eve && am !== "Excursion" && pm !== "Excursion" && am !== "Airport") {
             delete ng[s.id+"-"+ds+"-PM"];
             ng[s.id+"-"+ds+"-Eve"] = "Eve Ents";
             break;
