@@ -124,21 +124,50 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       const weeks = Math.ceil(progDays.length / 7);
       const gIdx = staffGlobalIdx[s.id] || 0;
 
-      if (s.role === "FTT") {
+      const isTeacher = ["TAL","FTT","DRAMA","DANCE"].includes(s.role);
+      const isActStaff = ["SAI","SC","EAC","EAL"].includes(s.role);
+
+      if (isTeacher) {
+        // Teachers (TAL/FTT/DRAMA/DANCE) must have weekdays free to teach.
+        // Day off = Saturday first, then Sunday. Stagger: even-indexed → Sat, odd → Sun.
         let ws = 0;
         for (let w = 0; w < weeks; w++) {
           const wk = progDays.slice(ws, ws + 7);
           const sat = wk.find((wd) => wd.date.getDay() === 6);
-          if (sat) doffs.add(sat.ds);
-          else if (wk.length) doffs.add(wk[wk.length - 1].ds);
+          const sun = wk.find((wd) => wd.date.getDay() === 0);
+          // Stagger: staff 0,2,4... get Saturday; staff 1,3,5... get Sunday (then fallback to the other)
+          const first  = (gIdx % 2 === 0) ? sat : sun;
+          const second = (gIdx % 2 === 0) ? sun : sat;
+          if (first)        doffs.add(first.ds);
+          else if (second)  doffs.add(second.ds);
+          else if (wk.length) doffs.add(wk[wk.length - 1].ds); // fallback
           ws += 7;
         }
-      } else if (!["CM","CD","EAM","SWC"].includes(s.role)) {
-        const basePref = [3, 4, 2, 5, 1]; // Wed, Thu, Tue, Fri, Mon
+      } else if (isActStaff) {
+        // Activity staff can have any day off. Prefer weekdays first (spread across team),
+        // then weekends as fallback. Any day is valid as long as ratios are met.
+        const basePref = [3, 4, 2, 5, 1, 6, 0]; // Wed, Thu, Tue, Fri, Mon, Sat, Sun
         let ws = 0;
         for (let w = 0; w < weeks; w++) {
           const wk = progDays.slice(ws, ws + 7);
-          // Rotate preference start by (staffIndex + week) to spread days off across the team
+          const pref = basePref.map((_, i) => basePref[(i + gIdx + w) % basePref.length]);
+          let placed = false;
+          for (const pd of pref) {
+            const m = wk.find((wd) => wd.date.getDay() === pd && !isFullDayOff(tos, wd.ds));
+            if (m) { doffs.add(m.ds); placed = true; break; }
+          }
+          if (!placed && wk.length) {
+            const fb = wk.find((wd) => !isFullDayOff(tos, wd.ds));
+            if (fb) doffs.add(fb.ds);
+          }
+          ws += 7;
+        }
+      } else if (!["CM","CD","EAM","SWC"].includes(s.role)) {
+        // Other non-mgmt roles: weekday preference
+        const basePref = [3, 4, 2, 5, 1];
+        let ws = 0;
+        for (let w = 0; w < weeks; w++) {
+          const wk = progDays.slice(ws, ws + 7);
           const pref = basePref.map((_, i) => basePref[(i + gIdx + w) % basePref.length]);
           let placed = false;
           for (const pd of pref) {
