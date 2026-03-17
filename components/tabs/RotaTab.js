@@ -124,28 +124,31 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       const weeks = Math.ceil(progDays.length / 7);
       const gIdx = staffGlobalIdx[s.id] || 0;
 
-      const isTeacher = ["TAL","FTT","DRAMA","DANCE"].includes(s.role);
-      const isActStaff = ["SAI","SC","EAC","EAL"].includes(s.role);
-
-      if (isTeacher) {
-        // Teachers (TAL/FTT/DRAMA/DANCE) must have weekdays free to teach.
-        // Day off = Saturday first, then Sunday. Stagger: even-indexed → Sat, odd → Sun.
+      if (s.role === "FTT") {
+        // FTTs never do excursions. Saturday = Day Off every week; Sunday = Lesson Prep in Pass 2.
+        let ws = 0;
+        for (let w = 0; w < weeks; w++) {
+          const wk = progDays.slice(ws, ws + 7);
+          const sat = wk.find((wd) => wd.date.getDay() === 6);
+          if (sat) doffs.add(sat.ds);
+          else if (wk.length) doffs.add(wk[wk.length - 1].ds);
+          ws += 7;
+        }
+      } else if (["TAL","DRAMA","DANCE"].includes(s.role)) {
+        // TALs do 1 full-day excursion per week (one weekend day); other weekend day = Day Off.
+        // Stagger by staff index: even → Sunday off (Saturday excursion), odd → Saturday off (Sunday excursion).
         let ws = 0;
         for (let w = 0; w < weeks; w++) {
           const wk = progDays.slice(ws, ws + 7);
           const sat = wk.find((wd) => wd.date.getDay() === 6);
           const sun = wk.find((wd) => wd.date.getDay() === 0);
-          // Stagger: staff 0,2,4... get Saturday; staff 1,3,5... get Sunday (then fallback to the other)
-          const first  = (gIdx % 2 === 0) ? sat : sun;
-          const second = (gIdx % 2 === 0) ? sun : sat;
-          if (first)        doffs.add(first.ds);
-          else if (second)  doffs.add(second.ds);
-          else if (wk.length) doffs.add(wk[wk.length - 1].ds); // fallback
+          const dayOff = (gIdx % 2 === 0) ? (sun || sat) : (sat || sun);
+          if (dayOff) doffs.add(dayOff.ds);
           ws += 7;
         }
-      } else if (isActStaff) {
-        // Activity staff can have any day off. Prefer weekdays first (spread across team),
-        // then weekends as fallback. Any day is valid as long as ratios are met.
+      } else if (["SAI","SC","EAC","EAL"].includes(s.role)) {
+        // Activity staff can have any day off (weekday or weekend).
+        // Stagger weekday preference across team; weekends are valid too.
         const basePref = [3, 4, 2, 5, 1, 6, 0]; // Wed, Thu, Tue, Fri, Mon, Sat, Sun
         let ws = 0;
         for (let w = 0; w < weeks; w++) {
@@ -163,7 +166,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
           ws += 7;
         }
       } else if (!["CM","CD","EAM","SWC"].includes(s.role)) {
-        // Other non-mgmt roles: weekday preference
+        // Other non-mgmt: weekday preference
         const basePref = [3, 4, 2, 5, 1];
         let ws = 0;
         for (let w = 0; w < weeks; w++) {
@@ -251,11 +254,14 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       if (we || fe) {
         availTeachers.forEach((s) => {
           if (s.role === "FTT") {
-            if (d.getDay() === 0) { ng[s.id+"-"+ds+"-AM"] = "Lesson Prep"; ng[s.id+"-"+ds+"-PM"] = "Floating"; }
+            // FTTs never do excursions — Sat is Day Off (set in Pass 1), Sun = Lesson Prep
+            ng[s.id+"-"+ds+"-AM"] = "Lesson Prep"; ng[s.id+"-"+ds+"-PM"] = "Floating";
           } else {
+            // TALs: available on their excursion weekend day (Day Off was set on the other day)
             ng[s.id+"-"+ds+"-AM"] = "Excursion"; ng[s.id+"-"+ds+"-PM"] = "Excursion";
           }
         });
+        // Activity staff: excursion unless they have a day off (already filtered by isAvail)
         availAct.forEach((s) => {
           ng[s.id+"-"+ds+"-AM"] = "Excursion"; ng[s.id+"-"+ds+"-PM"] = "Excursion";
         });
