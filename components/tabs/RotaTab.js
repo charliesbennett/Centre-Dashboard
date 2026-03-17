@@ -19,7 +19,7 @@ function getGroupLessonSlot(group, dateStr) {
   return weekNum % 2 === 0 ? group.lessonSlot : (group.lessonSlot === "AM" ? "PM" : "AM");
 }
 
-export default function RotaTab({ staff, progStart, progEnd, excDays, groups, rotaGrid, setRotaGrid, readOnly = false }) {
+export default function RotaTab({ staff, progStart, progEnd, excDays, groups, rotaGrid, setRotaGrid, progGrid = {}, readOnly = false }) {
   const [showRatios, setShowRatios] = useState(true);
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState("");
@@ -28,6 +28,33 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
 
   const dates = useMemo(() => (progStart && progEnd) ? genDates(progStart, progEnd) : [], [progStart, progEnd]);
   const hasRotaData = useMemo(() => Object.values(rotaGrid || {}).some(Boolean), [rotaGrid]);
+
+  // Per-slot session type derived from the programme grid.
+  // 'lessons'   = only lessons scheduled this slot
+  // 'excursion' = only excursion/non-lesson activities this slot
+  // 'both'      = mix of lessons and excursions (different groups)
+  // 'none'      = nothing scheduled
+  const slotTypes = useMemo(() => {
+    if (!groups || !groups.length) return {};
+    const result = {};
+    dates.forEach((d) => {
+      const ds = dayKey(d);
+      result[ds] = {};
+      ["AM", "PM"].forEach((slot) => {
+        let hasLessons = false, hasExc = false;
+        groups.forEach((g) => {
+          if (!inRange(ds, g.arr, g.dep)) return;
+          if (ds === g.arr || ds === g.dep) return;
+          const val = String(progGrid[`${g.id}-${ds}-${slot}`] || "").trim();
+          if (!val) return;
+          if (/lesson/i.test(val)) hasLessons = true;
+          else if (!/arriv/i.test(val) && !/depart/i.test(val)) hasExc = true;
+        });
+        result[ds][slot] = hasLessons && hasExc ? "both" : hasLessons ? "lessons" : hasExc ? "excursion" : "none";
+      });
+    });
+    return result;
+  }, [progGrid, groups, dates]);
 
   const groupArrivalDate = useMemo(() => {
     if (!groups || !groups.length) return null;
@@ -211,11 +238,25 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     dates.forEach((d) => {
       const ds = dayKey(d);
       const we = isWeekend(d);
-      const fe = excDays && excDays[ds] === "Full";
-      const he = excDays && excDays[ds] === "Half";
+      // Full/half excursion: explicit override from excDays, or derived from programme grid.
+      // Programme-derived: if neither slot has any lessons → full-day excursion.
+      // If one slot has excursion only (no lessons) and the other has lessons → half-day.
+      const progAM = slotTypes[ds]?.AM || "none";
+      const progPM = slotTypes[ds]?.PM || "none";
+      const progFullExc = progAM === "excursion" && progPM === "excursion";
+      const progHalfExc = !progFullExc && (progAM === "excursion" || progPM === "excursion");
+      const fe = (excDays && excDays[ds] === "Full") || progFullExc;
+      const he = !fe && ((excDays && excDays[ds] === "Half") || progHalfExc);
       const dem = lessonDemand[ds];
       const isArrDay = allArrivalDates.has(ds);
       const weekNum = groupArrivalDate ? Math.max(0, Math.floor((new Date(ds) - new Date(groupArrivalDate)) / (7 * 86400000))) : 0;
+
+      // Non-lesson label for a slot: "Half Exc" when the programme has excursion content,
+      // "Activities" otherwise (covers programmes with no excursion content).
+      const actLabel = (slot) => {
+        const t = slotTypes[ds]?.[slot];
+        return (t === "excursion" || t === "both") ? "Half Exc" : "Activities";
+      };
 
       // isAvail: not already assigned in Pass 1 (day off, induction, setup, departure airport)
       const isAvail = (s) => {
@@ -306,18 +347,18 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
             ng[s.id+"-"+ds+"-AM"] = "Lessons"; ng[s.id+"-"+ds+"-PM"] = "Half Exc";
           }
         } else if (teachAM) {
-          ng[s.id+"-"+ds+"-AM"] = "Lessons"; ng[s.id+"-"+ds+"-PM"] = "Activities"; amAssigned++;
+          ng[s.id+"-"+ds+"-AM"] = "Lessons"; ng[s.id+"-"+ds+"-PM"] = actLabel("PM"); amAssigned++;
         } else {
-          ng[s.id+"-"+ds+"-AM"] = "Activities"; ng[s.id+"-"+ds+"-PM"] = "Lessons"; pmAssigned++;
+          ng[s.id+"-"+ds+"-AM"] = actLabel("AM"); ng[s.id+"-"+ds+"-PM"] = "Lessons"; pmAssigned++;
         }
       });
 
-      // Activity staff: AM + PM Activities (Eve assigned by sweep below)
+      // Activity staff: cover excursions or activities in both slots
       availAct.forEach((s) => {
         if (he) {
-          ng[s.id+"-"+ds+"-AM"] = "Activities"; ng[s.id+"-"+ds+"-PM"] = "Half Exc";
+          ng[s.id+"-"+ds+"-AM"] = actLabel("AM"); ng[s.id+"-"+ds+"-PM"] = "Half Exc";
         } else {
-          ng[s.id+"-"+ds+"-AM"] = "Activities"; ng[s.id+"-"+ds+"-PM"] = "Activities";
+          ng[s.id+"-"+ds+"-AM"] = actLabel("AM"); ng[s.id+"-"+ds+"-PM"] = actLabel("PM");
         }
       });
 
