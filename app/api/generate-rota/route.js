@@ -148,7 +148,11 @@ function buildPrompt(centreName, progStart, progEnd, staffIndex, groups, dayProf
     if (p.isFirstArrival) {
       detail = `FIRST ARRIVAL — ${p.arrivingStu} students arriving. NO lessons. FTTs have day off. Activity staff + TALs: airport pickup, welcome, setup, dinner.`;
     } else if (p.isArrival) {
-      detail = `ARRIVAL — ${p.arrivingStu} more students arriving. Small pickup team from activity staff + TALs. Existing groups continue normal programme.`;
+      const amExc = p.AM.hasExc ? ` AM excursion for existing groups: ${p.AM.topDest}.` : "";
+      const pmExc = p.PM.hasExc ? ` PM excursion for existing groups: ${p.PM.topDest}.` : "";
+      const amLess = !p.AM.hasExc && p.AM.lessonStu > 0 ? ` AM: ${p.AM.lessonStu}stu lessons (${p.AM.teachersNeeded} teachers).` : "";
+      const pmLess = !p.PM.hasExc && p.PM.lessonStu > 0 ? ` PM: ${p.PM.lessonStu}stu lessons (${p.PM.teachersNeeded} teachers).` : "";
+      detail = `ARRIVAL — ${p.arrivingStu} new students arriving (small pickup team needed).${amExc}${pmExc}${amLess}${pmLess} Existing groups continue their programme.`;
     } else if (p.isTestingDay) {
       const am = p.AM.isTesting ? `TESTING ${p.AM.testStu}stu→${p.AM.teachersNeeded}teachers` : `Lessons ${p.AM.lessonStu}stu→${p.AM.teachersNeeded}teachers`;
       const pm = p.PM.isTesting ? `TESTING ${p.PM.testStu}stu→${p.PM.teachersNeeded}teachers` : `Lessons ${p.PM.lessonStu}stu→${p.PM.teachersNeeded}teachers`;

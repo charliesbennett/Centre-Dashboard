@@ -68,7 +68,8 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         const weekIdx = Math.floor(daysSince / 7) % weekMaps.length;
         const dayData = weekMaps[weekIdx]?.[DOW[d.getDay()]];
         if (!dayData) return;
-        const tmplSlot = /lesson/i.test(dayData.am || "") ? "AM" : /lesson/i.test(dayData.pm || "") ? "PM" : null;
+        const isTeachingSlot = (v) => /lesson|english test|placement test/i.test(v || "");
+        const tmplSlot = isTeachingSlot(dayData.am) ? "AM" : isTeachingSlot(dayData.pm) ? "PM" : null;
         const grpSlot = getGroupLessonSlot(g, s);
         const swap = tmplSlot && grpSlot !== tmplSlot;
         const amV = (swap ? dayData.pm : dayData.am) || "";
