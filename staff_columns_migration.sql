@@ -1,4 +1,10 @@
--- Add missing staff columns (run once in Supabase SQL editor)
+-- Add all missing staff columns (run once in Supabase SQL editor)
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS accommodation TEXT NOT NULL DEFAULT 'Residential';
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS arrival_date DATE;
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS departure_date DATE;
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS time_off TEXT NOT NULL DEFAULT '';
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS email TEXT NOT NULL DEFAULT '';
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS phone TEXT NOT NULL DEFAULT '';
 ALTER TABLE staff ADD COLUMN IF NOT EXISTS dbs_number TEXT NOT NULL DEFAULT '';
 ALTER TABLE staff ADD COLUMN IF NOT EXISTS dbs_expiry DATE;
 ALTER TABLE staff ADD COLUMN IF NOT EXISTS contract_type TEXT NOT NULL DEFAULT '';

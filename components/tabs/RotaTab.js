@@ -25,6 +25,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
   const [editValue, setEditValue] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiError, setAiError] = useState(null);
+  const [staffingSuggestions, setStaffingSuggestions] = useState([]);
   const grid = rotaGrid;
   const setGrid = setRotaGrid;
 
@@ -77,12 +78,32 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       });
       demand[ds] = {
         amStudents, pmStudents,
-        amTeachers: Math.ceil(amStudents / 15),
-        pmTeachers: Math.ceil(pmStudents / 15),
+        amTeachers: Math.ceil(amStudents / 16),
+        pmTeachers: Math.ceil(pmStudents / 16),
       };
     });
     return demand;
   }, [groups, dates]);
+
+  // ── Peak teacher adequacy check ───────────────────────
+  const teacherAdequacy = useMemo(() => {
+    if (!staff || !groups || !dates.length) return null;
+    const TEACHING = ["FTT", "TAL", "CD"];
+    // Peak demand: max teachers needed in any single slot across all teaching days
+    let peakAM = 0, peakPM = 0;
+    Object.values(lessonDemand).forEach((d) => {
+      peakAM = Math.max(peakAM, d.amTeachers);
+      peakPM = Math.max(peakPM, d.pmTeachers);
+    });
+    const peakNeeded = Math.max(peakAM, peakPM); // worst-case single slot
+    // Available teaching staff (on site for at least part of the programme)
+    const teachersOnSite = staff.filter((s) => TEACHING.includes(s.role)).length;
+    // With 1 day off per week, ~86% available on any given day; round down
+    const typicalAvail = Math.floor(teachersOnSite * 6 / 7);
+    if (peakNeeded === 0) return null;
+    const shortfall = peakNeeded - typicalAvail;
+    return { peakNeeded, teachersOnSite, typicalAvail, shortfall, peakAM, peakPM };
+  }, [staff, groups, dates, lessonDemand]);
 
   // ── Auto-generate ─────────────────────────────────────
   const autoGenerate = () => {
@@ -422,6 +443,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "Generation failed");
       setGrid(data.grid);
+      setStaffingSuggestions(data.suggestions || []);
     } catch (e) {
       setAiError(e.message);
     } finally {
@@ -551,6 +573,11 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         <StatCard label="TALs" value={staff.filter((s) => s.role === "TAL").length} accent="#3b82f6" />
         <StatCard label="FTTs" value={staff.filter((s) => s.role === "FTT").length} accent="#0891b2" />
         {groupArrivalDate && <span style={{ fontSize: 9, color: B.textMuted }}>Students arrive: <strong style={{ color: B.navy }}>{fmtDate(groupArrivalDate)}</strong></span>}
+        {teacherAdequacy && teacherAdequacy.shortfall > 0 && (
+          <span style={{ fontSize: 9, background: B.warningBg, color: B.warning, border: `1px solid #fcd34d`, borderRadius: 5, padding: "3px 8px", fontWeight: 700 }}>
+            ⚠️ Need {teacherAdequacy.peakNeeded} teachers/slot (peak) — {teacherAdequacy.typicalAvail} typically available — add {teacherAdequacy.shortfall} more TAL/FTT
+          </span>
+        )}
         <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
           <button onClick={() => setShowRatios(!showRatios)} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: "1px solid "+(showRatios ? B.navy : B.border), background: showRatios ? B.navy : B.white, color: showRatios ? B.white : B.textMuted, display: "flex", alignItems: "center", gap: 4 }}>
             Ratios {ratioAlerts.length > 0 && <span style={{ background: B.danger, color: B.white, borderRadius: 8, padding: "1px 5px", fontSize: 8 }}>{ratioAlerts.length}</span>}
@@ -571,6 +598,26 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         <div style={{ flexShrink: 0, padding: "6px 16px", background: aiError ? B.dangerBg : "#e0f2fe", borderBottom: `1px solid ${aiError ? "#fca5a5" : "#bae6fd"}`, fontSize: 10, color: aiError ? B.danger : "#0369a1", fontWeight: 600 }}>
           {aiGenerating && "⏳ Claude is analysing your centre data and generating the rota — this may take up to 2 minutes…"}
           {aiError && `❌ AI generation failed: ${aiError}`}
+        </div>
+      )}
+
+      {/* ── Staffing adequacy suggestions ────────────────── */}
+      {staffingSuggestions.length > 0 && (
+        <div style={{ flexShrink: 0, padding: "6px 16px", background: "#fef3c7", borderBottom: `1px solid #fcd34d`, fontSize: 9, color: "#92400e" }}>
+          <strong style={{ fontSize: 10 }}>⚠️ Staffing gaps detected — consider adding staff:</strong>
+          {(() => {
+            // Summarise: count shortfall by slot type
+            const amShort = staffingSuggestions.filter((s) => s.slot === "AM").reduce((m, s) => Math.max(m, s.shortfall), 0);
+            const pmShort = staffingSuggestions.filter((s) => s.slot === "PM").reduce((m, s) => Math.max(m, s.shortfall), 0);
+            const maxShort = Math.max(amShort, pmShort);
+            return (
+              <span style={{ marginLeft: 8 }}>
+                You may need <strong>{maxShort} more TAL or FTT</strong> to cover all lesson slots.
+                Affected days: {[...new Set(staffingSuggestions.map((s) => s.dow + " " + fmtDate(s.ds)))].slice(0, 5).join(", ")}
+                {staffingSuggestions.length > 5 ? " + more" : ""}
+              </span>
+            );
+          })()}
         </div>
       )}
 
