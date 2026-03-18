@@ -158,7 +158,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       });
 
       p.isTestingDay = p.AM.isTesting || p.PM.isTesting;
-      p.isFDE  = p.AM.hasExc && p.PM.hasExc;
+      // True full-day excursion: excursions in both slots AND no lessons/tests at all
+      p.isFDE  = p.AM.hasExc && p.PM.hasExc && p.AM.lessonStu === 0 && p.PM.lessonStu === 0 && p.AM.testStu === 0 && p.PM.testStu === 0;
       p.isHDE  = !p.isFDE && (p.AM.hasExc || p.PM.hasExc);
       p.fdeLabel = p.isFDE ? (p.AM.topDest || p.PM.topDest || "Excursion") : null;
       profiles[ds] = p;
@@ -300,7 +301,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         teachers.filter((s) => s.role === "FTT" && avail(s, ds))
           .forEach((s) => { put(s.id, ds, "AM", "Testing"); put(s.id, ds, "PM", "Testing"); });
         teachers.filter((s) => s.role === "TAL" && avail(s, ds))
-          .forEach((s) => { put(s.id, ds, "AM", "Int English"); put(s.id, ds, "PM", "Int English"); });
+          .forEach((s) => { put(s.id, ds, "AM", "English Lessons"); put(s.id, ds, "PM", "English Lessons"); });
         actStaff.filter((s) => avail(s, ds))
           .forEach((s) => { put(s.id, ds, "AM", "Activities"); put(s.id, ds, "PM", "Activities"); });
         return;
@@ -386,7 +387,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
           if (!am || am === "Day Off" || am === "Induction" || am === "Setup" || am === "pickup") continue;
           // Skip if already on full-day excursion (same destination AM and PM)
           const isFullDayExc = am && pm && am === pm && !NO_SESSION.has(am) &&
-            !["Lessons","Testing","Int English","Activities","Half Exc"].includes(am);
+            !["Lessons","Testing","English Lessons","Activities","Half Exc"].includes(am);
           if (!eve && !isFullDayExc && hasRoom(s)) {
             ng[s.id+"-"+ds+"-Eve"] = "Eve Ents";
             // Free up PM for generic activities to balance workload
