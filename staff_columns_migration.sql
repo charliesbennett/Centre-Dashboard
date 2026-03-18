@@ -1,0 +1,5 @@
+-- Add missing staff columns (run once in Supabase SQL editor)
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS dbs_number TEXT NOT NULL DEFAULT '';
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS dbs_expiry DATE;
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS contract_type TEXT NOT NULL DEFAULT '';
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS notes TEXT NOT NULL DEFAULT '';

@@ -125,7 +125,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     const profiles = {};
     dates.forEach((d) => {
       const ds = dayKey(d);
-      const p = { students: 0, isArrival: allArrivalDates.has(ds) };
+      const p = { students: 0, isArrival: allArrivalDates.has(ds), isFirstArrival: ds === groupArrivalDate };
 
       (groups || []).forEach((g) => {
         if (inRange(ds, g.arr, g.dep)) p.students += (g.stu || 0) + (g.gl || 0);
@@ -138,11 +138,13 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
           if (!inRange(ds, g.arr, g.dep)) return;
           if (ds === g.arr || ds === g.dep) return;
           const val = String(progGrid[g.id + "-" + ds + "-" + slot] || "").trim();
-          if (!val) return;
           const pax = (g.stu || 0) + (g.gl || 0);
-          if (/english\s*test|placement\s*test/i.test(val))         testStu += pax;
-          else if (/lesson|int.*eng|intensive.*eng/i.test(val))      lessonStu += pax;
-          else if (!/arriv|depart/i.test(val))                       excDests[val] = (excDests[val] || 0) + pax;
+          // Testing: always from programme grid
+          if (val && /english\s*test|placement\s*test/i.test(val)) { testStu += pax; return; }
+          // Lesson demand: use group's lessonSlot (handles ZZ weekly flip) — not programme grid text
+          if (getGroupLessonSlot(g, ds) === slot) { lessonStu += pax; return; }
+          // Non-lesson slot: excursion destination from programme grid
+          if (val && !/arriv|depart/i.test(val)) excDests[val] = (excDests[val] || 0) + pax;
         });
         const topDest = Object.keys(excDests).sort((a, b) => excDests[b] - excDests[a])[0] || null;
         p[slot] = {
@@ -266,23 +268,31 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         }
       });
 
-      // ── Arrival day ──────────────────────────────────────
-      if (p.isArrival) {
-        // FTTs off
+      // ── First arrival day: FTTs off, pickup, setup/welcome ──────────────
+      if (p.isFirstArrival) {
         teachers.filter((s) => ["FTT","5FTT"].includes(s.role) && isOn(s, ds) && !ng[s.id+"-"+ds+"-AM"])
           .forEach((s) => SLOTS.forEach((sl) => { ng[s.id+"-"+ds+"-"+sl] = "Day Off"; }));
 
-        // Airport pickups — any available TAL or activity staff
         const need = Math.max(2, Math.ceil((arrStu[ds] || 0) / 40));
         const pickPool = [...teachers.filter((s) => s.role === "TAL"), ...actStaff].filter((s) => avail(s, ds));
         let pickDone = 0;
         pickPool.forEach((s) => { if (pickDone < need) { put(s.id, ds, "AM", "pickup"); pickDone++; } });
 
-        // Remaining TAL + activity staff: setup AM / welcome PM
         [...teachers.filter((s) => s.role === "TAL"), ...actStaff]
           .filter((s) => isOn(s, ds) && slotFree(s.id, ds) && ng[s.id+"-"+ds+"-AM"] !== "Day Off")
           .forEach((s) => { put(s.id, ds, "AM", "setup"); put(s.id, ds, "PM", "welcome"); });
         return;
+      }
+
+      // ── Subsequent arrival day: small pickup team, lessons continue ──────
+      if (p.isArrival) {
+        const need = Math.max(1, Math.ceil((arrStu[ds] || 0) / 40));
+        const pickPool = [...teachers.filter((s) => s.role === "TAL"), ...actStaff].filter((s) => avail(s, ds));
+        let pickDone = 0;
+        pickPool.forEach((s) => {
+          if (pickDone < need) { put(s.id, ds, "AM", "pickup"); put(s.id, ds, "PM", "welcome"); pickDone++; }
+        });
+        // Fall through — remaining staff get normal lesson/activity assignments
       }
 
       // ── Testing day (day after arrival — English placement tests) ──
@@ -374,10 +384,16 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
           const pm = ng[s.id+"-"+ds+"-PM"];
           const eve = ng[s.id+"-"+ds+"-Eve"];
           if (!am || am === "Day Off" || am === "Induction" || am === "Setup" || am === "pickup") continue;
-          if (!eve) {
+          // Skip if already on full-day excursion (same destination AM and PM)
+          const isFullDayExc = am && pm && am === pm && !NO_SESSION.has(am) &&
+            !["Lessons","Testing","Int English","Activities","Half Exc"].includes(am);
+          if (!eve && !isFullDayExc && hasRoom(s)) {
             ng[s.id+"-"+ds+"-Eve"] = "Eve Ents";
-            // Remove PM if it's a non-core session to balance workload
-            if (pm && !["Lessons","Testing","Int English"].includes(pm)) delete ng[s.id+"-"+ds+"-PM"];
+            // Free up PM for generic activities to balance workload
+            if (pm && ["Activities", "Half Exc"].includes(pm)) {
+              delete ng[s.id+"-"+ds+"-PM"];
+              sess[s.id] = Math.max(0, (sess[s.id] || 0) - 1);
+            }
             sess[s.id] = (sess[s.id] || 0) + 1;
             eveCount++;
           }
