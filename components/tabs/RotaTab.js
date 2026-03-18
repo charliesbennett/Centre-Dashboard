@@ -19,10 +19,12 @@ function getGroupLessonSlot(group, dateStr) {
   return weekNum % 2 === 0 ? group.lessonSlot : (group.lessonSlot === "AM" ? "PM" : "AM");
 }
 
-export default function RotaTab({ staff, progStart, progEnd, excDays, groups, rotaGrid, setRotaGrid, progGrid = {}, readOnly = false }) {
+export default function RotaTab({ staff, progStart, progEnd, excDays, groups, rotaGrid, setRotaGrid, progGrid = {}, centreName = "", readOnly = false }) {
   const [showRatios, setShowRatios] = useState(true);
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState("");
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiError, setAiError] = useState(null);
   const grid = rotaGrid;
   const setGrid = setRotaGrid;
 
@@ -405,6 +407,28 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     setGrid(ng);
   };
 
+  // ── AI rota generation ────────────────────────────────
+  const aiGenerate = async () => {
+    const hasData = Object.values(rotaGrid).some((v) => v);
+    if (hasData && !window.confirm("AI generate will overwrite all existing rota entries. Continue?")) return;
+    setAiGenerating(true);
+    setAiError(null);
+    try {
+      const res = await fetch("/api/generate-rota", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ staff, groups, progGrid, progStart, progEnd, centreName }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Generation failed");
+      setGrid(data.grid);
+    } catch (e) {
+      setAiError(e.message);
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
   // ── Double-click to edit ──────────────────────────────
   const startEdit = (key, val) => { setEditingCell(key); setEditValue(val || ""); };
   const commitEdit = () => {
@@ -536,8 +560,19 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
             if (hasData && !window.confirm("Auto-generate will overwrite all existing rota entries. Continue?")) return;
             autoGenerate();
           }} style={{ ...btnPrimary, background: B.navy }}><IcWand /> {hasRotaData ? "Re-generate" : "Auto-Generate"}</button>}
+          {!readOnly && <button onClick={aiGenerate} disabled={aiGenerating} style={{ ...btnPrimary, background: aiGenerating ? B.textMuted : B.red, opacity: aiGenerating ? 0.7 : 1, cursor: aiGenerating ? "not-allowed" : "pointer" }}>
+            {aiGenerating ? "⏳ Generating…" : <><IcWand /> AI Generate</>}
+          </button>}
         </div>
       </div>
+
+      {/* ── AI status strip ──────────────────────────────── */}
+      {(aiGenerating || aiError) && (
+        <div style={{ flexShrink: 0, padding: "6px 16px", background: aiError ? B.dangerBg : "#e0f2fe", borderBottom: `1px solid ${aiError ? "#fca5a5" : "#bae6fd"}`, fontSize: 10, color: aiError ? B.danger : "#0369a1", fontWeight: 600 }}>
+          {aiGenerating && "⏳ Claude is analysing your centre data and generating the rota — this may take up to 2 minutes…"}
+          {aiError && `❌ AI generation failed: ${aiError}`}
+        </div>
+      )}
 
       {/* ── Inline alerts / info strip ───────────────────── */}
       {(hasRotaData || showRatios) && (
