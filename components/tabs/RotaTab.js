@@ -24,8 +24,11 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiProgress, setAiProgress] = useState(0); // 0=idle 1=agent1 2=agent2 3=agent3
   const [aiError, setAiError] = useState(null);
   const [staffingSuggestions, setStaffingSuggestions] = useState([]);
+  const [reviewerCorrections, setReviewerCorrections] = useState(null); // number | null
+  const [reviewerDismissed, setReviewerDismissed] = useState(false);
   const grid = rotaGrid;
   const setGrid = setRotaGrid;
 
@@ -262,7 +265,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
             const cand = wk.find(({ date, ds }) => {
               if (date.getDay() !== pd) return false;
               if (isFullDayOff(tos, ds)) return false;
-              if (ACTIVITY.includes(s.role) && (profiles[ds]?.isFDE || allArrivalDates.has(ds))) return false;
+              // Bug fix #5: Only avoid day off on FIRST arrival day (not every arrival date)
+              if (ACTIVITY.includes(s.role) && (profiles[ds]?.isFDE || ds === groupArrivalDate)) return false;
               return true;
             });
             if (cand) { pick = cand; break; }
@@ -323,8 +327,9 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       if (p.isTestingDay) {
         teachers.filter((s) => s.role === "FTT" && avail(s, ds))
           .forEach((s) => { put(s.id, ds, "AM", "Testing"); put(s.id, ds, "PM", "Testing"); });
+        // Bug fix #2: Use "Int English" (consistent with Intel doc) instead of "English Lessons"
         teachers.filter((s) => s.role === "TAL" && avail(s, ds))
-          .forEach((s) => { put(s.id, ds, "AM", "English Lessons"); put(s.id, ds, "PM", "English Lessons"); });
+          .forEach((s) => { put(s.id, ds, "AM", "Int English"); put(s.id, ds, "PM", "Int English"); });
         actStaff.filter((s) => avail(s, ds))
           .forEach((s) => { put(s.id, ds, "AM", "Activities"); put(s.id, ds, "PM", "Activities"); });
         return;
@@ -333,6 +338,11 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       // ── Full-day excursion ────────────────────────────────
       if (p.isFDE) {
         const lbl = p.fdeLabel;
+
+        // Bug fix #3: Assign FTT day-off BEFORE activity staff so it fires reliably
+        teachers.filter((s) => ["FTT","5FTT"].includes(s.role) && isOn(s, ds) && !ng[s.id+"-"+ds+"-AM"])
+          .forEach((s) => SLOTS.forEach((sl) => { ng[s.id+"-"+ds+"-"+sl] = "Day Off"; }));
+
         actStaff.filter((s) => avail(s, ds)).forEach((s) => { put(s.id, ds, "AM", lbl); put(s.id, ds, "PM", lbl); });
 
         // TALs: 1 per ~20 students leading the group
@@ -342,9 +352,6 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
           if (talDone < talNeed) { put(s.id, ds, "AM", lbl); put(s.id, ds, "PM", lbl); talDone++; }
         });
 
-        // FTTs: Day Off on FDE days
-        teachers.filter((s) => ["FTT","5FTT"].includes(s.role) && isOn(s, ds) && !ng[s.id+"-"+ds+"-AM"])
-          .forEach((s) => SLOTS.forEach((sl) => { ng[s.id+"-"+ds+"-"+sl] = "Day Off"; }));
         return;
       }
 
@@ -355,10 +362,13 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       const pmTN  = p.PM?.teachersNeeded || 0;
       let amTD = 0, pmTD = 0;
 
-      // FTTs: Lessons both slots
+      // Bug fix #1: FTTs only teach when lesson demand exists in each slot
       teachers.filter((s) => s.role === "FTT" && avail(s, ds)).forEach((s) => {
-        put(s.id, ds, "AM", "Lessons"); put(s.id, ds, "PM", "Lessons");
-        amTD++; pmTD++;
+        const amVal = amTN > 0 ? "Lessons" : "Activities";
+        const pmVal = pmTN > 0 ? "Lessons" : "Activities";
+        put(s.id, ds, "AM", amVal); put(s.id, ds, "PM", pmVal);
+        if (amTN > 0) amTD++;
+        if (pmTN > 0) pmTD++;
       });
 
       // 5FTTs: Lessons Mon-Fri only
@@ -403,7 +413,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         for (const s of ordered) {
           if (eveCount >= eveTarget) break;
           if (!isOn(s, ds)) continue;
-          if (["FTT","5FTT","CM","CD","EAM"].includes(s.role)) continue;
+          // Bug fix #4: Exclude TAL from the sweep; AI handles TAL/SAI/AL evenings
+          if (["FTT","5FTT","TAL","CM","CD","EAM"].includes(s.role)) continue;
           const am = ng[s.id+"-"+ds+"-AM"];
           const pm = ng[s.id+"-"+ds+"-PM"];
           const eve = ng[s.id+"-"+ds+"-Eve"];
@@ -428,26 +439,71 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     setGrid(ng);
   };
 
-  // ── AI rota generation ────────────────────────────────
+  // ── AI rota generation (3-agent pipeline with SSE progress) ─────────
   const aiGenerate = async () => {
     const hasData = Object.values(rotaGrid).some((v) => v);
     if (hasData && !window.confirm("AI generate will overwrite all existing rota entries. Continue?")) return;
     setAiGenerating(true);
+    setAiProgress(1);
     setAiError(null);
+    setReviewerCorrections(null);
+    setReviewerDismissed(false);
     try {
       const res = await fetch("/api/generate-rota", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ staff, groups, progGrid, progStart, progEnd, centreName }),
       });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "Generation failed");
-      setGrid(data.grid);
-      setStaffingSuggestions(data.suggestions || []);
+
+      // Check if this is an SSE stream
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("text/event-stream")) {
+        // Parse SSE stream
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let finalData = null;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop(); // keep incomplete line
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const payload = line.slice(6).trim();
+              if (!payload || payload === "[DONE]") continue;
+              try {
+                const msg = JSON.parse(payload);
+                if (msg.step) setAiProgress(msg.step);
+                if (msg.error) throw new Error(msg.error);
+                if (msg.grid) finalData = msg;
+              } catch (parseErr) {
+                if (parseErr.message && parseErr.message !== "Unexpected token") throw parseErr;
+              }
+            }
+          }
+        }
+
+        if (!finalData) throw new Error("No grid data received from generation pipeline");
+        setGrid(finalData.grid);
+        setStaffingSuggestions(finalData.suggestions || []);
+        if (typeof finalData.corrections === "number") setReviewerCorrections(finalData.corrections);
+      } else {
+        // Fallback: plain JSON response
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || "Generation failed");
+        setGrid(data.grid);
+        setStaffingSuggestions(data.suggestions || []);
+        if (typeof data.corrections === "number") setReviewerCorrections(data.corrections);
+      }
     } catch (e) {
       setAiError(e.message);
     } finally {
       setAiGenerating(false);
+      setAiProgress(0);
     }
   };
 
@@ -588,7 +644,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
             autoGenerate();
           }} style={{ ...btnPrimary, background: B.navy }}><IcWand /> {hasRotaData ? "Re-generate" : "Auto-Generate"}</button>}
           {!readOnly && <button onClick={aiGenerate} disabled={aiGenerating} style={{ ...btnPrimary, background: aiGenerating ? B.textMuted : B.red, opacity: aiGenerating ? 0.7 : 1, cursor: aiGenerating ? "not-allowed" : "pointer" }}>
-            {aiGenerating ? "⏳ Generating…" : <><IcWand /> AI Generate</>}
+            <IcWand /> AI Generate
           </button>}
         </div>
       </div>
@@ -596,8 +652,40 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       {/* ── AI status strip ──────────────────────────────── */}
       {(aiGenerating || aiError) && (
         <div style={{ flexShrink: 0, padding: "6px 16px", background: aiError ? B.dangerBg : "#e0f2fe", borderBottom: `1px solid ${aiError ? "#fca5a5" : "#bae6fd"}`, fontSize: 10, color: aiError ? B.danger : "#0369a1", fontWeight: 600 }}>
-          {aiGenerating && "⏳ Claude is analysing your centre data and generating the rota — this may take up to 2 minutes…"}
-          {aiError && `❌ AI generation failed: ${aiError}`}
+          {aiGenerating && (
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span>Claude is generating your rota…</span>
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                {[
+                  { step: 1, label: "1/3 Planning TAL slots" },
+                  { step: 2, label: "2/3 Evening entertainment" },
+                  { step: 3, label: "3/3 Reviewing" },
+                ].map(({ step, label }) => {
+                  const done = aiProgress > step;
+                  const active = aiProgress === step;
+                  return (
+                    <span key={step} style={{
+                      padding: "2px 8px", borderRadius: 10, fontSize: 9, fontWeight: 700,
+                      background: done ? B.success + "25" : active ? "#bae6fd" : "#f1f5f9",
+                      color: done ? B.success : active ? "#0369a1" : B.textMuted,
+                      border: `1px solid ${done ? B.success : active ? "#7dd3fc" : B.border}`,
+                    }}>
+                      {done ? "✓ " : active ? "⏳ " : ""}{label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {aiError && `AI generation failed: ${aiError}`}
+        </div>
+      )}
+
+      {/* ── Reviewer corrections panel ───────────────────── */}
+      {reviewerCorrections !== null && !reviewerDismissed && (
+        <div style={{ flexShrink: 0, padding: "6px 16px", background: "#f0fdf4", borderBottom: `1px solid #86efac`, fontSize: 10, color: "#15803d", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+          <span>{reviewerCorrections === 0 ? "Reviewer found no issues — rota looks clean." : `Reviewer auto-corrected ${reviewerCorrections} issue${reviewerCorrections === 1 ? "" : "s"} in the generated rota.`}</span>
+          <button onClick={() => setReviewerDismissed(true)} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "#15803d", fontSize: 12, fontWeight: 800, padding: "0 4px" }}>x</button>
         </div>
       )}
 

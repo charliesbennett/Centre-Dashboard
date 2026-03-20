@@ -6,6 +6,7 @@ export const maxDuration = 300;
 
 const INTEL_DOC = readFileSync(join(process.cwd(), "lib/rotaIntel.md"), "utf-8");
 
+// ── Utility functions (mirrored from lib/constants.js for server-side use) ──
 function genDates(start, end) {
   const dates = [];
   const s = new Date(start), e = new Date(end);
@@ -24,13 +25,21 @@ function getGroupLessonSlot(g, ds) {
 const SESSION_TARGET = (role) => {
   if (["CM","CD","EAM","SWC"].includes(role)) return 0;
   if (["TAL","FTT","5FTT","HP"].includes(role)) return 22;
-  return 24; // SAI, AL, SC, AC, FOOTBALL, DRAMA, DANCE, LAL, LAC
+  return 24;
 };
 
 const NO_COUNT = new Set(["Day Off","Induction","Setup","Office","Airport"]);
 const TEACHING_ROLES = ["FTT","5FTT","TAL","CD"];
 const ACTIVITY_ROLES = ["SAI","AL","EAL","SC","AC","EAC","LAL","LAC","FOOTBALL","DRAMA","DANCE","HP"];
+const MGMT_ROLES = ["CM","CD","EAM","SWC"];
 
+const EVE_ENT_NAMES = [
+  "Disco","Karaoke","Quiz Night","Film Night","Talent Show","Scavenger Hunt",
+  "Flag Ceremony","Awards Night","Paparazzi","Dragons Den","Trashion Show",
+  "Murder Mystery","Oscars Night","Sports Night","Welcome Ents",
+];
+
+// ── Day profile builder ───────────────────────────────────────────────────────
 function buildDayProfiles(dates, groups, progGrid) {
   const allArrivalDates = new Set((groups || []).map((g) => g.arr).filter(Boolean));
   const firstArrival = [...allArrivalDates].sort()[0] || null;
@@ -89,187 +98,339 @@ function buildDayProfiles(dates, groups, progGrid) {
   });
 }
 
-// Pre-calculate staffing gaps so both the prompt and UI can use them
+// ── Staffing gap calculator ───────────────────────────────────────────────────
 function calcStaffingGaps(staffIndex, dayProfiles) {
   const gaps = [];
-  dayProfiles.forEach((p, di) => {
+  dayProfiles.forEach((p) => {
     if (p.isFirstArrival || p.isFDE || p.isArrival) return;
     ["AM", "PM"].forEach((slot) => {
       const needed = p[slot].teachersNeeded;
       if (!needed) return;
-      // Count teachers available on this day in this slot (on site, not assumed off)
       const avail = staffIndex.filter((s) => {
         if (!TEACHING_ROLES.includes(s.role)) return false;
         if (!inRange(p.ds, s.arr, s.dep)) return false;
         if (s.role === "5FTT" && (new Date(p.ds).getDay() === 0 || new Date(p.ds).getDay() === 6)) return false;
         return true;
       }).length;
-      // In ZZ/mixed: each teacher covers ONE slot. Max teachers per slot = avail (pessimistic).
-      // We flag if available teachers < needed assuming worst case half have days off.
-      const conservativeAvail = Math.floor(avail * 0.8); // ~1 in 7 days off = ~14%
+      const conservativeAvail = Math.floor(avail * 0.8);
       if (conservativeAvail < needed) {
-        gaps.push({ di, ds: p.ds, dow: p.dow, slot, needed, available: avail, shortfall: needed - conservativeAvail });
+        gaps.push({ ds: p.ds, dow: p.dow, slot, needed, available: avail, shortfall: needed - conservativeAvail });
       }
     });
   });
   return gaps;
 }
 
-function buildPrompt(centreName, progStart, progEnd, staffIndex, groups, dayProfiles, staffingGaps) {
-  const lines = [];
-  const isZZ = (groups || []).some((g) => g.lessonSlot === "PM");
+// ── Skeleton generator (deterministic pre-fill) ──────────────────────────────
+function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
+  const ng = {};
 
-  lines.push(`Generate a complete rota for ${centreName || "UKLC centre"} (${progStart} to ${progEnd}).`);
-  lines.push(`Programme type: ${isZZ ? "ZIG-ZAG (ZZ) — lessons and activities run simultaneously in both AM and PM; each teacher covers ONE slot per day (not both)" : "NON-ZIG-ZAG (NZZ) — lessons AM, activities PM"}`);
-  lines.push("");
+  const TEACHING = ["TAL", "FTT", "5FTT"];
+  const ACTIVITY = ["SAI","AL","EAL","SC","AC","EAC","FOOTBALL","DRAMA","DANCE","LAL","LAC","HP"];
+  const MGMT = ["CM", "CD", "EAM", "SWC"];
+  const SLOTS = ["AM","PM","Eve"];
+  const NO_SESSION = new Set(["Day Off","Induction","Setup","Office","Airport"]);
 
-  // ── Staff table ──
-  lines.push("## STAFF");
-  lines.push("Format: index | Name | Role | On-site | TimeOff | SessionTarget");
-  staffIndex.forEach((s) => {
-    const tgt = SESSION_TARGET(s.role);
-    const tgtStr = tgt === 0 ? "salaried" : `${tgt}/fortnight`;
-    lines.push(`${s.i} | ${s.name} | ${s.role} | ${s.arr || "?"} to ${s.dep || "?"} | ${s.to || "none"} | ${tgtStr}`);
-  });
+  const target = (role) => MGMT.includes(role) ? 0 : ["TAL","FTT","5FTT","HP"].includes(role) ? 22 : 24;
+  const teachers = staffIndex.filter((s) => TEACHING.includes(s.role));
+  const actStaff = staffIndex.filter((s) => ACTIVITY.includes(s.role));
+  const mgmt     = staffIndex.filter((s) => MGMT.includes(s.role));
+  const allStaff = [...mgmt, ...teachers, ...actStaff];
 
-  // ── Groups ──
-  lines.push("");
-  lines.push("## GROUPS");
+  const sess = {};
+  allStaff.forEach((s) => { sess[s.id] = 0; });
+
+  const put = (sid, ds, slot, val) => {
+    const k = `${sid}-${ds}-${slot}`;
+    if (ng[k]) return false;
+    ng[k] = val;
+    if (!NO_SESSION.has(val)) sess[sid] = (sess[sid] || 0) + 1;
+    return true;
+  };
+
+  const hasRoom  = (s) => { const t = target(s.role); return t === 0 || (sess[s.id] || 0) < t; };
+  const isOn     = (s, ds) => inRange(ds, s.arr, s.dep);
+  const slotFree = (sid, ds) => !ng[`${sid}-${ds}-AM`];
+  const avail    = (s, ds) => isOn(s, ds) && slotFree(s.id, ds) && hasRoom(s);
+
+  const gIdx = {};
+  allStaff.forEach((s, i) => { gIdx[s.id] = i; });
+
+  // Build profile lookups
+  const profileMap = {};
+  dayProfiles.forEach((p) => { profileMap[p.ds] = p; });
+
+  const allArrivalDates = new Set((groups || []).map((g) => g.arr).filter(Boolean));
+  const groupArrivalDate = [...allArrivalDates].sort()[0] || null;
+
+  const arrStu = {};
   (groups || []).forEach((g) => {
-    lines.push(`- ${g.group || "Group"}: arr=${g.arr} dep=${g.dep} students=${g.stu || 0} groupLeaders=${g.gl || 0} week1LessonSlot=${g.lessonSlot || "AM"}`);
+    if (g.arr) arrStu[g.arr] = (arrStu[g.arr] || 0) + (g.stu || 0) + (g.gl || 0);
   });
 
-  // ── Day profiles ──
-  lines.push("");
-  lines.push("## DAY PROFILES");
-  lines.push("index | date | day | type | detail");
-  dayProfiles.forEach((p, i) => {
-    let detail;
-    if (p.isFirstArrival) {
-      detail = `FIRST ARRIVAL — ${p.arrivingStu} students arriving. NO lessons. FTTs have day off. Activity staff + TALs: airport pickup, welcome, setup, dinner.`;
-    } else if (p.isArrival) {
-      const amExc = p.AM.hasExc ? ` AM excursion for existing groups: ${p.AM.topDest}.` : "";
-      const pmExc = p.PM.hasExc ? ` PM excursion for existing groups: ${p.PM.topDest}.` : "";
-      const amLess = !p.AM.hasExc && p.AM.lessonStu > 0 ? ` AM: ${p.AM.lessonStu}stu lessons (${p.AM.teachersNeeded} teachers).` : "";
-      const pmLess = !p.PM.hasExc && p.PM.lessonStu > 0 ? ` PM: ${p.PM.lessonStu}stu lessons (${p.PM.teachersNeeded} teachers).` : "";
-      detail = `ARRIVAL — ${p.arrivingStu} new students arriving (small pickup team needed).${amExc}${pmExc}${amLess}${pmLess} Existing groups continue their programme.`;
-    } else if (p.isTestingDay) {
-      const am = p.AM.isTesting ? `TESTING ${p.AM.testStu}stu→${p.AM.teachersNeeded}teachers` : `Lessons ${p.AM.lessonStu}stu→${p.AM.teachersNeeded}teachers`;
-      const pm = p.PM.isTesting ? `TESTING ${p.PM.testStu}stu→${p.PM.teachersNeeded}teachers` : `Lessons ${p.PM.lessonStu}stu→${p.PM.teachersNeeded}teachers`;
-      detail = `TESTING DAY — AM:${am} | PM:${pm} | Activity staff run activities both slots.`;
-    } else if (p.isFDE) {
-      detail = `FDE: ${p.fdeLabel} — ${p.totalStu} students on full-day excursion (AM+PM). ALL activity staff + all available TALs go. FTTs take day off.`;
-    } else if (p.isHDE) {
-      const am = p.AM.hasExc ? `Excursion:${p.AM.topDest}(${p.AM.excSummary})` : `Lessons:${p.AM.lessonStu}stu→${p.AM.teachersNeeded}teachers`;
-      const pm = p.PM.hasExc ? `Excursion:${p.PM.topDest}(${p.PM.excSummary})` : `Lessons:${p.PM.lessonStu}stu→${p.PM.teachersNeeded}teachers`;
-      detail = `HDE — AM:${am} | PM:${pm} | Total ${p.totalStu} students on site.`;
-    } else if (p.totalStu === 0) {
-      detail = "No students on site.";
-    } else {
-      const am = `Lessons:${p.AM.lessonStu}stu→NEED ${p.AM.teachersNeeded} TEACHERS`;
-      const pm = `Lessons:${p.PM.lessonStu}stu→NEED ${p.PM.teachersNeeded} TEACHERS`;
-      detail = `TEACHING DAY — AM:${am} | PM:${pm} | Total ${p.totalStu} students.`;
+  // Helpers for parsing time-off
+  const parseTimeOff = (toStr) => {
+    if (!toStr) return [];
+    const yr = new Date(groupArrivalDate || dates[0] || new Date()).getFullYear();
+    return toStr.split(",").map((p) => p.trim()).filter(Boolean).map((p) => {
+      const rm = p.match(/(\d{1,2})\/(\d{1,2})\s*-\s*(\d{1,2})\/(\d{1,2})/);
+      if (rm) return { start: yr+"-"+rm[2].padStart(2,"0")+"-"+rm[1].padStart(2,"0"), end: yr+"-"+rm[4].padStart(2,"0")+"-"+rm[3].padStart(2,"0") };
+      const sm = p.match(/(\d{1,2})\/(\d{1,2})\s*(am|pm|eve)?/i);
+      if (sm) return { date: yr+"-"+sm[2].padStart(2,"0")+"-"+sm[1].padStart(2,"0"), slot: sm[3] || null };
+      return null;
+    }).filter(Boolean);
+  };
+
+  const isFullDayOff = (tos, ds) => {
+    for (const to of tos) {
+      if (to.start && to.end && ds >= to.start && ds <= to.end) return true;
+      if (to.date === ds && !to.slot) return true;
     }
-    lines.push(`${i} | ${p.ds} | ${p.dow} | ${detail}`);
+    return false;
+  };
+
+  // Pass 1: Fixed per-staff assignments (induction, setup, airport, explicit time-off)
+  allStaff.forEach((s) => {
+    const tos = parseTimeOff(s.to);
+    const onSite = dates.map((d) => ({ date: d, ds: dayKey(d) })).filter(({ ds }) => inRange(ds, s.arr, s.dep));
+    if (!onSite.length) return;
+
+    const indDs = onSite[0].ds;
+    ng[`${s.id}-${indDs}-AM`] = "Induction";
+    ng[`${s.id}-${indDs}-PM`] = "Induction";
+
+    for (let i = 1; i < onSite.length; i++) {
+      const ds = onSite[i].ds;
+      if (groupArrivalDate && ds >= groupArrivalDate) break;
+      ng[`${s.id}-${ds}-AM`] = "Setup";
+      ng[`${s.id}-${ds}-PM`] = "Setup";
+    }
+
+    if (s.dep) {
+      const depDs = dayKey(new Date(s.dep));
+      if (!ng[`${s.id}-${depDs}-AM`]) ng[`${s.id}-${depDs}-AM`] = "Airport";
+    }
+
+    onSite.forEach(({ ds }) => {
+      if (isFullDayOff(tos, ds) && !ng[`${s.id}-${ds}-AM`])
+        SLOTS.forEach((sl) => { ng[`${s.id}-${ds}-${sl}`] = "Day Off"; });
+    });
   });
 
-  // ── Session targets & rules ──
-  lines.push("");
-  lines.push("## STRICT RULES — YOU MUST FOLLOW THESE EXACTLY");
-  lines.push("");
-  lines.push("### 1. Session counting");
-  lines.push("Count every non-blank cell EXCEPT: Day Off, Induction, Setup, Office, Airport.");
-  lines.push("Each staff member's total counted cells MUST NOT exceed their session target.");
-  lines.push("FTT/TAL/HP target = 22. SAI/AL/SC/LAL/LAC/FOOTBALL/DRAMA/DANCE = 24. Management = salaried (unlimited).");
-  lines.push("");
-  lines.push("### 2. Teaching label — ALWAYS use 'Lessons' for regular teaching");
-  lines.push("'Lessons' is the ONLY label for regular English teaching sessions.");
-  lines.push("'English Lessons' must NOT be used for regular teaching (it's reserved for Intensive English Plus programme).");
-  lines.push("'Testing' is used on the day after arrival for placement tests.");
-  lines.push("");
-  lines.push("### 3. Day off rules for TEACHING staff (FTT, TAL)");
-  lines.push("Teaching staff MUST NOT take days off on regular teaching days — this breaks class continuity.");
-  lines.push("Teachers' days off should fall on: FDE days (no lessons), weekends, or arrival days.");
-  lines.push("If no FDE/weekend is available, give teachers days off on the day with the LOWEST lesson demand.");
-  lines.push("");
-  lines.push("### 4. ZZ programme — ONE teacher, ONE slot per day");
-  if (isZZ) {
-    lines.push("This is a ZZ centre. Teachers teach EITHER AM OR PM on any given day, NOT BOTH.");
-    lines.push("Each teaching day slot (AM or PM) needs the specified number of teachers simultaneously in that slot.");
-    lines.push("A TAL teaching AM lessons cannot also teach PM lessons on the same day — they do an activity or excursion in their other slot.");
-  }
-  lines.push("");
-  lines.push("### 5. Exact teacher counts");
-  lines.push("On each teaching day, assign EXACTLY the number of teachers specified in the day profile to EACH slot.");
-  lines.push("If you cannot meet the required teacher count (insufficient staff), still assign as many as possible and note the gap.");
-  lines.push("");
-  lines.push("### 6. Day offs — stagger, never too many on same day");
-  lines.push("Each non-management staff member gets 1 full day off per week (3 AM+PM+Eve cells all = 'Day Off').");
-  lines.push("Stagger days off — never more than 2 activity staff off on the same day.");
-  lines.push("Never give activity staff days off on FDE days or first arrival day.");
+  // Pass 2: Day offs
+  allStaff.forEach((s) => {
+    if (["5FTT"].includes(s.role)) return;
+    const tos = parseTimeOff(s.to);
+    const i = gIdx[s.id] || 0;
 
-  // ── Staffing gaps warning ──
-  if (staffingGaps.length > 0) {
-    lines.push("");
-    lines.push("## ⚠️ STAFFING ADEQUACY WARNING");
-    lines.push("The following days may have insufficient teaching staff. Assign as many teachers as possible and fill remaining slots with the best available. The API response will flag these gaps separately.");
-    staffingGaps.forEach((g) => {
-      lines.push(`- Day ${g.di} (${g.ds} ${g.dow}) ${g.slot}: need ${g.needed} teachers but only ~${g.available} on site. Short by ${g.shortfall}.`);
+    const progDays = dates.map((d) => ({ date: d, ds: dayKey(d) })).filter(({ ds }) => {
+      if (!inRange(ds, s.arr, s.dep)) return false;
+      const am = ng[`${s.id}-${ds}-AM`];
+      return !am || (am !== "Induction" && am !== "Setup" && am !== "Airport" && am !== "Day Off");
     });
-  }
 
-  // ── Output format ──
-  lines.push("");
-  lines.push("## OUTPUT FORMAT");
-  lines.push("Return ONLY a valid JSON object — no markdown, no explanation, no code blocks.");
-  lines.push('Keys: "staffIndex-dayIndex-slot" where slot is AM, PM, or Eve.');
-  lines.push("Omit blank cells entirely. 'Day Off' cells for full days off MUST be included (all 3 slots: AM, PM, Eve).");
-  lines.push("");
-  lines.push("Allowed session values:");
-  lines.push("  Teaching: Lessons | Testing | Int English");
-  lines.push("  Activities: Activities | Football | Drama | Dance | Vlogging");
-  lines.push("  Excursions: [destination name e.g. Liverpool, Chester, Stratford]");
-  lines.push("  Arrival day: pickup | welcome | setup | dinner");
-  lines.push("  Management: Office");
-  lines.push("  Special: Day Off | Induction | Airport");
-  lines.push("  Evenings: Eve Ents | Disco | Karaoke | Quiz | Film Night | Talent Show | Scavenger Hunt | Flag Ceremony | Awards");
-  lines.push("");
-  lines.push('Output the JSON now (starting with "{"):');
+    const weeks = Math.ceil(progDays.length / 7);
+    for (let w = 0; w < weeks; w++) {
+      const wk = progDays.slice(w * 7, w * 7 + 7);
+      if (!wk.length) continue;
 
-  return lines.join("\n");
+      let pick = null;
+      if (["FTT"].includes(s.role)) {
+        const pool = [
+          ...wk.filter(({ ds }) => profileMap[ds]?.isFDE),
+          ...wk.filter(({ date }) => date.getDay() === 0 || date.getDay() === 6),
+          ...wk,
+        ].filter(({ ds }) => !isFullDayOff(tos, ds));
+        if (pool.length) pick = pool[i % pool.length];
+      } else {
+        const basePref = [3, 4, 2, 5, 1, 6, 0];
+        const pref = basePref.map((_, j) => basePref[(j + i + w) % basePref.length]);
+        for (const pd of pref) {
+          const cand = wk.find(({ date, ds }) => {
+            if (date.getDay() !== pd) return false;
+            if (isFullDayOff(tos, ds)) return false;
+            // Bug fix #5: Only avoid day off on FIRST arrival day (not all arrival dates)
+            if (ACTIVITY.includes(s.role) && (profileMap[ds]?.isFDE || ds === groupArrivalDate)) return false;
+            return true;
+          });
+          if (cand) { pick = cand; break; }
+        }
+        if (!pick) pick = wk.find(({ ds }) => !isFullDayOff(tos, ds)) || null;
+      }
+
+      if (pick) SLOTS.forEach((sl) => { ng[`${s.id}-${pick.ds}-${sl}`] = "Day Off"; });
+    }
+  });
+
+  // Pass 3: Programme sessions per day
+  const weekNum = (ds) => groupArrivalDate
+    ? Math.max(0, Math.floor((new Date(ds) - new Date(groupArrivalDate)) / (7 * 86400000)))
+    : 0;
+
+  dates.forEach((d) => {
+    const ds = dayKey(d);
+    if (!groupArrivalDate || ds < groupArrivalDate) return;
+    const p = profileMap[ds] || {};
+
+    mgmt.forEach((s) => {
+      if (isOn(s, ds) && !ng[`${s.id}-${ds}-AM`]) {
+        ng[`${s.id}-${ds}-AM`] = "Office";
+        ng[`${s.id}-${ds}-PM`] = "Office";
+      }
+    });
+
+    if (p.isFirstArrival) {
+      teachers.filter((s) => ["FTT","5FTT"].includes(s.role) && isOn(s, ds) && !ng[`${s.id}-${ds}-AM`])
+        .forEach((s) => SLOTS.forEach((sl) => { ng[`${s.id}-${ds}-${sl}`] = "Day Off"; }));
+
+      const need = Math.max(2, Math.ceil((arrStu[ds] || 0) / 40));
+      const pickPool = [...teachers.filter((s) => s.role === "TAL"), ...actStaff].filter((s) => avail(s, ds));
+      let pickDone = 0;
+      pickPool.forEach((s) => { if (pickDone < need) { put(s.id, ds, "AM", "pickup"); pickDone++; } });
+
+      [...teachers.filter((s) => s.role === "TAL"), ...actStaff]
+        .filter((s) => isOn(s, ds) && slotFree(s.id, ds) && ng[`${s.id}-${ds}-AM`] !== "Day Off")
+        .forEach((s) => { put(s.id, ds, "AM", "setup"); put(s.id, ds, "PM", "welcome"); });
+      return;
+    }
+
+    if (p.isArrival) {
+      const need = Math.max(1, Math.ceil((arrStu[ds] || 0) / 40));
+      const pickPool = [...teachers.filter((s) => s.role === "TAL"), ...actStaff].filter((s) => avail(s, ds));
+      let pickDone = 0;
+      pickPool.forEach((s) => {
+        if (pickDone < need) { put(s.id, ds, "AM", "pickup"); put(s.id, ds, "PM", "welcome"); pickDone++; }
+      });
+    }
+
+    if (p.isTestingDay) {
+      teachers.filter((s) => s.role === "FTT" && avail(s, ds))
+        .forEach((s) => { put(s.id, ds, "AM", "Testing"); put(s.id, ds, "PM", "Testing"); });
+      // Bug fix #2: Use "Int English" not "English Lessons"
+      teachers.filter((s) => s.role === "TAL" && avail(s, ds))
+        .forEach((s) => { put(s.id, ds, "AM", "Int English"); put(s.id, ds, "PM", "Int English"); });
+      actStaff.filter((s) => avail(s, ds))
+        .forEach((s) => { put(s.id, ds, "AM", "Activities"); put(s.id, ds, "PM", "Activities"); });
+      return;
+    }
+
+    if (p.isFDE) {
+      const lbl = p.fdeLabel;
+      // Bug fix #3: FTT day-off BEFORE activity staff assignment
+      teachers.filter((s) => ["FTT","5FTT"].includes(s.role) && isOn(s, ds) && !ng[`${s.id}-${ds}-AM`])
+        .forEach((s) => SLOTS.forEach((sl) => { ng[`${s.id}-${ds}-${sl}`] = "Day Off"; }));
+
+      actStaff.filter((s) => avail(s, ds)).forEach((s) => { put(s.id, ds, "AM", lbl); put(s.id, ds, "PM", lbl); });
+
+      const talNeed = Math.max(1, Math.ceil((p.totalStu || 0) / 20));
+      let talDone = 0;
+      teachers.filter((s) => s.role === "TAL" && avail(s, ds)).forEach((s) => {
+        if (talDone < talNeed) { put(s.id, ds, "AM", lbl); put(s.id, ds, "PM", lbl); talDone++; }
+      });
+
+      return;
+    }
+
+    // Normal weekday
+    const amLbl = p.AM?.topDest || (p.AM?.hasExc ? "Excursion" : "Activities");
+    const pmLbl = p.PM?.topDest || (p.PM?.hasExc ? "Excursion" : "Activities");
+    const amTN  = p.AM?.teachersNeeded || 0;
+    const pmTN  = p.PM?.teachersNeeded || 0;
+    let amTD = 0, pmTD = 0;
+
+    // Bug fix #1: FTTs only teach when lesson demand exists
+    teachers.filter((s) => s.role === "FTT" && avail(s, ds)).forEach((s) => {
+      const amVal = amTN > 0 ? "Lessons" : "Activities";
+      const pmVal = pmTN > 0 ? "Lessons" : "Activities";
+      put(s.id, ds, "AM", amVal); put(s.id, ds, "PM", pmVal);
+      if (amTN > 0) amTD++;
+      if (pmTN > 0) pmTD++;
+    });
+
+    if (d.getDay() >= 1 && d.getDay() <= 5) {
+      teachers.filter((s) => s.role === "5FTT" && avail(s, ds)).forEach((s) => {
+        const amVal = amTN > 0 ? "Lessons" : "Activities";
+        const pmVal = pmTN > 0 ? "Lessons" : "Activities";
+        put(s.id, ds, "AM", amVal); put(s.id, ds, "PM", pmVal);
+        if (amTN > 0) amTD++;
+        if (pmTN > 0) pmTD++;
+      });
+    }
+
+    teachers.filter((s) => s.role === "TAL" && avail(s, ds)).forEach((s) => {
+      const ri = gIdx[s.id] || 0;
+      const prefAM = ((ri + weekNum(ds)) % 2 === 0);
+      const remAM = amTN - amTD, remPM = pmTN - pmTD;
+      const teachAM = remAM > 0 && remPM > 0 ? prefAM : remAM > 0 ? true : remPM > 0 ? false : prefAM;
+      if (teachAM) { put(s.id, ds, "AM", "Lessons"); put(s.id, ds, "PM", pmLbl); amTD++; }
+      else          { put(s.id, ds, "AM", amLbl);     put(s.id, ds, "PM", "Lessons"); pmTD++; }
+    });
+
+    actStaff.filter((s) => avail(s, ds)).forEach((s) => {
+      if      (s.role === "FOOTBALL") { put(s.id, ds, "AM", p.AM?.hasExc ? amLbl : "Activities"); put(s.id, ds, "PM", "Football"); }
+      else if (s.role === "DRAMA")    { put(s.id, ds, "AM", "Drama"); put(s.id, ds, "PM", p.PM?.hasExc ? pmLbl : "Activities"); }
+      else                            { put(s.id, ds, "AM", p.AM?.hasExc ? amLbl : "Activities"); put(s.id, ds, "PM", p.PM?.hasExc ? pmLbl : "Activities"); }
+    });
+  });
+
+  // Pass 4: Evening sweep (activity staff only — Bug fix #4: exclude TAL)
+  dates.forEach((d) => {
+    const ds = dayKey(d);
+    if (!groupArrivalDate || ds < groupArrivalDate) return;
+    const stu = (groups || []).reduce((sum, g) =>
+      inRange(ds, g.arr, g.dep) && ds !== g.dep ? sum + (g.stu || 0) + (g.gl || 0) : sum, 0);
+    const eveTarget = Math.max(2, Math.ceil(stu / 20));
+
+    let eveCount = allStaff.filter((s) => { const v = ng[`${s.id}-${ds}-Eve`]; return v && v !== "Day Off"; }).length;
+
+    if (eveCount < eveTarget) {
+      const di = dates.findIndex((x) => dayKey(x) === ds);
+      const ordered = [...allStaff.slice(di % allStaff.length), ...allStaff.slice(0, di % allStaff.length)];
+      for (const s of ordered) {
+        if (eveCount >= eveTarget) break;
+        if (!isOn(s, ds)) continue;
+        // Bug fix #4: exclude TAL from sweep — AI handles TAL/SAI/AL evenings
+        if (["FTT","5FTT","TAL","CM","CD","EAM"].includes(s.role)) continue;
+        const am = ng[`${s.id}-${ds}-AM`];
+        const pm = ng[`${s.id}-${ds}-PM`];
+        const eve = ng[`${s.id}-${ds}-Eve`];
+        if (!am || am === "Day Off" || am === "Induction" || am === "Setup" || am === "pickup") continue;
+        const isFullDayExc = am && pm && am === pm && !NO_SESSION.has(am) &&
+          !["Lessons","Testing","Int English","Activities","Half Exc"].includes(am);
+        if (!eve && !isFullDayExc && hasRoom(s)) {
+          ng[`${s.id}-${ds}-Eve`] = "Eve Ents";
+          sess[s.id] = (sess[s.id] || 0) + 1;
+          eveCount++;
+        }
+      }
+    }
+  });
+
+  return ng;
 }
 
-// Post-process: enforce session limits by trimming excess Eve/activity sessions
+// ── Session limit enforcer ────────────────────────────────────────────────────
 function enforceSessionLimits(grid, staffIndex) {
-  const SLOTS = ["AM","PM","Eve"];
   const sessCount = {};
   staffIndex.forEach((s) => { sessCount[s.id] = 0; });
 
-  // First pass: count all sessions
   for (const [key, val] of Object.entries(grid)) {
     if (!val || NO_COUNT.has(val)) continue;
-    const [sid] = key.split("-");
-    if (sessCount[sid] !== undefined) sessCount[sid]++;
+    // Bug fix #6: Use startsWith to find staff entry (avoids fragile split logic)
+    const staffEntry = staffIndex.find((s) => key.startsWith(s.id + "-"));
+    if (staffEntry) sessCount[staffEntry.id]++;
   }
 
-  // Second pass: trim excess — remove Eve entries first, then PM, working backwards by date
   const sortedKeys = Object.keys(grid).sort().reverse();
   for (const key of sortedKeys) {
     const val = grid[key];
     if (!val || NO_COUNT.has(val)) continue;
-    const parts = key.split("-");
-    // key format: uuid-YYYY-MM-DD-slot — uuid has no dashes issue, but our keys are staffId-date-slot
-    // Split differently: last part is slot, second-to-last is the date's day portion
-    const slot = parts[parts.length - 1];
-    const sid = parts.slice(0, -2).join("-"); // staffId may have no dashes (UUID)
-    // Actually our keys are `${staffEntry.id}-${ds}-${slot}` = UUID-YYYY-MM-DD-AM/PM/Eve
-    // UUID = 36 chars with dashes. Better to reconstruct:
     const staffEntry = staffIndex.find((s) => key.startsWith(s.id + "-"));
     if (!staffEntry) continue;
     const target = SESSION_TARGET(staffEntry.role);
     if (target === 0) continue;
     if (sessCount[staffEntry.id] > target) {
-      // Prefer removing Eve sessions, then PM, then AM
+      const slot = key.split("-").pop();
       if (slot === "Eve" || slot === "PM") {
         delete grid[key];
         sessCount[staffEntry.id]--;
@@ -279,70 +440,369 @@ function enforceSessionLimits(grid, staffIndex) {
   return grid;
 }
 
-export async function POST(req) {
-  try {
-    const { staff, groups, progGrid, progStart, progEnd, centreName } = await req.json();
-
-    if (!staff?.length) return Response.json({ error: "No staff provided" }, { status: 400 });
-    if (!progStart || !progEnd) return Response.json({ error: "Date range required" }, { status: 400 });
-
-    const dates = genDates(progStart, progEnd);
-    const staffIndex = staff.map((s, i) => ({
-      i, id: s.id, name: s.name || `Staff ${i}`,
-      role: s.role || "SAI", arr: s.arr || progStart, dep: s.dep || progEnd, to: s.to || "",
-    }));
-    const dayProfiles = buildDayProfiles(dates, groups, progGrid);
-    const staffingGaps = calcStaffingGaps(staffIndex, dayProfiles);
-
-    const prompt = buildPrompt(centreName, progStart, progEnd, staffIndex, groups, dayProfiles, staffingGaps);
-
-    const client = new Anthropic();
-    const stream = client.messages.stream({
-      model: "claude-opus-4-6",
-      max_tokens: 32000,
-      thinking: { type: "adaptive" },
-      system: INTEL_DOC,
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    const response = await stream.finalMessage();
-    const textBlock = response.content.find((b) => b.type === "text");
-    if (!textBlock) throw new Error("No text in Claude response");
-
-    const text = textBlock.text;
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error(`No JSON in response. Preview: ${text.slice(0, 300)}`);
-
-    const indexed = JSON.parse(jsonMatch[0]);
-    const dateStrings = dates.map(dayKey);
-
-    // Convert indexed keys → staffId-date-slot
-    const grid = {};
-    for (const [key, val] of Object.entries(indexed)) {
-      if (!val || val === "") continue;
-      const parts = key.split("-");
-      if (parts.length < 3) continue;
-      const slot = parts[parts.length - 1];
-      const di = parseInt(parts[parts.length - 2]);
-      const si = parseInt(parts[parts.length - 3]);
-      if (!["AM","PM","Eve"].includes(slot)) continue;
-      const staffEntry = staffIndex[si];
-      const ds = dateStrings[di];
-      if (!staffEntry || !ds) continue;
-      grid[`${staffEntry.id}-${ds}-${slot}`] = val;
-    }
-
-    // Enforce session limits
-    enforceSessionLimits(grid, staffIndex);
-
-    // Build staffing suggestions for the UI
-    const suggestions = staffingGaps.map((g) => ({
-      ds: g.ds, dow: g.dow, slot: g.slot, needed: g.needed, available: g.available, shortfall: g.shortfall,
-    }));
-
-    return Response.json({ grid, suggestions });
-  } catch (e) {
-    console.error("generate-rota error:", e);
-    return Response.json({ error: e.message }, { status: 500 });
+// ── Extract relevant sections of rotaIntel.md ────────────────────────────────
+function extractTALSection(intelDoc) {
+  // Extract sections 4.2 (Teaching Roles) and programme type sections
+  const sections = [];
+  const lines = intelDoc.split("\n");
+  let inSection = false;
+  let depth = 0;
+  for (const line of lines) {
+    if (line.match(/^## 2\.|^## 3\.|^### 4\.2|^### 4\.1/)) { inSection = true; depth = 0; }
+    if (inSection && line.match(/^## [^23]|^## [0-9]{2}/)) { inSection = false; }
+    if (inSection) sections.push(line);
   }
+  // Also always include section 11 (generation rules)
+  let in11 = false;
+  for (const line of lines) {
+    if (line.match(/^## 11\./)) in11 = true;
+    if (in11 && line.match(/^## 12\./)) break;
+    if (in11) sections.push(line);
+  }
+  return sections.join("\n");
+}
+
+function extractEveningSection(intelDoc) {
+  const sections = [];
+  const lines = intelDoc.split("\n");
+  let inSec = false;
+  for (const line of lines) {
+    if (line.match(/^## 3\.|^## 7\.|^## 9\.|^## 11\./)) inSec = true;
+    if (inSec && line.match(/^## [0-9]+\./) && !line.match(/^## 3\.|^## 7\.|^## 9\.|^## 11\./)) inSec = false;
+    if (inSec) sections.push(line);
+  }
+  return sections.join("\n");
+}
+
+// ── Agent 1: TAL Slot Planner ─────────────────────────────────────────────────
+async function runAgent1TALPlanner(client, staffIndex, dayProfiles, skeleton, groups) {
+  const talStaff = staffIndex.filter((s) => s.role === "TAL");
+  if (!talStaff.length) return {};
+
+  const isZZ = (groups || []).some((g) => g.lessonSlot === "PM");
+  const talSystemPrompt = extractTALSection(INTEL_DOC);
+
+  const roleRulesSummary = `
+TAL RULES:
+- Target: 22 sessions/fortnight
+- Can teach: YES (Lessons, Testing, Int English)
+- Can do excursions: YES
+- Can do Eve Ents: YES (max 4/fortnight)
+- Pattern: teach in ONE slot per day, activities/excursion in the OTHER slot. NEVER teach both slots on the same day.
+- Prefer consistency: if a TAL teaches AM on Monday, keep them on AM lessons all week unless FDE/day-off breaks it.
+${isZZ ? "- This is a ZZ centre: lessons and activities run simultaneously in AM and PM. Each TAL covers ONE slot." : "- This is an NZZ centre: lessons AM, activities PM."}
+`.trim();
+
+  // Build unfilled TAL slots from skeleton
+  const unfilledByTAL = {};
+  talStaff.forEach((s) => {
+    const entries = [];
+    dayProfiles.forEach((p) => {
+      ["AM","PM"].forEach((slot) => {
+        const key = `${s.id}-${p.ds}-${slot}`;
+        if (!skeleton[key] && !skeleton[`${s.id}-${p.ds}-AM`]) {
+          // Day not assigned yet — might need TAL assignment
+          entries.push({ date: p.ds, dow: p.dow, slot, dayType: p.isFDE ? "FDE" : p.isArrival ? "ARRIVAL" : p.isTestingDay ? "TESTING" : "NORMAL", amTeachersNeeded: p.AM.teachersNeeded, pmTeachersNeeded: p.PM.teachersNeeded, fdeLabel: p.fdeLabel });
+        }
+      });
+    });
+    if (entries.length) unfilledByTAL[s.id] = { name: s.name, entries };
+  });
+
+  if (!Object.keys(unfilledByTAL).length) return {};
+
+  const prompt = `
+You are Agent 1 — TAL Slot Planner.
+
+${roleRulesSummary}
+
+## SKELETON (already filled — do NOT change these)
+${JSON.stringify(Object.fromEntries(Object.entries(skeleton).filter(([k]) => talStaff.some((t) => k.startsWith(t.id + "-")))), null, 0)}
+
+## UNFILLED TAL SLOTS TO DECIDE
+For each TAL, decide: teach "Lessons" (or "Int English" on testing days) OR do activities/excursion in each slot.
+${JSON.stringify(unfilledByTAL, null, 0)}
+
+## DAY PROFILES (for context)
+${dayProfiles.map((p) => `${p.ds} ${p.dow}: ${p.isFDE ? "FDE:"+p.fdeLabel : p.isTestingDay ? "TESTING" : p.isArrival ? "ARRIVAL" : "NORMAL"} | AM need ${p.AM.teachersNeeded} teachers | PM need ${p.PM.teachersNeeded} teachers${p.AM.topDest ? " | AM exc:"+p.AM.topDest : ""}${p.PM.topDest ? " | PM exc:"+p.PM.topDest : ""}`).join("\n")}
+
+## OUTPUT
+Return ONLY a JSON object with keys "staffId-date-slot" and values being the assignment.
+Allowed values: "Lessons" | "Int English" | "Activities" | "Excursion" | "[destination name]" | "Day Off"
+Rules:
+- If teaching AM → must do activities/excursion PM (not "Lessons" again)
+- If teaching PM → must do activities/excursion AM
+- Stay consistent: same slot for lessons across the week
+- On FDE days that are NOT already filled: TALs join the excursion (use fdeLabel as value)
+- On Day Off days: skip (already in skeleton)
+Output JSON starting with "{":`;
+
+  const resp = await client.messages.create({
+    model: "claude-opus-4-5",
+    max_tokens: 8000,
+    system: [{ type: "text", text: talSystemPrompt, cache_control: { type: "ephemeral" } }],
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const text = resp.content.find((b) => b.type === "text")?.text || "";
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) return {};
+  try { return JSON.parse(match[0]); } catch { return {}; }
+}
+
+// ── Agent 2: Evening, Activities & Excursions Planner ─────────────────────────
+async function runAgent2EvePlanner(client, staffIndex, dayProfiles, mergedGrid, groups) {
+  const eveSystemPrompt = extractEveningSection(INTEL_DOC);
+
+  const eveEntNames = EVE_ENT_NAMES.join(", ");
+  const activityRoles = ACTIVITY_ROLES.concat(["TAL"]);
+
+  // Summarise what's unfilled in the Eve column + activity staff gaps
+  const eveSummary = [];
+  const actSummary = [];
+
+  dayProfiles.forEach((p) => {
+    if (!p.totalStu && !p.arrivingStu) return;
+    const eveStaffed = staffIndex.filter((s) => {
+      const v = mergedGrid[`${s.id}-${p.ds}-Eve`];
+      return v && v !== "Day Off";
+    }).length;
+    const eveNeeded = Math.max(2, Math.ceil((p.totalStu || 0) / 20));
+    eveSummary.push({ date: p.ds, dow: p.dow, studentsOnSite: p.totalStu, eveNeeded, eveStaffed, deficit: Math.max(0, eveNeeded - eveStaffed), dayType: p.isFDE ? "FDE" : p.isTestingDay ? "TESTING" : p.isArrival ? "ARRIVAL" : "NORMAL", fdeLabel: p.fdeLabel || null });
+
+    // Activity/dinner gaps
+    const needsDinner = !p.isFirstArrival && p.totalStu > 0;
+    if (needsDinner) {
+      const dinnerAssigned = staffIndex.filter((s) => {
+        const pm = mergedGrid[`${s.id}-${p.ds}-PM`];
+        const eve = mergedGrid[`${s.id}-${p.ds}-Eve`];
+        return pm === "dinner" || eve === "dinner";
+      }).length;
+      if (dinnerAssigned < 2) actSummary.push({ date: p.ds, dow: p.dow, type: "dinner", need: 2, have: dinnerAssigned });
+    }
+  });
+
+  // Staff availability summary for Eve
+  const staffSummary = staffIndex
+    .filter((s) => activityRoles.includes(s.role))
+    .map((s) => ({
+      id: s.id, name: s.name, role: s.role,
+      daysOff: dayProfiles.filter((p) => mergedGrid[`${s.id}-${p.ds}-AM`] === "Day Off").map((p) => p.ds),
+      currentEveCount: dayProfiles.filter((p) => { const v = mergedGrid[`${s.id}-${p.ds}-Eve`]; return v && v !== "Day Off"; }).length,
+    }));
+
+  const prompt = `
+You are Agent 2 — Evening, Activities & Excursions Planner.
+
+ROLE RULES:
+- Eligible for Eve Ents: TAL (max 4/fortnight), SAI, AL, EAL, LAL, LAC, SC, AC, HP, FOOTBALL, DRAMA, DANCE
+- FTTs do NOT do evenings (except 1-2 per fortnight max — skip for now, skeleton handles it)
+- Dinner supervision: SAI, AL, EAL, LAL, LAC, SC, AC, HP only. 2 staff per evening. Rotate fairly.
+- Eve Ent names to use (rotate variety): ${eveEntNames}
+- Minimum Eve staff = ceil(studentsOnSite / 20), minimum 2
+
+MANDATORY RULES:
+1. EVERY night with students on site MUST have at least the required Eve staff count. Empty Eve = FAILURE.
+2. EVERY day with students on site needs 2 dinner supervision assignments (in PM or Eve slot).
+3. On FDE days, ALL eligible activity staff should be on the excursion already — just ensure Eve is covered.
+4. Do NOT assign Eve Ents to staff who already have Eve filled in the skeleton.
+5. For dinner: add "dinner" to PM or Eve slot for eligible staff who don't already have those slots filled.
+
+## STAFF AVAILABILITY
+${JSON.stringify(staffSummary, null, 0)}
+
+## EVENINGS NEEDING STAFF
+${JSON.stringify(eveSummary, null, 0)}
+
+## DINNER GAPS
+${JSON.stringify(actSummary, null, 0)}
+
+## CURRENT MERGED GRID (partial — what's already assigned for these staff)
+${JSON.stringify(Object.fromEntries(Object.entries(mergedGrid).filter(([k]) => staffSummary.some((s) => k.startsWith(s.id + "-")))), null, 0)}
+
+## OUTPUT
+Return ONLY a JSON object with keys "staffId-date-slot" and values being the assignment.
+For Eve slots: use Eve Ent names (Disco, Karaoke, Quiz Night, Film Night, etc.) — vary them across nights.
+For dinner: use "dinner" as the value.
+Only output NEW assignments — do not repeat what's already in the skeleton.
+Output JSON starting with "{":`;
+
+  const resp = await client.messages.create({
+    model: "claude-opus-4-5",
+    max_tokens: 12000,
+    system: [{ type: "text", text: eveSystemPrompt, cache_control: { type: "ephemeral" } }],
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const text = resp.content.find((b) => b.type === "text")?.text || "";
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) return {};
+  try { return JSON.parse(match[0]); } catch { return {}; }
+}
+
+// ── Agent 3: Reviewer ─────────────────────────────────────────────────────────
+async function runAgent3Reviewer(client, staffIndex, dayProfiles, mergedGrid) {
+  const REVIEWER_CONSTRAINTS = `
+CONSTRAINT LIST (flag violations only — output as JSON array):
+1. FTT cells must only be: "Lessons", "Testing", "Day Off", "Induction", "Setup", "Airport", "Office", or an Eve Ent name. FTTs NEVER appear in excursion destination cells on teaching days.
+2. 5FTT only appears Mon-Fri. No Sat/Sun cells (except Day Off/Induction).
+3. TAL session count must NOT exceed 22 per fortnight.
+4. SAI/AL/EAL/SC/AC/EAC/LAL/LAC/FOOTBALL/DRAMA/DANCE/HP session count must NOT exceed 24 per fortnight.
+5. Eve column must have at least 1 non-Day-Off entry every day students are on site.
+6. Activity-only roles (SAI, AL, EAL, SC, AC, EAC, LAL, LAC, FOOTBALL, DRAMA, DANCE, HP) must NEVER have "Lessons" or "Testing".
+7. Day Off must appear in ALL 3 slots (AM, PM, Eve) on same day for same staff member — if only partially filled, flag it.
+8. On FDE days, FTTs must have "Day Off" unless they are an exception (max 1 FTT per FDE).
+9. TAL teaching a slot should have activities/excursion in the other slot — not "Lessons" in both AM and PM on the same day.
+`.trim();
+
+  // Build a compact summary of the merged grid for review
+  const gridSummary = {};
+  staffIndex.forEach((s) => {
+    const sessions = [];
+    let count = 0;
+    dayProfiles.forEach((p) => {
+      const am = mergedGrid[`${s.id}-${p.ds}-AM`];
+      const pm = mergedGrid[`${s.id}-${p.ds}-PM`];
+      const eve = mergedGrid[`${s.id}-${p.ds}-Eve`];
+      if (am || pm || eve) sessions.push({ date: p.ds, dow: p.dow, AM: am||"", PM: pm||"", Eve: eve||"" });
+      if (am && !NO_COUNT.has(am)) count++;
+      if (pm && !NO_COUNT.has(pm)) count++;
+      if (eve && !NO_COUNT.has(eve)) count++;
+    });
+    gridSummary[s.id] = { name: s.name, role: s.role, target: SESSION_TARGET(s.role), sessionsCount: count, sessions };
+  });
+
+  const prompt = `
+You are Agent 3 — Rota Reviewer.
+
+${REVIEWER_CONSTRAINTS}
+
+## GRID TO REVIEW
+${JSON.stringify(gridSummary, null, 0)}
+
+## DAY PROFILES (for FDE/testing day context)
+${dayProfiles.map((p) => `${p.ds} ${p.dow}: ${p.isFDE ? "FDE" : p.isTestingDay ? "TESTING" : p.isArrival ? "ARRIVAL" : "NORMAL"} | students:${p.totalStu}`).join("\n")}
+
+## OUTPUT
+Return ONLY a JSON array of violations (max 20). Each violation:
+{"key": "staffId-date-slot", "current": "currentValue", "fix": "correctedValue", "reason": "brief reason"}
+If no violations found, return [].
+Output JSON array starting with "[":`;
+
+  const resp = await client.messages.create({
+    model: "claude-haiku-4-5",
+    max_tokens: 4000,
+    system: [{ type: "text", text: REVIEWER_CONSTRAINTS, cache_control: { type: "ephemeral" } }],
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const text = resp.content.find((b) => b.type === "text")?.text || "";
+  const match = text.match(/\[[\s\S]*\]/);
+  if (!match) return [];
+  try { return JSON.parse(match[0]); } catch { return []; }
+}
+
+// ── Main POST handler with SSE streaming ─────────────────────────────────────
+export async function POST(req) {
+  const encoder = new TextEncoder();
+
+  const sendEvent = (controller, data) => {
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+  };
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const { staff, groups, progGrid, progStart, progEnd, centreName } = await req.json();
+
+        if (!staff?.length) {
+          sendEvent(controller, { error: "No staff provided" });
+          controller.close();
+          return;
+        }
+        if (!progStart || !progEnd) {
+          sendEvent(controller, { error: "Date range required" });
+          controller.close();
+          return;
+        }
+
+        const dates = genDates(progStart, progEnd);
+        const staffIndex = staff.map((s, i) => ({
+          i, id: s.id, name: s.name || `Staff ${i}`,
+          role: s.role || "SAI", arr: s.arr || progStart, dep: s.dep || progEnd, to: s.to || "",
+        }));
+        const dayProfiles = buildDayProfiles(dates, groups, progGrid);
+        const staffingGaps = calcStaffingGaps(staffIndex, dayProfiles);
+
+        // Build deterministic skeleton
+        const skeleton = buildSkeleton(staffIndex, dates, groups, dayProfiles);
+
+        const client = new Anthropic();
+
+        // Step 1: TAL Slot Planner
+        sendEvent(controller, { step: 1, message: "Planning TAL slots…" });
+        const agent1Result = await runAgent1TALPlanner(client, staffIndex, dayProfiles, skeleton, groups);
+
+        // Merge agent 1 into skeleton
+        const mergedAfterAgent1 = { ...skeleton };
+        for (const [key, val] of Object.entries(agent1Result)) {
+          if (val && !mergedAfterAgent1[key]) mergedAfterAgent1[key] = val;
+        }
+
+        // Step 2: Evening, Activities & Excursions Planner
+        sendEvent(controller, { step: 2, message: "Planning evenings and activities…" });
+        const agent2Result = await runAgent2EvePlanner(client, staffIndex, dayProfiles, mergedAfterAgent1, groups);
+
+        // Merge agent 2
+        const mergedAfterAgent2 = { ...mergedAfterAgent1 };
+        for (const [key, val] of Object.entries(agent2Result)) {
+          if (val && !mergedAfterAgent2[key]) mergedAfterAgent2[key] = val;
+        }
+
+        // Step 3: Reviewer
+        sendEvent(controller, { step: 3, message: "Reviewing for violations…" });
+        const violations = await runAgent3Reviewer(client, staffIndex, dayProfiles, mergedAfterAgent2);
+
+        // Apply reviewer fixes
+        let corrections = 0;
+        for (const fix of (violations || [])) {
+          if (fix.key && fix.fix !== undefined) {
+            if (fix.fix === "" || fix.fix === null) {
+              delete mergedAfterAgent2[fix.key];
+            } else {
+              mergedAfterAgent2[fix.key] = fix.fix;
+            }
+            corrections++;
+          }
+        }
+
+        // Enforce session limits
+        enforceSessionLimits(mergedAfterAgent2, staffIndex);
+
+        const suggestions = staffingGaps.map((g) => ({
+          ds: g.ds, dow: g.dow, slot: g.slot, needed: g.needed, available: g.available, shortfall: g.shortfall,
+        }));
+
+        sendEvent(controller, {
+          grid: mergedAfterAgent2,
+          suggestions,
+          corrections,
+        });
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      } catch (e) {
+        console.error("generate-rota error:", e);
+        sendEvent(controller, { error: e.message });
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    },
+  });
 }
