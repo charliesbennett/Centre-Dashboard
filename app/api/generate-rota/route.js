@@ -306,9 +306,9 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
     if (p.isTestingDay) {
       teachers.filter((s) => s.role === "FTT" && avail(s, ds))
         .forEach((s) => { put(s.id, ds, "AM", "Testing"); put(s.id, ds, "PM", "Testing"); });
-      // Bug fix #2: Use "Int English" not "English Lessons"
+      // TALs also show "Testing" on testing days (oral/interview component)
       teachers.filter((s) => s.role === "TAL" && avail(s, ds))
-        .forEach((s) => { put(s.id, ds, "AM", "Int English"); put(s.id, ds, "PM", "Int English"); });
+        .forEach((s) => { put(s.id, ds, "AM", "Testing"); put(s.id, ds, "PM", "Activities"); });
       actStaff.filter((s) => avail(s, ds))
         .forEach((s) => { put(s.id, ds, "AM", "Activities"); put(s.id, ds, "PM", "Activities"); });
       return;
@@ -373,24 +373,38 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
     });
   });
 
-  // Pass 4: Evening sweep (activity staff only — Bug fix #4: exclude TAL)
+  // Pass 4: Evening sweep — assign real event names, include TAL + activity staff
+  const regularEveNames = EVE_ENT_NAMES.filter((n) => n !== "Welcome Ents");
+  let eveNameIdx = 0;
+
   dates.forEach((d) => {
     const ds = dayKey(d);
     if (!groupArrivalDate || ds < groupArrivalDate) return;
     const stu = (groups || []).reduce((sum, g) =>
       inRange(ds, g.arr, g.dep) && ds !== g.dep ? sum + (g.stu || 0) + (g.gl || 0) : sum, 0);
+    if (!stu) return;
     const eveTarget = Math.max(2, Math.ceil(stu / 20));
+
+    // Pick event name for this night
+    const eventName = ds === groupArrivalDate ? "Welcome Ents" : regularEveNames[eveNameIdx % regularEveNames.length];
 
     let eveCount = allStaff.filter((s) => { const v = ng[`${s.id}-${ds}-Eve`]; return v && v !== "Day Off"; }).length;
 
     if (eveCount < eveTarget) {
       const di = dates.findIndex((x) => dayKey(x) === ds);
-      const ordered = [...allStaff.slice(di % allStaff.length), ...allStaff.slice(0, di % allStaff.length)];
-      for (const s of ordered) {
+      // Order: activity staff first (most available), then TALs, exclude mgmt/FTT/5FTT
+      const ordered = [...actStaff, ...teachers.filter((s) => s.role === "TAL"), ...mgmt]
+        .map((s, idx) => allStaff[(di + idx) % allStaff.length] || s) // rotate start point
+        .filter((s, i, arr) => arr.findIndex((x) => x.id === s.id) === i); // dedupe
+      // Actually just rotate the combined eligible pool
+      const eligible = [...actStaff, ...teachers.filter((s) => s.role === "TAL")];
+      const rotated = [...eligible.slice(di % eligible.length), ...eligible.slice(0, di % eligible.length)];
+
+      for (const s of rotated) {
         if (eveCount >= eveTarget) break;
         if (!isOn(s, ds)) continue;
-        // Bug fix #4: exclude TAL from sweep — AI handles TAL/SAI/AL evenings
-        if (["FTT","5FTT","TAL","CM","CD","EAM"].includes(s.role)) continue;
+        // Exclude management-only roles and 5FTTs
+        if (["CM","CD","EAM","FTT","5FTT"].includes(s.role)) continue;
         const am = ng[`${s.id}-${ds}-AM`];
         const pm = ng[`${s.id}-${ds}-PM`];
         const eve = ng[`${s.id}-${ds}-Eve`];
@@ -398,12 +412,15 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
         const isFullDayExc = am && pm && am === pm && !NO_SESSION.has(am) &&
           !["Lessons","Testing","Int English","Activities","Half Exc"].includes(am);
         if (!eve && !isFullDayExc && hasRoom(s)) {
-          ng[`${s.id}-${ds}-Eve`] = "Eve Ents";
+          ng[`${s.id}-${ds}-Eve`] = eventName;
           sess[s.id] = (sess[s.id] || 0) + 1;
           eveCount++;
         }
       }
     }
+
+    // Advance event name index each night (so names rotate across the programme)
+    if (ds !== groupArrivalDate) eveNameIdx++;
   });
 
   return ng;
@@ -438,6 +455,51 @@ function enforceSessionLimits(grid, staffIndex) {
     }
   }
   return grid;
+}
+
+// ── Valid session values (used for output validation) ────────────────────────
+function buildKnownDests(progGrid, groups, dates) {
+  const dests = new Set();
+  (groups || []).forEach((g) => {
+    dates.forEach((d) => {
+      const ds = dayKey(d);
+      ["AM","PM"].forEach((slot) => {
+        const val = String(progGrid?.[g.id + "-" + ds + "-" + slot] || "").trim();
+        if (val && !/arriv|depart|english\s*test|placement\s*test|lesson|induct/i.test(val)) {
+          dests.add(val);
+        }
+      });
+    });
+  });
+  return dests;
+}
+
+const BASE_VALID_SESSIONS = new Set([
+  "Lessons","Testing","Int English","Lesson Prep",
+  "Activities","Football","Drama","Dance","Half Exc",
+  "Excursion","dinner","pickup","welcome","setup",
+  "Day Off","Induction","Setup","Office","Airport",
+  ...EVE_ENT_NAMES,
+]);
+
+function isValidSessionValue(val, knownDests = new Set()) {
+  if (!val) return false;
+  if (BASE_VALID_SESSIONS.has(val)) return true;
+  if (knownDests.has(val)) return true;
+  // Allow short destination-style labels (≤40 chars, no instruction keywords)
+  if (val.length <= 40 && !/check|name|event|consist|rule|violat|off or|day or|\?/i.test(val)) return true;
+  return false;
+}
+
+function validateAgentOutput(raw, knownDests) {
+  if (!raw || typeof raw !== "object") return {};
+  const out = {};
+  for (const [key, val] of Object.entries(raw)) {
+    if (typeof val === "string" && isValidSessionValue(val, knownDests)) {
+      out[key] = val;
+    }
+  }
+  return out;
 }
 
 // ── Extract relevant sections of rotaIntel.md ────────────────────────────────
@@ -475,7 +537,7 @@ function extractEveningSection(intelDoc) {
 }
 
 // ── Agent 1: TAL Slot Planner ─────────────────────────────────────────────────
-async function runAgent1TALPlanner(client, staffIndex, dayProfiles, skeleton, groups) {
+async function runAgent1TALPlanner(client, staffIndex, dayProfiles, skeleton, groups, knownDests) {
   const talStaff = staffIndex.filter((s) => s.role === "TAL");
   if (!talStaff.length) return {};
 
@@ -547,11 +609,11 @@ Output JSON starting with "{":`;
   const text = resp.content.find((b) => b.type === "text")?.text || "";
   const match = text.match(/\{[\s\S]*\}/);
   if (!match) return {};
-  try { return JSON.parse(match[0]); } catch { return {}; }
+  try { return validateAgentOutput(JSON.parse(match[0]), knownDests); } catch { return {}; }
 }
 
 // ── Agent 2: Evening, Activities & Excursions Planner ─────────────────────────
-async function runAgent2EvePlanner(client, staffIndex, dayProfiles, mergedGrid, groups) {
+async function runAgent2EvePlanner(client, staffIndex, dayProfiles, mergedGrid, groups, knownDests) {
   const eveSystemPrompt = extractEveningSection(INTEL_DOC);
 
   const eveEntNames = EVE_ENT_NAMES.join(", ");
@@ -637,11 +699,11 @@ Output JSON starting with "{":`;
   const text = resp.content.find((b) => b.type === "text")?.text || "";
   const match = text.match(/\{[\s\S]*\}/);
   if (!match) return {};
-  try { return JSON.parse(match[0]); } catch { return {}; }
+  try { return validateAgentOutput(JSON.parse(match[0]), knownDests); } catch { return {}; }
 }
 
 // ── Agent 3: Reviewer ─────────────────────────────────────────────────────────
-async function runAgent3Reviewer(client, staffIndex, dayProfiles, mergedGrid) {
+async function runAgent3Reviewer(client, staffIndex, dayProfiles, mergedGrid, knownDests) {
   const REVIEWER_CONSTRAINTS = `
 CONSTRAINT LIST (flag violations only — output as JSON array):
 1. FTT cells must only be: "Lessons", "Testing", "Day Off", "Induction", "Setup", "Airport", "Office", or an Eve Ent name. FTTs NEVER appear in excursion destination cells on teaching days.
@@ -699,7 +761,14 @@ Output JSON array starting with "[":`;
   const text = resp.content.find((b) => b.type === "text")?.text || "";
   const match = text.match(/\[[\s\S]*\]/);
   if (!match) return [];
-  try { return JSON.parse(match[0]); } catch { return []; }
+  try {
+    const raw = JSON.parse(match[0]);
+    // Only keep fixes where the suggested value is a valid session string
+    return Array.isArray(raw) ? raw.filter((fix) =>
+      fix && fix.key && typeof fix.key === "string" &&
+      (fix.fix === "" || fix.fix === null || isValidSessionValue(fix.fix, knownDests))
+    ) : [];
+  } catch { return []; }
 }
 
 // ── Main POST handler with SSE streaming ─────────────────────────────────────
@@ -734,36 +803,40 @@ export async function POST(req) {
         const dayProfiles = buildDayProfiles(dates, groups, progGrid);
         const staffingGaps = calcStaffingGaps(staffIndex, dayProfiles);
 
+        // Build known excursion destinations for output validation
+        const knownDests = buildKnownDests(progGrid, groups, dates);
+
         // Build deterministic skeleton
         const skeleton = buildSkeleton(staffIndex, dates, groups, dayProfiles);
 
         const client = new Anthropic();
 
-        // Step 1: TAL Slot Planner
+        // Step 1: TAL Slot Planner (fills any TAL gaps the skeleton left)
         sendEvent(controller, { step: 1, message: "Planning TAL slots…" });
-        const agent1Result = await runAgent1TALPlanner(client, staffIndex, dayProfiles, skeleton, groups);
+        const agent1Result = await runAgent1TALPlanner(client, staffIndex, dayProfiles, skeleton, groups, knownDests);
 
-        // Merge agent 1 into skeleton
+        // Merge agent 1 into skeleton (only fills empty slots)
         const mergedAfterAgent1 = { ...skeleton };
         for (const [key, val] of Object.entries(agent1Result)) {
           if (val && !mergedAfterAgent1[key]) mergedAfterAgent1[key] = val;
         }
 
-        // Step 2: Evening, Activities & Excursions Planner
+        // Step 2: Evening, Activities & Excursions Planner (top-up eve + dinner gaps)
         sendEvent(controller, { step: 2, message: "Planning evenings and activities…" });
-        const agent2Result = await runAgent2EvePlanner(client, staffIndex, dayProfiles, mergedAfterAgent1, groups);
+        const agent2Result = await runAgent2EvePlanner(client, staffIndex, dayProfiles, mergedAfterAgent1, groups, knownDests);
 
-        // Merge agent 2
+        // Merge agent 2 — allow overwriting "Eve Ents" placeholder with real event names
         const mergedAfterAgent2 = { ...mergedAfterAgent1 };
         for (const [key, val] of Object.entries(agent2Result)) {
-          if (val && !mergedAfterAgent2[key]) mergedAfterAgent2[key] = val;
+          const existing = mergedAfterAgent2[key];
+          if (val && (!existing || existing === "Eve Ents")) mergedAfterAgent2[key] = val;
         }
 
         // Step 3: Reviewer
         sendEvent(controller, { step: 3, message: "Reviewing for violations…" });
-        const violations = await runAgent3Reviewer(client, staffIndex, dayProfiles, mergedAfterAgent2);
+        const violations = await runAgent3Reviewer(client, staffIndex, dayProfiles, mergedAfterAgent2, knownDests);
 
-        // Apply reviewer fixes
+        // Apply reviewer fixes (values already pre-validated in runAgent3Reviewer)
         let corrections = 0;
         for (const fix of (violations || [])) {
           if (fix.key && fix.fix !== undefined) {
@@ -776,7 +849,7 @@ export async function POST(req) {
           }
         }
 
-        // Enforce session limits
+        // Enforce session limits (removes excess PM/Eve sessions)
         enforceSessionLimits(mergedAfterAgent2, staffIndex);
 
         const suggestions = staffingGaps.map((g) => ({

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import { B, SESSION_TYPES, genDates, dayKey, dayName, isWeekend, inRange, fmtDate } from "@/lib/constants";
+import { EVE_ENT_NAMES } from "@/lib/rotaRules";
 import { StatCard, IcWand, thStyle, tdStyle, btnPrimary } from "@/components/ui";
 
 const SLOTS = ["AM", "PM", "Eve"];
@@ -327,9 +328,9 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       if (p.isTestingDay) {
         teachers.filter((s) => s.role === "FTT" && avail(s, ds))
           .forEach((s) => { put(s.id, ds, "AM", "Testing"); put(s.id, ds, "PM", "Testing"); });
-        // Bug fix #2: Use "Int English" (consistent with Intel doc) instead of "English Lessons"
+        // TALs also show "Testing" AM, Activities PM (oral/interview component)
         teachers.filter((s) => s.role === "TAL" && avail(s, ds))
-          .forEach((s) => { put(s.id, ds, "AM", "Int English"); put(s.id, ds, "PM", "Int English"); });
+          .forEach((s) => { put(s.id, ds, "AM", "Testing"); put(s.id, ds, "PM", "Activities"); });
         actStaff.filter((s) => avail(s, ds))
           .forEach((s) => { put(s.id, ds, "AM", "Activities"); put(s.id, ds, "PM", "Activities"); });
         return;
@@ -397,43 +398,44 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       });
     });
 
-    // ── Pass 4: Evening sweep ─────────────────────────────
+    // ── Pass 4: Evening sweep — real event names, include TAL + activity staff ──
+    const regularEveNames = EVE_ENT_NAMES.filter((n) => n !== "Welcome Ents");
+    let eveNameIdx = 0;
+
     dates.forEach((d) => {
       const ds = dayKey(d);
       if (!groupArrivalDate || ds < groupArrivalDate) return;
       const stu = (groups || []).reduce((sum, g) =>
         inRange(ds, g.arr, g.dep) && ds !== g.dep ? sum + (g.stu || 0) + (g.gl || 0) : sum, 0);
+      if (!stu) return;
       const eveTarget = Math.max(2, Math.ceil(stu / 20));
+      const eventName = ds === groupArrivalDate ? "Welcome Ents" : regularEveNames[eveNameIdx % regularEveNames.length];
 
       let eveCount = staff.filter((s) => { const v = ng[s.id+"-"+ds+"-Eve"]; return v && v !== "Day Off"; }).length;
 
       if (eveCount < eveTarget) {
         const di = dates.findIndex((x) => dayKey(x) === ds);
-        const ordered = [...staff.slice(di % staff.length), ...staff.slice(0, di % staff.length)];
+        // Eligible pool: activity staff + TALs (not FTT/5FTT/mgmt)
+        const eligible = staff.filter((s) => !["FTT","5FTT","CM","CD","EAM"].includes(s.role));
+        const ordered = [...eligible.slice(di % eligible.length), ...eligible.slice(0, di % eligible.length)];
         for (const s of ordered) {
           if (eveCount >= eveTarget) break;
           if (!isOn(s, ds)) continue;
-          // Bug fix #4: Exclude TAL from the sweep; AI handles TAL/SAI/AL evenings
-          if (["FTT","5FTT","TAL","CM","CD","EAM"].includes(s.role)) continue;
           const am = ng[s.id+"-"+ds+"-AM"];
           const pm = ng[s.id+"-"+ds+"-PM"];
           const eve = ng[s.id+"-"+ds+"-Eve"];
           if (!am || am === "Day Off" || am === "Induction" || am === "Setup" || am === "pickup") continue;
-          // Skip if already on full-day excursion (same destination AM and PM)
           const isFullDayExc = am && pm && am === pm && !NO_SESSION.has(am) &&
-            !["Lessons","Testing","English Lessons","Activities","Half Exc"].includes(am);
+            !["Lessons","Testing","Activities","Half Exc"].includes(am);
           if (!eve && !isFullDayExc && hasRoom(s)) {
-            ng[s.id+"-"+ds+"-Eve"] = "Eve Ents";
-            // Free up PM for generic activities to balance workload
-            if (pm && ["Activities", "Half Exc"].includes(pm)) {
-              delete ng[s.id+"-"+ds+"-PM"];
-              sess[s.id] = Math.max(0, (sess[s.id] || 0) - 1);
-            }
+            ng[s.id+"-"+ds+"-Eve"] = eventName;
             sess[s.id] = (sess[s.id] || 0) + 1;
             eveCount++;
           }
         }
       }
+
+      if (ds !== groupArrivalDate) eveNameIdx++;
     });
 
     setGrid(ng);
