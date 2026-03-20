@@ -139,7 +139,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     };
 
     const hasRoom  = (s) => { const t = target(s.role); return t === 0 || (sess[s.id] || 0) < t; };
-    const isOn     = (s, ds) => inRange(ds, s.arr, s.dep);
+    // Exclude departure day from session assignment (staff are travelling, not working)
+    const isOn     = (s, ds) => inRange(ds, s.arr, s.dep) && ds < s.dep;
     const slotFree = (sid, ds) => !ng[sid + "-" + ds + "-AM"]; // AM is the proxy for "day assigned"
     const avail    = (s, ds) => isOn(s, ds) && slotFree(s.id, ds) && hasRoom(s);
 

@@ -149,7 +149,8 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
   };
 
   const hasRoom  = (s) => { const t = target(s.role); return t === 0 || (sess[s.id] || 0) < t; };
-  const isOn     = (s, ds) => inRange(ds, s.arr, s.dep);
+  // Exclude departure day from session assignment (staff are travelling, not working)
+  const isOn     = (s, ds) => inRange(ds, s.arr, s.dep) && ds < s.dep;
   const slotFree = (sid, ds) => !ng[`${sid}-${ds}-AM`];
   const avail    = (s, ds) => isOn(s, ds) && slotFree(s.id, ds) && hasRoom(s);
 
