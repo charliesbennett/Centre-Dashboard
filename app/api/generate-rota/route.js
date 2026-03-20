@@ -486,8 +486,7 @@ function isValidSessionValue(val, knownDests = new Set()) {
   if (!val) return false;
   if (BASE_VALID_SESSIONS.has(val)) return true;
   if (knownDests.has(val)) return true;
-  // Allow short destination-style labels (≤40 chars, no instruction keywords)
-  if (val.length <= 40 && !/check|name|event|consist|rule|violat|off or|day or|\?/i.test(val)) return true;
+  // Reject everything else — strict whitelist prevents AI placeholder text
   return false;
 }
 
@@ -705,16 +704,16 @@ Output JSON starting with "{":`;
 // ── Agent 3: Reviewer ─────────────────────────────────────────────────────────
 async function runAgent3Reviewer(client, staffIndex, dayProfiles, mergedGrid, knownDests) {
   const REVIEWER_CONSTRAINTS = `
-CONSTRAINT LIST (flag violations only — output as JSON array):
-1. FTT cells must only be: "Lessons", "Testing", "Day Off", "Induction", "Setup", "Airport", "Office", or an Eve Ent name. FTTs NEVER appear in excursion destination cells on teaching days.
-2. 5FTT only appears Mon-Fri. No Sat/Sun cells (except Day Off/Induction).
-3. TAL session count must NOT exceed 22 per fortnight.
-4. SAI/AL/EAL/SC/AC/EAC/LAL/LAC/FOOTBALL/DRAMA/DANCE/HP session count must NOT exceed 24 per fortnight.
-5. Eve column must have at least 1 non-Day-Off entry every day students are on site.
-6. Activity-only roles (SAI, AL, EAL, SC, AC, EAC, LAL, LAC, FOOTBALL, DRAMA, DANCE, HP) must NEVER have "Lessons" or "Testing".
-7. Day Off must appear in ALL 3 slots (AM, PM, Eve) on same day for same staff member — if only partially filled, flag it.
-8. On FDE days, FTTs must have "Day Off" unless they are an exception (max 1 FTT per FDE).
-9. TAL teaching a slot should have activities/excursion in the other slot — not "Lessons" in both AM and PM on the same day.
+CONSTRAINT LIST — output a JSON array of violations only. Each fix value MUST be one of the exact strings listed in VALID VALUES below.
+
+VALID VALUES: "Lessons", "Testing", "Activities", "Day Off", "Induction", "Setup", "Office", "Airport", "dinner", "pickup", "welcome", "Excursion", "Half Exc", "Disco", "Karaoke", "Quiz Night", "Film Night", "Talent Show", "Scavenger Hunt", "Flag Ceremony", "Awards Night", "Paparazzi", "Dragons Den", "Trashion Show", "Murder Mystery", "Oscars Night", "Sports Night", "Welcome Ents"
+
+RULES TO CHECK:
+1. FTTs must NEVER be assigned excursion destination names on teaching days. Fix: "Day Off" or "Lessons".
+2. Activity-only roles (SAI, AL, EAL, SC, AC, EAC, LAL, LAC, FOOTBALL, DRAMA, DANCE, HP) must NEVER have "Lessons" or "Testing". Fix: "Activities".
+3. TAL must NEVER have "Lessons" in both AM and PM on the same day. Fix the PM to "Activities".
+4. 5FTT must not have non-Day-Off sessions on Saturday or Sunday. Fix: "Day Off".
+5. If a staff member has "Day Off" in AM but not PM/Eve on the same day (or vice versa), add "Day Off" to the missing slots.
 `.trim();
 
   // Build a compact summary of the merged grid for review
