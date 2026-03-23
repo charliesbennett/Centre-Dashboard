@@ -21,12 +21,12 @@ const SHIFT_COLOURS = {
 // ── Standard UKLC shift template for one day ─────────────────────────────────
 // Used by "Apply Standard Template" button. Times match typical UKLC timetable.
 const STANDARD_SHIFTS = [
-  { shift_type: "teaching",  role_required: "ANY_TEACHING",  start_time: "08:30", end_time: "12:00", min_staff: 1, session_count: 1 },
-  { shift_type: "teaching",  role_required: "ANY_TEACHING",  start_time: "13:30", end_time: "17:00", min_staff: 1, session_count: 1 },
+  { shift_type: "teaching",  role_required: "ANY_TEACHING",  start_time: "09:00", end_time: "12:30", min_staff: 1, session_count: 1 },
+  { shift_type: "teaching",  role_required: "ANY_TEACHING",  start_time: "14:00", end_time: "17:30", min_staff: 1, session_count: 1 },
   { shift_type: "activity",  role_required: "ANY_ACTIVITY",  start_time: "09:00", end_time: "12:30", min_staff: 1, session_count: 0 },
-  { shift_type: "activity",  role_required: "ANY_ACTIVITY",  start_time: "13:30", end_time: "17:30", min_staff: 1, session_count: 0 },
-  { shift_type: "duty",      role_required: "ANY_ACTIVITY",  start_time: "19:00", end_time: "22:30", min_staff: 2, session_count: 0 },
-  { shift_type: "overnight", role_required: "HP",             start_time: "22:00", end_time: "08:00", min_staff: 1, session_count: 0 },
+  { shift_type: "activity",  role_required: "ANY_ACTIVITY",  start_time: "14:00", end_time: "17:30", min_staff: 1, session_count: 0 },
+  { shift_type: "duty",      role_required: "ANY_ACTIVITY",  start_time: "19:00", end_time: "22:00", min_staff: 2, session_count: 0 },
+  { shift_type: "overnight", role_required: "HP",            start_time: "22:00", end_time: "08:00", min_staff: 1, session_count: 0 },
 ];
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
