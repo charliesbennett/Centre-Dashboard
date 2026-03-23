@@ -182,14 +182,33 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
   };
 
   // ── Calculate min activity staff needed for a date ──
-  // On departure days: 1 per 20 departing students (airport runs, send-off)
-  // On normal days: 1 per 20 students on site, minimum 1
+  // Activity staff cover the students NOT in lessons at any given slot.
+  // AM slot: PM-lesson students are doing activities (and vice versa).
+  // We use the larger of the two non-lesson groups as the peak activity demand.
+  // On departure days: 1 per 20 departing students.
   const calcMinActivity = (dateStr) => {
-    const onSite = studentsOnSite(dateStr);
-    if (onSite > 0) return Math.max(1, Math.ceil(onSite / 20));
+    if (!groups || !groups.length) return 1;
+
+    // Count students in AM lessons and PM lessons on this date
+    const amLessonStu = calcMinTeachers(dateStr, "AM") * 16;
+    const pmLessonStu = calcMinTeachers(dateStr, "PM") * 16;
+    const totalOnSite = studentsOnSite(dateStr);
+
+    if (totalOnSite > 0) {
+      // Students doing activities = total on site minus those in lessons
+      // AM slot: PM-lesson students are in class, so AM activity demand = total - pmLessonStu
+      // PM slot: AM-lesson students are in class, so PM activity demand = total - amLessonStu
+      // Use the larger of the two as the template min
+      const amActivityStu = Math.max(0, totalOnSite - pmLessonStu);
+      const pmActivityStu = Math.max(0, totalOnSite - amLessonStu);
+      const peakActivityStu = Math.max(amActivityStu, pmActivityStu);
+      return Math.max(1, Math.ceil(peakActivityStu / 20));
+    }
+
+    // Departure day fallback
     const departing = studentsDeparting(dateStr);
     if (departing > 0) return Math.max(1, Math.ceil(departing / 20));
-    return 1; // default fallback
+    return 1;
   };
 
   // ── Calculate min teachers needed for a date + slot ──
