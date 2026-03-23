@@ -785,17 +785,20 @@ function SolveResultSummary({ result, onReview }) {
         display: "flex", alignItems: "center", gap: 12,
       }}>
         <span style={{ fontSize: 20 }}>{statusOk ? "✅" : "❌"}</span>
-        <div>
+        <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: statusOk ? FLAG_OK.text : FLAG_HARD.text, fontFamily: "'Raleway', sans-serif" }}>
             {result.status === "optimal" && "Optimal solution found"}
             {result.status === "feasible" && "Feasible solution found (within time limit)"}
-            {result.status === "infeasible" && "No solution found — hard constraints cannot be satisfied"}
+            {result.status === "infeasible" && "No solution found — see issues below"}
             {result.status === "error" && "Solver error"}
           </div>
           {result.stats && (
             <div style={{ fontSize: 11, color: B.textMuted, marginTop: 2 }}>
-              {result.stats.n_assignments} assignments · {result.stats.solve_time_ms}ms · {result.stats.n_staff} staff · {result.stats.n_shifts} shifts
+              {result.stats.n_assignments || 0} assignments · {result.stats.solve_time_ms}ms · {result.stats.n_staff} staff · {result.stats.n_shifts} shifts
             </div>
+          )}
+          {result.message && !statusOk && (
+            <div style={{ fontSize: 11, color: FLAG_HARD.text, marginTop: 4, fontWeight: 600 }}>{result.message}</div>
           )}
         </div>
         {onReview && statusOk && (
