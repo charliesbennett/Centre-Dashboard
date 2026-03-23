@@ -20,14 +20,18 @@ const SHIFT_COLOURS = {
 
 // ── Standard UKLC shift template for one day ─────────────────────────────────
 // Used by "Apply Standard Template" button. Times match typical UKLC timetable.
+// Base shifts applied to every centre
 const STANDARD_SHIFTS = [
   { shift_type: "teaching",  role_required: "ANY_TEACHING",  start_time: "09:00", end_time: "12:30", min_staff: 1, session_count: 1 },
   { shift_type: "teaching",  role_required: "ANY_TEACHING",  start_time: "14:00", end_time: "17:30", min_staff: 1, session_count: 1 },
   { shift_type: "activity",  role_required: "ANY_ACTIVITY",  start_time: "09:00", end_time: "12:30", min_staff: 1, session_count: 0 },
   { shift_type: "activity",  role_required: "ANY_ACTIVITY",  start_time: "14:00", end_time: "17:30", min_staff: 1, session_count: 0 },
   { shift_type: "duty",      role_required: "ANY_ACTIVITY",  start_time: "19:00", end_time: "22:00", min_staff: 2, session_count: 0 },
-  { shift_type: "overnight", role_required: "HP",            start_time: "22:00", end_time: "08:00", min_staff: 1, session_count: 0 },
 ];
+
+// Overnight shift — only added if the centre has HP staff
+const OVERNIGHT_SHIFT =
+  { shift_type: "overnight", role_required: "HP", start_time: "22:00", end_time: "08:00", min_staff: 1, session_count: 0 };
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 function addDays(dateStr, n) {
@@ -189,12 +193,16 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
 
     await supabase.from("shifts").delete().eq("programme_id", selectedProg.id);
 
+    // Only add overnight shifts if this centre has HP staff
+    const hasHP = (staff || []).some((s) => s.role === "HP");
+    const shiftsToApply = hasHP ? [...STANDARD_SHIFTS, OVERNIGHT_SHIFT] : STANDARD_SHIFTS;
+
     const dates = datesBetween(selectedProg.start_date, selectedProg.end_date);
     const rows = [];
     dates.forEach((date) => {
       const minTeachersAM = calcMinTeachers(date, "AM");
       const minTeachersPM = calcMinTeachers(date, "PM");
-      STANDARD_SHIFTS.forEach((tmpl) => {
+      shiftsToApply.forEach((tmpl) => {
         let minStaff = tmpl.min_staff;
         if (tmpl.shift_type === "teaching") {
           minStaff = tmpl.start_time < "13:00" ? minTeachersAM : minTeachersPM;
