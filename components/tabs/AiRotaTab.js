@@ -624,7 +624,7 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
                 "HC-009 — 1:15 overnight ratio (under-12)",
                 "HC-010 — HP on overnight duty",
                 "HC-016 — FTT/5DFTT academic only",
-                "HC-018 — DBS check required",
+                // HC-018 removed — DBS checked at recruitment stage
                 "SC-001 — Fair weekend distribution",
                 "SC-003 — Max 6 consecutive days",
                 "SC-005 — 12h rest target",
