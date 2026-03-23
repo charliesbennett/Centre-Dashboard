@@ -158,24 +158,47 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
     setLoading(false);
   };
 
+  // ── Calculate min teachers needed for a date + slot ──
+  // Counts students on site in that lesson slot, divides by 16 (max class size)
+  const calcMinTeachers = (dateStr, slot) => {
+    if (!groups || !groups.length) return 1;
+    let students = 0;
+    groups.forEach((g) => {
+      if (!g.arr || !g.dep) return;
+      if (dateStr < g.arr || dateStr > g.dep) return;
+      if (dateStr === g.arr || dateStr === g.dep) return;
+      const daysSince = Math.floor((new Date(dateStr) - new Date(g.arr)) / 86400000);
+      const weekNum = Math.floor(daysSince / 7);
+      const groupSlot = weekNum % 2 === 0
+        ? (g.lessonSlot || "AM")
+        : (g.lessonSlot === "AM" ? "PM" : "AM");
+      if (groupSlot === slot) students += (g.stu || 0);
+    });
+    return Math.max(1, Math.ceil(students / 16));
+  };
+
   // ── Apply standard shift template ────────────────────
   const applyStandardTemplate = async () => {
     if (!selectedProg) return;
-    const confirm = shifts.length > 0
+    const confirmed = shifts.length > 0
       ? window.confirm("This will replace all existing shifts for this programme. Continue?")
       : true;
-    if (!confirm) return;
+    if (!confirmed) return;
     setLoading(true);
     setError(null);
 
-    // Delete existing shifts
     await supabase.from("shifts").delete().eq("programme_id", selectedProg.id);
 
-    // Create one set of standard shifts per day in the programme
     const dates = datesBetween(selectedProg.start_date, selectedProg.end_date);
     const rows = [];
     dates.forEach((date) => {
+      const minTeachersAM = calcMinTeachers(date, "AM");
+      const minTeachersPM = calcMinTeachers(date, "PM");
       STANDARD_SHIFTS.forEach((tmpl) => {
+        let minStaff = tmpl.min_staff;
+        if (tmpl.shift_type === "teaching") {
+          minStaff = tmpl.start_time < "13:00" ? minTeachersAM : minTeachersPM;
+        }
         rows.push({
           id: genId(),
           programme_id: selectedProg.id,
@@ -185,14 +208,13 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
           end_time: tmpl.end_time,
           shift_type: tmpl.shift_type,
           role_required: tmpl.role_required,
-          min_staff: tmpl.min_staff,
+          min_staff: minStaff,
           session_count: tmpl.session_count,
           status: "draft",
         });
       });
     });
 
-    // Insert in batches of 500
     for (let i = 0; i < rows.length; i += 500) {
       const { error } = await supabase.from("shifts").insert(rows.slice(i, i + 500));
       if (error) { setError(error.message); setLoading(false); return; }
