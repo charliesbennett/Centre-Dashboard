@@ -162,15 +162,27 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
     setLoading(false);
   };
 
+  // ── Check if a date is a pure departure day (no groups in mid-stay or arriving) ──
+  const isPureDepartureDay = (dateStr) => {
+    if (!groups || !groups.length) return false;
+    const hasActiveStu = groups.some((g) => {
+      if (!g.arr || !g.dep) return false;
+      if (dateStr < g.arr || dateStr > g.dep) return false;
+      if (dateStr === g.dep) return false; // departing — not active for lessons
+      return true; // arriving or mid-stay
+    });
+    return !hasActiveStu;
+  };
+
   // ── Calculate min teachers needed for a date + slot ──
-  // Counts students on site in that lesson slot, divides by 16 (max class size)
+  // Returns 0 on departure/arrival days so teaching shifts are skipped
   const calcMinTeachers = (dateStr, slot) => {
     if (!groups || !groups.length) return 1;
     let students = 0;
     groups.forEach((g) => {
       if (!g.arr || !g.dep) return;
       if (dateStr < g.arr || dateStr > g.dep) return;
-      if (dateStr === g.arr || dateStr === g.dep) return;
+      if (dateStr === g.arr || dateStr === g.dep) return; // arrival/departure — no lessons
       const daysSince = Math.floor((new Date(dateStr) - new Date(g.arr)) / 86400000);
       const weekNum = Math.floor(daysSince / 7);
       const groupSlot = weekNum % 2 === 0
@@ -178,7 +190,8 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
         : (g.lessonSlot === "AM" ? "PM" : "AM");
       if (groupSlot === slot) students += (g.stu || 0);
     });
-    return Math.max(1, Math.ceil(students / 16));
+    // Return 0 if no students — caller will skip the teaching shift
+    return Math.ceil(students / 16);
   };
 
   // ── Apply standard shift template ────────────────────
@@ -206,6 +219,8 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
         let minStaff = tmpl.min_staff;
         if (tmpl.shift_type === "teaching") {
           minStaff = tmpl.start_time < "13:00" ? minTeachersAM : minTeachersPM;
+          // Skip teaching shifts on days with no students (departure/arrival days)
+          if (minStaff === 0) return;
         }
         rows.push({
           id: genId(),
