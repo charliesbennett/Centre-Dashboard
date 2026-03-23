@@ -162,16 +162,34 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
     setLoading(false);
   };
 
-  // ── Check if a date is a pure departure day (no groups in mid-stay or arriving) ──
-  const isPureDepartureDay = (dateStr) => {
-    if (!groups || !groups.length) return false;
-    const hasActiveStu = groups.some((g) => {
-      if (!g.arr || !g.dep) return false;
-      if (dateStr < g.arr || dateStr > g.dep) return false;
-      if (dateStr === g.dep) return false; // departing — not active for lessons
-      return true; // arriving or mid-stay
+  // ── Count students on site for a given date (mid-stay only, not arr/dep day) ──
+  const studentsOnSite = (dateStr) => {
+    if (!groups || !groups.length) return 0;
+    let total = 0;
+    groups.forEach((g) => {
+      if (!g.arr || !g.dep) return;
+      if (dateStr < g.arr || dateStr > g.dep) return;
+      if (dateStr === g.arr || dateStr === g.dep) return;
+      total += (g.stu || 0);
     });
-    return !hasActiveStu;
+    return total;
+  };
+
+  // ── Count students departing on a given date ──
+  const studentsDeparting = (dateStr) => {
+    if (!groups || !groups.length) return 0;
+    return groups.filter((g) => g.dep === dateStr).reduce((sum, g) => sum + (g.stu || 0), 0);
+  };
+
+  // ── Calculate min activity staff needed for a date ──
+  // On departure days: 1 per 20 departing students (airport runs, send-off)
+  // On normal days: 1 per 20 students on site, minimum 1
+  const calcMinActivity = (dateStr) => {
+    const onSite = studentsOnSite(dateStr);
+    if (onSite > 0) return Math.max(1, Math.ceil(onSite / 20));
+    const departing = studentsDeparting(dateStr);
+    if (departing > 0) return Math.max(1, Math.ceil(departing / 20));
+    return 1; // default fallback
   };
 
   // ── Calculate min teachers needed for a date + slot ──
@@ -215,12 +233,16 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
     dates.forEach((date) => {
       const minTeachersAM = calcMinTeachers(date, "AM");
       const minTeachersPM = calcMinTeachers(date, "PM");
+      const minActivity   = calcMinActivity(date);
       shiftsToApply.forEach((tmpl) => {
         let minStaff = tmpl.min_staff;
         if (tmpl.shift_type === "teaching") {
           minStaff = tmpl.start_time < "13:00" ? minTeachersAM : minTeachersPM;
           // Skip teaching shifts on days with no students (departure/arrival days)
           if (minStaff === 0) return;
+        }
+        if (tmpl.shift_type === "activity" || tmpl.shift_type === "duty") {
+          minStaff = minActivity;
         }
         rows.push({
           id: genId(),
