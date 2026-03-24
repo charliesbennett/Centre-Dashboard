@@ -604,7 +604,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     if (v === "Day Off") return "#f59e0b";
     if (SESSION_TYPES[v]) return SESSION_TYPES[v];
     const vl = v.toLowerCase();
-    if (vl.includes("lesson") || vl === "testing" || vl.includes("int english") || vl.includes("int eng")) return SESSION_TYPES["Lessons"];
+    if (vl.includes("lesson") || vl === "testing" || vl.includes("english test") || vl.includes("int english") || vl.includes("int eng")) return SESSION_TYPES["Lessons"];
     if (vl.includes("excursion")) return SESSION_TYPES["Excursion"];
     if (vl.includes("act") || vl.includes("multi")) return SESSION_TYPES["Activities"];
     if (vl.includes("half exc")) return SESSION_TYPES["Half Exc"];
