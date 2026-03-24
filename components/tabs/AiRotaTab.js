@@ -318,138 +318,30 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
         body: JSON.stringify({
           programme_id: selectedProg.id,
           dry_run: dryRun,
-          time_limit_seconds: 30,
+          time_limit_seconds: 60,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Solver request failed");
       setSolveResult(data);
       setPublished(false);
-      if (!dryRun) setStep(3);
+      if (!dryRun && data.status !== "error") setStep(3);
     } catch (e) {
       setError(e.message);
     }
     setGenerating(false);
   };
 
-  // ── Map a shift to rota_cells slot + display value ──────
-  // Mirrors the SESSION_TYPES used by the existing Rota tab.
-  const shiftToRotaCell = (assignment) => {
-    const { shift_type, start_time } = assignment;
-    const isAM = start_time < "13:00";
-
-    // slot: AM | PM | Eve
-    let slot, value;
-    switch (shift_type) {
-      case "teaching":
-        slot  = isAM ? "AM" : "PM";
-        value = "Lessons";
-        break;
-      case "activity":
-        slot  = isAM ? "AM" : "PM";
-        value = "Activities";
-        break;
-      case "duty":
-        slot  = "Eve";
-        value = "Duty";
-        break;
-      case "overnight":
-        slot  = "Eve";
-        value = "Overnight";
-        break;
-      case "transfer":
-        slot  = isAM ? "AM" : "PM";
-        value = "Airport";
-        break;
-      case "cover":
-        slot  = isAM ? "AM" : "PM";
-        value = "Cover";
-        break;
-      default:
-        slot  = isAM ? "AM" : "PM";
-        value = shift_type;
-    }
-    return { slot, value };
-  };
-
-  // ── Publish draft assignments + seed rota_cells grid ─────
-  // Option 3: writes confirmed assignments into rota_cells so the
-  // existing Rota tab shows the AI-generated rota as a starting point.
-  // Managers can then make manual edits in the Rota tab as normal.
+  // ── Publish — v2 solver already wrote rota_cells during generate ──
+  // Just update programme status to active here.
   const publishRota = async () => {
     if (!selectedProg || !solveResult) return;
     setPublishing(true);
     setError(null);
-
-    // 1. Confirm assignments in assignments table
-    const shiftIds = solveResult.assignments.map((a) => a.shift_id);
-    const uniqueShiftIds = [...new Set(shiftIds)];
-    if (uniqueShiftIds.length > 0) {
-      const { error } = await supabase
-        .from("assignments")
-        .update({ status: "confirmed" })
-        .in("shift_id", uniqueShiftIds)
-        .eq("status", "draft");
-      if (error) { setError(error.message); setPublishing(false); return; }
-    }
-
-    // 2. Write to rota_cells so the Rota tab shows the AI-generated rota
-    // One assignment may produce one rota_cells row (staff + date + slot = value)
-    // If two shifts map to the same slot (e.g. AM teaching + AM activity on same day),
-    // teaching takes priority — we sort and deduplicate.
-    const SLOT_PRIORITY = { teaching: 1, activity: 2, transfer: 3, cover: 4, duty: 5, overnight: 6 };
-    const cellMap = {};
-
-    // Sort by priority so higher-priority shift wins on same slot
-    const sorted = [...solveResult.assignments].sort(
-      (a, b) => (SLOT_PRIORITY[a.shift_type] || 9) - (SLOT_PRIORITY[b.shift_type] || 9)
-    );
-
-    sorted.forEach((a) => {
-      const { slot, value } = shiftToRotaCell(a);
-      const key = `${a.staff_id}-${a.shift_date}-${slot}`;
-      if (!cellMap[key]) {
-        cellMap[key] = {
-          centre_id: centreId,
-          staff_id:  a.staff_id,
-          cell_date: a.shift_date,
-          slot,
-          value,
-        };
-      }
-    });
-
-    const rotaCells = Object.values(cellMap);
-    if (rotaCells.length > 0) {
-      // Delete existing rota_cells for these staff + dates (clean slate for this turn)
-      const staffIds   = [...new Set(rotaCells.map((r) => r.staff_id))];
-      const dates      = [...new Set(rotaCells.map((r) => r.cell_date))];
-      // Delete in batches to avoid query size limits
-      for (const sid of staffIds) {
-        await supabase
-          .from("rota_cells")
-          .delete()
-          .eq("centre_id", centreId)
-          .eq("staff_id", sid)
-          .in("cell_date", dates);
-      }
-      // Insert new cells in batches of 500
-      for (let i = 0; i < rotaCells.length; i += 500) {
-        const { error } = await supabase
-          .from("rota_cells")
-          .upsert(rotaCells.slice(i, i + 500), {
-            onConflict: "centre_id,staff_id,cell_date,slot",
-          });
-        if (error) { setError(error.message); setPublishing(false); return; }
-      }
-    }
-
-    // 3. Update programme status to active
     await supabase
       .from("programmes")
       .update({ status: "active" })
       .eq("id", selectedProg.id);
-
     await loadProgrammes();
     setPublished(true);
     setPublishing(false);
@@ -863,49 +755,58 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
 
           <SolveResultSummary result={solveResult} />
 
-          {/* Assignments table */}
-          {solveResult.assignments?.length > 0 && (
+          {/* Rota preview */}
+          {solveResult.rota_cells?.length > 0 && (
             <div style={{ marginTop: 20 }}>
-              <div style={{ fontWeight: 700, color: B.navy, fontSize: 12, marginBottom: 10, fontFamily: "'Raleway', sans-serif" }}>
-                Draft assignments ({solveResult.assignments.length})
+              <div style={{ fontWeight: 700, color: B.navy, fontSize: 12, marginBottom: 8, fontFamily: "'Raleway', sans-serif" }}>
+                Rota preview — {solveResult.rota_cells.length} cells across {[...new Set(solveResult.rota_cells.map(c => c.staff_name))].length} staff
               </div>
-              <div style={{ maxHeight: 480, overflowY: "auto", border: `1px solid ${B.border}`, borderRadius: 10 }}>
+              <div style={{ background: FLAG_OK.bg, border: `1px solid ${FLAG_OK.border}`, borderRadius: 8, padding: "10px 16px", marginBottom: 12, fontSize: 11, color: FLAG_OK.text, fontWeight: 600 }}>
+                ✓ Rota has been written to the Rota tab. Press Publish to confirm it, then switch to the Rota tab to review and make any manual adjustments.
+              </div>
+              {solveResult.message && (
+                <div style={{ background: B.ice, border: `1px solid ${B.border}`, borderRadius: 8, padding: "10px 16px", marginBottom: 12, fontSize: 11, color: B.textMuted }}>
+                  <strong>Notes from solver:</strong> {solveResult.message}
+                </div>
+              )}
+              <div style={{ maxHeight: 400, overflowY: "auto", border: `1px solid ${B.border}`, borderRadius: 10 }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
                   <thead>
                     <tr style={{ background: B.navy, color: "#fff" }}>
-                      {["Date", "Type", "Start", "End", "Staff", "Flags"].map((h) => (
+                      {["Staff", "Date", "AM", "PM", "Eve"].map((h) => (
                         <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 700, fontSize: 11, fontFamily: "'Raleway', sans-serif" }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {[...solveResult.assignments]
-                      .sort((a, b) => a.shift_date.localeCompare(b.shift_date) || a.start_time.localeCompare(b.start_time))
-                      .map((a, i) => {
-                        const c = SHIFT_COLOURS[a.shift_type] || { bg: "#f8fafc", text: "#334155" };
-                        const flags = a.constraint_violations || [];
-                        return (
-                          <tr key={a.shift_id + a.staff_id} style={{ borderBottom: `1px solid ${B.borderLight}`, background: i % 2 === 0 ? B.white : "#f8fafc" }}>
-                            <td style={{ padding: "6px 12px", fontWeight: 600, color: B.navy, whiteSpace: "nowrap" }}>{fmtDate(a.shift_date)}</td>
-                            <td style={{ padding: "6px 12px" }}>
-                              <span style={{ background: c.bg, color: c.text, padding: "2px 8px", borderRadius: 10, fontSize: 10, fontWeight: 700 }}>{a.shift_type}</span>
-                            </td>
-                            <td style={{ padding: "6px 12px", fontFamily: "monospace" }}>{a.start_time}</td>
-                            <td style={{ padding: "6px 12px", fontFamily: "monospace" }}>{a.end_time}</td>
-                            <td style={{ padding: "6px 12px", fontWeight: 600, color: B.navy }}>{a.staff_name}</td>
-                            <td style={{ padding: "6px 12px" }}>
-                              {flags.length > 0
-                                ? flags.map((f, fi) => (
-                                  <span key={fi} style={{ background: FLAG_SOFT.bg, color: FLAG_SOFT.text, border: `1px solid ${FLAG_SOFT.border}`, borderRadius: 6, padding: "2px 6px", fontSize: 10, fontWeight: 700, display: "inline-block", marginRight: 4 }}>
-                                    {f.constraint_id}
-                                  </span>
-                                ))
-                                : <span style={{ color: B.textLight, fontSize: 10 }}>—</span>
-                              }
-                            </td>
-                          </tr>
-                        );
-                      })}
+                    {Object.entries(
+                      solveResult.rota_cells.reduce((acc, c) => {
+                        const key = c.staff_name + "__" + c.cell_date;
+                        if (!acc[key]) acc[key] = { staff_name: c.staff_name, date: c.cell_date, AM: "", PM: "", Eve: "" };
+                        acc[key][c.slot] = c.value;
+                        return acc;
+                      }, {})
+                    )
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([key, row], i) => (
+                      <tr key={key} style={{ borderBottom: `1px solid ${B.borderLight}`, background: i % 2 === 0 ? B.white : "#f8fafc" }}>
+                        <td style={{ padding: "5px 12px", fontWeight: 600, color: B.navy }}>{row.staff_name}</td>
+                        <td style={{ padding: "5px 12px", color: B.textMuted, whiteSpace: "nowrap" }}>{fmtDate(row.date)}</td>
+                        {["AM", "PM", "Eve"].map(slot => (
+                          <td key={slot} style={{ padding: "5px 12px" }}>
+                            {row[slot] ? (
+                              <span style={{
+                                background: row[slot] === "Day Off" ? "#fef3c7" : row[slot] === "Lessons" ? "#dbeafe" : row[slot].includes("Test") ? "#e0f2fe" : "#f0fdf4",
+                                color: row[slot] === "Day Off" ? "#92400e" : row[slot] === "Lessons" ? "#1e40af" : row[slot].includes("Test") ? "#0369a1" : "#065f46",
+                                padding: "2px 8px", borderRadius: 8, fontSize: 10, fontWeight: 600,
+                              }}>
+                                {row[slot]}
+                              </span>
+                            ) : <span style={{ color: B.textLight }}>—</span>}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -921,7 +822,7 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
 function SolveResultSummary({ result, onReview }) {
   const hardFlags = result.hard_flags || [];
   const softFlags = result.soft_flags || [];
-  const statusOk = result.status === "optimal" || result.status === "feasible";
+  const statusOk = result.status === "ok" || result.status === "partial";
 
   return (
     <div>
@@ -935,14 +836,13 @@ function SolveResultSummary({ result, onReview }) {
         <span style={{ fontSize: 20 }}>{statusOk ? "✅" : "❌"}</span>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: statusOk ? FLAG_OK.text : FLAG_HARD.text, fontFamily: "'Raleway', sans-serif" }}>
-            {result.status === "optimal" && "Optimal solution found"}
-            {result.status === "feasible" && "Feasible solution found (within time limit)"}
-            {result.status === "infeasible" && "No solution found — see issues below"}
-            {result.status === "error" && "Solver error"}
+            {result.status === "ok"      && "Rota generated successfully"}
+            {result.status === "partial" && "Rota generated with some issues"}
+            {result.status === "error"   && "Generation failed"}
           </div>
           {result.stats && (
             <div style={{ fontSize: 11, color: B.textMuted, marginTop: 2 }}>
-              {result.stats.n_assignments || 0} assignments · {result.stats.solve_time_ms}ms · {result.stats.n_staff} staff · {result.stats.n_shifts} shifts
+              {result.stats.n_cells || 0} rota cells · {result.stats.solve_time_ms}ms · {result.stats.n_staff} staff · {result.stats.n_days} days
             </div>
           )}
           {result.message && !statusOk && (
