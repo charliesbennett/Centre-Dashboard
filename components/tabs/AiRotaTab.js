@@ -407,7 +407,7 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
 
     sorted.forEach((a) => {
       const { slot, value } = shiftToRotaCell(a);
-      const key = ;
+      const key = `${a.staff_id}-${a.shift_date}-${slot}`;
       if (!cellMap[key]) {
         cellMap[key] = {
           centre_id: centreId,
