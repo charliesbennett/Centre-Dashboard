@@ -332,17 +332,58 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
     setGenerating(false);
   };
 
-  // ── Publish draft assignments ─────────────────────────
+  // ── Map a shift to rota_cells slot + display value ──────
+  // Mirrors the SESSION_TYPES used by the existing Rota tab.
+  const shiftToRotaCell = (assignment) => {
+    const { shift_type, start_time } = assignment;
+    const isAM = start_time < "13:00";
+
+    // slot: AM | PM | Eve
+    let slot, value;
+    switch (shift_type) {
+      case "teaching":
+        slot  = isAM ? "AM" : "PM";
+        value = "Lessons";
+        break;
+      case "activity":
+        slot  = isAM ? "AM" : "PM";
+        value = "Activities";
+        break;
+      case "duty":
+        slot  = "Eve";
+        value = "Duty";
+        break;
+      case "overnight":
+        slot  = "Eve";
+        value = "Overnight";
+        break;
+      case "transfer":
+        slot  = isAM ? "AM" : "PM";
+        value = "Airport";
+        break;
+      case "cover":
+        slot  = isAM ? "AM" : "PM";
+        value = "Cover";
+        break;
+      default:
+        slot  = isAM ? "AM" : "PM";
+        value = shift_type;
+    }
+    return { slot, value };
+  };
+
+  // ── Publish draft assignments + seed rota_cells grid ─────
+  // Option 3: writes confirmed assignments into rota_cells so the
+  // existing Rota tab shows the AI-generated rota as a starting point.
+  // Managers can then make manual edits in the Rota tab as normal.
   const publishRota = async () => {
     if (!selectedProg || !solveResult) return;
     setPublishing(true);
     setError(null);
 
-    // Get all shift IDs for this programme
+    // 1. Confirm assignments in assignments table
     const shiftIds = solveResult.assignments.map((a) => a.shift_id);
     const uniqueShiftIds = [...new Set(shiftIds)];
-
-    // Update assignment status from draft → confirmed
     if (uniqueShiftIds.length > 0) {
       const { error } = await supabase
         .from("assignments")
@@ -352,7 +393,58 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
       if (error) { setError(error.message); setPublishing(false); return; }
     }
 
-    // Update programme status to active
+    // 2. Write to rota_cells so the Rota tab shows the AI-generated rota
+    // One assignment may produce one rota_cells row (staff + date + slot = value)
+    // If two shifts map to the same slot (e.g. AM teaching + AM activity on same day),
+    // teaching takes priority — we sort and deduplicate.
+    const SLOT_PRIORITY = { teaching: 1, activity: 2, transfer: 3, cover: 4, duty: 5, overnight: 6 };
+    const cellMap = {};
+
+    // Sort by priority so higher-priority shift wins on same slot
+    const sorted = [...solveResult.assignments].sort(
+      (a, b) => (SLOT_PRIORITY[a.shift_type] || 9) - (SLOT_PRIORITY[b.shift_type] || 9)
+    );
+
+    sorted.forEach((a) => {
+      const { slot, value } = shiftToRotaCell(a);
+      const key = ;
+      if (!cellMap[key]) {
+        cellMap[key] = {
+          centre_id: centreId,
+          staff_id:  a.staff_id,
+          cell_date: a.shift_date,
+          slot,
+          value,
+        };
+      }
+    });
+
+    const rotaCells = Object.values(cellMap);
+    if (rotaCells.length > 0) {
+      // Delete existing rota_cells for these staff + dates (clean slate for this turn)
+      const staffIds   = [...new Set(rotaCells.map((r) => r.staff_id))];
+      const dates      = [...new Set(rotaCells.map((r) => r.cell_date))];
+      // Delete in batches to avoid query size limits
+      for (const sid of staffIds) {
+        await supabase
+          .from("rota_cells")
+          .delete()
+          .eq("centre_id", centreId)
+          .eq("staff_id", sid)
+          .in("cell_date", dates);
+      }
+      // Insert new cells in batches of 500
+      for (let i = 0; i < rotaCells.length; i += 500) {
+        const { error } = await supabase
+          .from("rota_cells")
+          .upsert(rotaCells.slice(i, i + 500), {
+            onConflict: "centre_id,staff_id,cell_date,slot",
+          });
+        if (error) { setError(error.message); setPublishing(false); return; }
+      }
+    }
+
+    // 3. Update programme status to active
     await supabase
       .from("programmes")
       .update({ status: "active" })
