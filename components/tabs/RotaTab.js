@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import { B, SESSION_TYPES, genDates, dayKey, dayName, isWeekend, inRange, fmtDate } from "@/lib/constants";
 import { EVE_ENT_NAMES } from "@/lib/rotaRules";
+import { ROLE_RULES, NO_COUNT } from "@/lib/rotaRules";
 import { StatCard, IcWand, thStyle, tdStyle, btnPrimary } from "@/components/ui";
 
 const SLOTS = ["AM", "PM", "Eve"];
@@ -20,22 +21,35 @@ function getGroupLessonSlot(group, dateStr) {
   return weekNum % 2 === 0 ? group.lessonSlot : (group.lessonSlot === "AM" ? "PM" : "AM");
 }
 
+// Get session limit for a role from ROLE_RULES
+function getSessionLimit(role) {
+  const rule = ROLE_RULES[role];
+  if (!rule) return 24;
+  if (rule.salaried) return Infinity; // management uncapped
+  return rule.target || 24;
+}
+
+// Does this cell value count as a session?
+function isSession(value) {
+  if (!value) return false;
+  return !NO_COUNT.has(value);
+}
+
 export default function RotaTab({ staff, progStart, progEnd, excDays, groups, rotaGrid, setRotaGrid, progGrid = {}, centreName = "", readOnly = false }) {
   const [showRatios, setShowRatios] = useState(true);
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
-  const [aiProgress, setAiProgress] = useState(0); // 0=idle 1=agent1 2=agent2 3=agent3
+  const [aiProgress, setAiProgress] = useState(0);
   const [aiError, setAiError] = useState(null);
   const [staffingSuggestions, setStaffingSuggestions] = useState([]);
-  const [reviewerCorrections, setReviewerCorrections] = useState(null); // number | null
+  const [reviewerCorrections, setReviewerCorrections] = useState(null);
   const [reviewerDismissed, setReviewerDismissed] = useState(false);
   const grid = rotaGrid;
   const setGrid = setRotaGrid;
 
   const dates = useMemo(() => (progStart && progEnd) ? genDates(progStart, progEnd) : [], [progStart, progEnd]);
   const hasRotaData = useMemo(() => Object.values(rotaGrid || {}).some(Boolean), [rotaGrid]);
-
 
   const groupArrivalDate = useMemo(() => {
     if (!groups || !groups.length) return null;
@@ -93,16 +107,13 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
   const teacherAdequacy = useMemo(() => {
     if (!staff || !groups || !dates.length) return null;
     const TEACHING = ["FTT", "TAL", "CD"];
-    // Peak demand: max teachers needed in any single slot across all teaching days
     let peakAM = 0, peakPM = 0;
     Object.values(lessonDemand).forEach((d) => {
       peakAM = Math.max(peakAM, d.amTeachers);
       peakPM = Math.max(peakPM, d.pmTeachers);
     });
-    const peakNeeded = Math.max(peakAM, peakPM); // worst-case single slot
-    // Available teaching staff (on site for at least part of the programme)
+    const peakNeeded = Math.max(peakAM, peakPM);
     const teachersOnSite = staff.filter((s) => TEACHING.includes(s.role)).length;
-    // With 1 day off per week, ~86% available on any given day; round down
     const typicalAvail = Math.floor(teachersOnSite * 6 / 7);
     if (peakNeeded === 0) return null;
     const shortfall = peakNeeded - typicalAvail;
@@ -113,23 +124,20 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
   const autoGenerate = () => {
     const ng = {};
 
-    // ── Role groups & session targets ────────────────────
     const TEACHING = ["TAL", "FTT", "5FTT"];
     const ACTIVITY = ["SAI", "EAL", "SC", "EAC", "FOOTBALL", "DRAMA", "DANCE", "LAL", "LAC", "HP"];
     const MGMT    = ["CM", "CD", "EAM", "SWC"];
-    const NO_SESSION = new Set(["Day Off", "Induction", "Setup", "Office", "Airport"]);
-    const target = (role) => MGMT.includes(role) ? 0 : ["TAL","FTT","5FTT","HP"].includes(role) ? 22 : 24;
+    const NO_SESSION = new Set(["Day Off", "Induction", "Setup", "Office", "Airport", "Welcome", "Pickup", "Departure Duty"]);
+    const target = (role) => getSessionLimit(role);
 
     const teachers = staff.filter((s) => TEACHING.includes(s.role));
     const actStaff = staff.filter((s) => ACTIVITY.includes(s.role));
     const mgmt     = staff.filter((s) => MGMT.includes(s.role));
     const allStaff = [...mgmt, ...teachers, ...actStaff];
 
-    // ── Session counter ───────────────────────────────────
     const sess = {};
     allStaff.forEach((s) => { sess[s.id] = 0; });
 
-    // put(sid, ds, slot, val) — writes cell, increments session count, won't overwrite
     const put = (sid, ds, slot, val) => {
       const k = sid + "-" + ds + "-" + slot;
       if (ng[k]) return false;
@@ -138,18 +146,14 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       return true;
     };
 
-    const hasRoom  = (s) => { const t = target(s.role); return t === 0 || (sess[s.id] || 0) < t; };
-    // Exclude departure day from session assignment (staff are travelling, not working)
+    const hasRoom  = (s) => { const t = target(s.role); return t === Infinity || t === 0 || (sess[s.id] || 0) < t; };
     const isOn     = (s, ds) => inRange(ds, s.arr, s.dep) && ds < s.dep;
-    const slotFree = (sid, ds) => !ng[sid + "-" + ds + "-AM"]; // AM is the proxy for "day assigned"
+    const slotFree = (sid, ds) => !ng[sid + "-" + ds + "-AM"];
     const avail    = (s, ds) => isOn(s, ds) && slotFree(s.id, ds) && hasRoom(s);
 
-    // ── Staff global index (stagger day offs / AM-PM rotation) ──
     const gIdx = {};
     allStaff.forEach((s, i) => { gIdx[s.id] = i; });
 
-    // ── Day profiles from programme grid ─────────────────
-    // For each date extract: lesson counts, testing, excursion destinations per slot
     const profiles = {};
     dates.forEach((d) => {
       const ds = dayKey(d);
@@ -167,11 +171,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
           if (ds === g.arr || ds === g.dep) return;
           const val = String(progGrid[g.id + "-" + ds + "-" + slot] || "").trim();
           const pax = (g.stu || 0) + (g.gl || 0);
-          // Testing: always from programme grid
           if (val && /english\s*test|placement\s*test/i.test(val)) { testStu += pax; return; }
-          // Lesson demand: use group's lessonSlot (handles ZZ weekly flip) — not programme grid text
           if (getGroupLessonSlot(g, ds) === slot) { lessonStu += pax; return; }
-          // Non-lesson slot: excursion destination from programme grid
           if (val && !/arriv|depart/i.test(val)) excDests[val] = (excDests[val] || 0) + pax;
         });
         const topDest = Object.keys(excDests).sort((a, b) => excDests[b] - excDests[a])[0] || null;
@@ -186,29 +187,29 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       });
 
       p.isTestingDay = p.AM.isTesting || p.PM.isTesting;
-      // True full-day excursion: excursions in both slots AND no lessons/tests at all
       p.isFDE  = p.AM.hasExc && p.PM.hasExc && p.AM.lessonStu === 0 && p.PM.lessonStu === 0 && p.AM.testStu === 0 && p.PM.testStu === 0;
       p.isHDE  = !p.isFDE && (p.AM.hasExc || p.PM.hasExc);
       p.fdeLabel = p.isFDE ? (p.AM.topDest || p.PM.topDest || "Excursion") : null;
       profiles[ds] = p;
     });
 
-    // ── Arriving students per date ────────────────────────
     const arrStu = {};
+    const arrGroups = {};
     (groups || []).forEach((g) => {
-      if (g.arr) arrStu[g.arr] = (arrStu[g.arr] || 0) + (g.stu || 0) + (g.gl || 0);
+      if (g.arr) {
+        arrStu[g.arr] = (arrStu[g.arr] || 0) + (g.stu || 0) + (g.gl || 0);
+        arrGroups[g.arr] = (arrGroups[g.arr] || 0) + 1;
+      }
     });
 
     // ── Pass 1: Fixed per-staff assignments ───────────────
-    // Induction (first on-site day), Setup (pre-group-arrival days), Departure Airport, explicit Time Off
     allStaff.forEach((s) => {
       const tos = parseTimeOff(s.to);
       const onSite = dates.map((d) => ({ date: d, ds: dayKey(d) })).filter(({ ds }) => inRange(ds, s.arr, s.dep));
       if (!onSite.length) return;
 
-      // First day = Induction
+      // First day = Induction (PM only — AM is empty)
       const indDs = onSite[0].ds;
-      ng[s.id + "-" + indDs + "-AM"] = "Induction";
       ng[s.id + "-" + indDs + "-PM"] = "Induction";
 
       // Days 2..N before first group arrival = Setup
@@ -234,11 +235,10 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
 
     // ── Pass 2: Day offs (1 per week, staggered) ──────────
     allStaff.forEach((s) => {
-      if (["5FTT"].includes(s.role)) return; // 5-day FTTs go home at weekends — no extra day off needed
+      if (["5FTT"].includes(s.role)) return;
       const tos = parseTimeOff(s.to);
       const i = gIdx[s.id] || 0;
 
-      // Programme days: on site, not already assigned a fixed label
       const progDays = dates.map((d) => ({ date: d, ds: dayKey(d) })).filter(({ ds }) => {
         if (!inRange(ds, s.arr, s.dep)) return false;
         const am = ng[s.id + "-" + ds + "-AM"];
@@ -252,7 +252,6 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
 
         let pick = null;
         if (["FTT"].includes(s.role)) {
-          // FTTs prefer FDE days (they don't do excursions) or weekends
           const pool = [
             ...wk.filter(({ ds }) => profiles[ds]?.isFDE),
             ...wk.filter(({ date }) => date.getDay() === 0 || date.getDay() === 6),
@@ -260,14 +259,12 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
           ].filter(({ ds }) => !isFullDayOff(tos, ds));
           if (pool.length) pick = pool[i % pool.length];
         } else {
-          // All other staff: stagger weekday preference; activity staff avoid FDE + arrival days
           const basePref = [3, 4, 2, 5, 1, 6, 0];
           const pref = basePref.map((_, j) => basePref[(j + i + w) % basePref.length]);
           for (const pd of pref) {
             const cand = wk.find(({ date, ds }) => {
               if (date.getDay() !== pd) return false;
               if (isFullDayOff(tos, ds)) return false;
-              // Bug fix #5: Only avoid day off on FIRST arrival day (not every arrival date)
               if (ACTIVITY.includes(s.role) && (profiles[ds]?.isFDE || ds === groupArrivalDate)) return false;
               return true;
             });
@@ -290,7 +287,6 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       if (!groupArrivalDate || ds < groupArrivalDate) return;
       const p = profiles[ds] || {};
 
-      // Management always Office (unless already marked)
       mgmt.forEach((s) => {
         if (isOn(s, ds) && !ng[s.id + "-" + ds + "-AM"]) {
           ng[s.id + "-" + ds + "-AM"] = "Office";
@@ -298,40 +294,39 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         }
       });
 
-      // ── First arrival day: FTTs off, pickup, setup/welcome ──────────────
+      // ── First arrival day ────────────────────────────────
       if (p.isFirstArrival) {
         teachers.filter((s) => ["FTT","5FTT"].includes(s.role) && isOn(s, ds) && !ng[s.id+"-"+ds+"-AM"])
           .forEach((s) => SLOTS.forEach((sl) => { ng[s.id+"-"+ds+"-"+sl] = "Day Off"; }));
 
-        const need = Math.max(2, Math.ceil((arrStu[ds] || 0) / 40));
+        // 1 TAL/activity staff per arriving group
+        const numGroups = arrGroups[ds] || 1;
         const pickPool = [...teachers.filter((s) => s.role === "TAL"), ...actStaff].filter((s) => avail(s, ds));
         let pickDone = 0;
-        pickPool.forEach((s) => { if (pickDone < need) { put(s.id, ds, "AM", "pickup"); pickDone++; } });
+        pickPool.forEach((s) => { if (pickDone < numGroups) { put(s.id, ds, "AM", "Pickup"); pickDone++; } });
 
         [...teachers.filter((s) => s.role === "TAL"), ...actStaff]
           .filter((s) => isOn(s, ds) && slotFree(s.id, ds) && ng[s.id+"-"+ds+"-AM"] !== "Day Off")
-          .forEach((s) => { put(s.id, ds, "AM", "setup"); put(s.id, ds, "PM", "welcome"); });
+          .forEach((s) => { put(s.id, ds, "AM", "Setup"); put(s.id, ds, "PM", "Welcome"); });
         return;
       }
 
-      // ── Subsequent arrival day: small pickup team, lessons continue ──────
+      // ── Subsequent arrival day ────────────────────────────
       if (p.isArrival) {
-        const need = Math.max(1, Math.ceil((arrStu[ds] || 0) / 40));
+        const numGroups = arrGroups[ds] || 1;
         const pickPool = [...teachers.filter((s) => s.role === "TAL"), ...actStaff].filter((s) => avail(s, ds));
         let pickDone = 0;
         pickPool.forEach((s) => {
-          if (pickDone < need) { put(s.id, ds, "AM", "pickup"); put(s.id, ds, "PM", "welcome"); pickDone++; }
+          if (pickDone < numGroups) { put(s.id, ds, "AM", "Pickup"); put(s.id, ds, "PM", "Welcome"); pickDone++; }
         });
-        // Fall through — remaining staff get normal lesson/activity assignments
       }
 
-      // ── Testing day (day after arrival — English placement tests) ──
+      // ── Testing day ──────────────────────────────────────
       if (p.isTestingDay) {
         teachers.filter((s) => s.role === "FTT" && avail(s, ds))
-          .forEach((s) => { put(s.id, ds, "AM", "Testing"); put(s.id, ds, "PM", "Testing"); });
-        // TALs also show "Testing" AM, Activities PM (oral/interview component)
+          .forEach((s) => { put(s.id, ds, "AM", "English Test"); put(s.id, ds, "PM", "English Test"); });
         teachers.filter((s) => s.role === "TAL" && avail(s, ds))
-          .forEach((s) => { put(s.id, ds, "AM", "Testing"); put(s.id, ds, "PM", "Activities"); });
+          .forEach((s) => { put(s.id, ds, "AM", "English Test"); put(s.id, ds, "PM", "Activities"); });
         actStaff.filter((s) => avail(s, ds))
           .forEach((s) => { put(s.id, ds, "AM", "Activities"); put(s.id, ds, "PM", "Activities"); });
         return;
@@ -340,20 +335,16 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       // ── Full-day excursion ────────────────────────────────
       if (p.isFDE) {
         const lbl = p.fdeLabel;
-
-        // Bug fix #3: Assign FTT day-off BEFORE activity staff so it fires reliably
         teachers.filter((s) => ["FTT","5FTT"].includes(s.role) && isOn(s, ds) && !ng[s.id+"-"+ds+"-AM"])
           .forEach((s) => SLOTS.forEach((sl) => { ng[s.id+"-"+ds+"-"+sl] = "Day Off"; }));
 
         actStaff.filter((s) => avail(s, ds)).forEach((s) => { put(s.id, ds, "AM", lbl); put(s.id, ds, "PM", lbl); });
 
-        // TALs: 1 per ~20 students leading the group
         const talNeed = Math.max(1, Math.ceil((p.students || 0) / 20));
         let talDone = 0;
         teachers.filter((s) => s.role === "TAL" && avail(s, ds)).forEach((s) => {
           if (talDone < talNeed) { put(s.id, ds, "AM", lbl); put(s.id, ds, "PM", lbl); talDone++; }
         });
-
         return;
       }
 
@@ -364,7 +355,6 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       const pmTN  = p.PM?.teachersNeeded || 0;
       let amTD = 0, pmTD = 0;
 
-      // Bug fix #1: FTTs only teach when lesson demand exists in each slot
       teachers.filter((s) => s.role === "FTT" && avail(s, ds)).forEach((s) => {
         const amVal = amTN > 0 ? "Lessons" : "Activities";
         const pmVal = pmTN > 0 ? "Lessons" : "Activities";
@@ -373,7 +363,6 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         if (pmTN > 0) pmTD++;
       });
 
-      // 5FTTs: Lessons Mon-Fri only
       if (d.getDay() >= 1 && d.getDay() <= 5) {
         teachers.filter((s) => s.role === "5FTT" && avail(s, ds)).forEach((s) => {
           put(s.id, ds, "AM", "Lessons"); put(s.id, ds, "PM", "Lessons");
@@ -381,7 +370,6 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         });
       }
 
-      // TALs: fill remaining lesson demand, non-lesson slot gets excursion/activity label
       teachers.filter((s) => s.role === "TAL" && avail(s, ds)).forEach((s) => {
         const ri = gIdx[s.id] || 0;
         const prefAM = ((ri + weekNum(ds)) % 2 === 0);
@@ -391,7 +379,6 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         else          { put(s.id, ds, "AM", amLbl);     put(s.id, ds, "PM", "Lessons"); pmTD++; }
       });
 
-      // Activity staff: use slot labels from programme
       actStaff.filter((s) => avail(s, ds)).forEach((s) => {
         if      (s.role === "FOOTBALL") { put(s.id, ds, "AM", p.AM.hasExc ? amLbl : "Activities"); put(s.id, ds, "PM", "Football"); }
         else if (s.role === "DRAMA")    { put(s.id, ds, "AM", "Drama");                             put(s.id, ds, "PM", p.PM.hasExc ? pmLbl : "Activities"); }
@@ -399,10 +386,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       });
     });
 
-    // ── Pass 4: Evening sweep — real event names, include TAL + activity staff ──
-    const regularEveNames = EVE_ENT_NAMES.filter((n) => n !== "Welcome Ents");
+    // ── Pass 4: Evening sweep ─────────────────────────────
     let eveNameIdx = 0;
-
     dates.forEach((d) => {
       const ds = dayKey(d);
       if (!groupArrivalDate || ds < groupArrivalDate) return;
@@ -410,13 +395,13 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         inRange(ds, g.arr, g.dep) && ds !== g.dep ? sum + (g.stu || 0) + (g.gl || 0) : sum, 0);
       if (!stu) return;
       const eveTarget = Math.max(2, Math.ceil(stu / 20));
-      const eventName = ds === groupArrivalDate ? "Welcome Ents" : regularEveNames[eveNameIdx % regularEveNames.length];
+      // Always use "Evening Activity" — EAM decides the specific activity
+      const eventName = "Evening Activity";
 
       let eveCount = staff.filter((s) => { const v = ng[s.id+"-"+ds+"-Eve"]; return v && v !== "Day Off"; }).length;
 
       if (eveCount < eveTarget) {
         const di = dates.findIndex((x) => dayKey(x) === ds);
-        // Eligible pool: activity staff + TALs (not FTT/5FTT/mgmt)
         const eligible = staff.filter((s) => !["FTT","5FTT","CM","CD","EAM"].includes(s.role));
         const ordered = [...eligible.slice(di % eligible.length), ...eligible.slice(0, di % eligible.length)];
         for (const s of ordered) {
@@ -425,24 +410,21 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
           const am = ng[s.id+"-"+ds+"-AM"];
           const pm = ng[s.id+"-"+ds+"-PM"];
           const eve = ng[s.id+"-"+ds+"-Eve"];
-          if (!am || am === "Day Off" || am === "Induction" || am === "Setup" || am === "pickup") continue;
-          const isFullDayExc = am && pm && am === pm && !NO_SESSION.has(am) &&
-            !["Lessons","Testing","Activities","Half Exc"].includes(am);
-          if (!eve && !isFullDayExc && hasRoom(s)) {
+          if (!am || am === "Day Off" || am === "Induction" || am === "Setup" || am === "Pickup") continue;
+          if (!eve && hasRoom(s)) {
             ng[s.id+"-"+ds+"-Eve"] = eventName;
             sess[s.id] = (sess[s.id] || 0) + 1;
             eveCount++;
           }
         }
       }
-
-      if (ds !== groupArrivalDate) eveNameIdx++;
+      eveNameIdx++;
     });
 
     setGrid(ng);
   };
 
-  // ── AI rota generation (3-agent pipeline with SSE progress) ─────────
+  // ── AI rota generation ────────────────────────────────
   const aiGenerate = async () => {
     const hasData = Object.values(rotaGrid).some((v) => v);
     if (hasData && !window.confirm("AI generate will overwrite all existing rota entries. Continue?")) return;
@@ -457,23 +439,18 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ staff, groups, progGrid, progStart, progEnd, centreName }),
       });
-
-      // Check if this is an SSE stream
       const contentType = res.headers.get("content-type") || "";
       if (contentType.includes("text/event-stream")) {
-        // Parse SSE stream
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
         let finalData = null;
-
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split("\n");
-          buffer = lines.pop(); // keep incomplete line
-
+          buffer = lines.pop();
           for (const line of lines) {
             if (line.startsWith("data: ")) {
               const payload = line.slice(6).trim();
@@ -489,13 +466,11 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
             }
           }
         }
-
         if (!finalData) throw new Error("No grid data received from generation pipeline");
         setGrid(finalData.grid);
         setStaffingSuggestions(finalData.suggestions || []);
         if (typeof finalData.corrections === "number") setReviewerCorrections(finalData.corrections);
       } else {
-        // Fallback: plain JSON response
         const data = await res.json();
         if (!res.ok || data.error) throw new Error(data.error || "Generation failed");
         setGrid(data.grid);
@@ -536,8 +511,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     });
   };
 
-  // Stats
-  const NON_SESS_DISPLAY = new Set(["Day Off", "Induction", "Setup", "Office", "Airport"]);
+  // ── Session + day-off stats ───────────────────────────
+  // Uses NO_COUNT from rotaRules for accurate session counting
   const getStats = (sid) => {
     let sess = 0, offs = 0;
     dates.forEach((d) => {
@@ -545,13 +520,13 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       let allOff = true;
       SLOTS.forEach((sl) => {
         const v = grid[sid+"-"+ds+"-"+sl];
-        if (v && !NON_SESS_DISPLAY.has(v)) sess++;
+        if (v && isSession(v)) sess++;
         if (v && v !== "Day Off") allOff = false;
       });
-      if (allOff) {
-        const a = grid[sid+"-"+ds+"-AM"], b = grid[sid+"-"+ds+"-PM"], c = grid[sid+"-"+ds+"-Eve"];
-        if (a === "Day Off" || b === "Day Off" || c === "Day Off") offs++;
-      }
+      // Count as a day off only if AM and PM are both Day Off
+      const am = grid[sid+"-"+ds+"-AM"];
+      const pm = grid[sid+"-"+ds+"-PM"];
+      if (am === "Day Off" && pm === "Day Off") offs++;
     });
     return { sess, offs };
   };
@@ -604,22 +579,19 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     if (v === "Day Off") return "#f59e0b";
     if (SESSION_TYPES[v]) return SESSION_TYPES[v];
     const vl = v.toLowerCase();
-    if (vl.includes("lesson") || vl === "testing" || vl.includes("english test") || vl.includes("int english") || vl.includes("int eng")) return SESSION_TYPES["Lessons"];
+    if (vl.includes("lesson") || vl.includes("english test") || vl.includes("testing") || vl.includes("int english") || vl.includes("int eng")) return SESSION_TYPES["Lessons"];
+    if (vl.includes("evening activity") || vl.includes("eve ent") || vl.includes("disco") || vl.includes("bbq") || vl.includes("quiz") || vl.includes("karaoke") || vl.includes("film") || vl.includes("talent") || vl.includes("scav")) return SESSION_TYPES["Eve Ents"];
     if (vl.includes("excursion")) return SESSION_TYPES["Excursion"];
     if (vl.includes("act") || vl.includes("multi")) return SESSION_TYPES["Activities"];
     if (vl.includes("half exc")) return SESSION_TYPES["Half Exc"];
-    if (vl.includes("eve") || vl.includes("disco") || vl.includes("bbq") || vl.includes("quiz") || vl.includes("karaoke") || vl.includes("film") || vl.includes("talent") || vl.includes("scav")) return SESSION_TYPES["Eve Ents"];
     if (vl === "office") return "#94a3b8";
-    if (vl === "pickup" || vl === "welcome" || vl === "setup") return SESSION_TYPES["Setup"];
+    if (vl === "pickup" || vl === "welcome" || vl === "setup" || vl === "departure duty") return SESSION_TYPES["Setup"];
     if (vl === "football") return "#16a34a";
     if (vl === "drama" || vl === "dance") return "#9333ea";
-    // Unknown labels (e.g. excursion destination names like "Liverpool", "Chester") → orange
     return SESSION_TYPES["Excursion"];
   };
 
   const tableMinWidth = 272 + dates.length * (CELL_W * 3 + 6);
-
-  // Total chrome height: header 68 + strip 4 + nav 48 = 120px
   const CHROME = 120;
 
   return (
@@ -697,7 +669,6 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         <div style={{ flexShrink: 0, padding: "6px 16px", background: "#fef3c7", borderBottom: `1px solid #fcd34d`, fontSize: 9, color: "#92400e" }}>
           <strong style={{ fontSize: 10 }}>⚠️ Staffing gaps detected — consider adding staff:</strong>
           {(() => {
-            // Summarise: count shortfall by slot type
             const amShort = staffingSuggestions.filter((s) => s.slot === "AM").reduce((m, s) => Math.max(m, s.shortfall), 0);
             const pmShort = staffingSuggestions.filter((s) => s.slot === "PM").reduce((m, s) => Math.max(m, s.shortfall), 0);
             const maxShort = Math.max(amShort, pmShort);
@@ -819,10 +790,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
               <tr><td colSpan={4 + dates.length * 3} style={{ textAlign: "center", padding: 36, color: B.textLight }}>Add staff in Team tab, then Auto-Generate</td></tr>
             ) : staff.map((s) => {
               const st = getStats(s.id);
-              const lim = ["CM","CD","EAM","SWC"].includes(s.role) ? 0 : ["TAL","FTT","5FTT","HP"].includes(s.role) ? 22 : 24;
-              const wks = Math.max(1, Math.floor(dates.length / 7));
-              const maxTotal = Math.ceil(lim * (wks / 2));
-              const over = st.sess > maxTotal;
+              const limit = getSessionLimit(s.role);
+              const over = limit !== Infinity && limit > 0 && st.sess > limit;
 
               return (
                 <tr key={s.id} style={{ borderBottom: "1px solid "+B.borderLight }}>
@@ -830,7 +799,9 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                     <span style={{ background: "#dbeafe", color: "#1e40af", padding: "3px 7px", borderRadius: 4, fontSize: 10, fontWeight: 800 }}>{s.role}</span>
                   </td>
                   <td style={{ ...tdStyle, fontWeight: 700, color: B.navy, fontSize: 12, position: "sticky", left: 52, background: B.white, zIndex: 1, whiteSpace: "nowrap" }}>{s.name}</td>
-                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, fontSize: 12, position: "sticky", left: 192, background: B.white, zIndex: 1, color: over ? B.danger : B.navy }}>{st.sess}</td>
+                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, fontSize: 12, position: "sticky", left: 192, background: B.white, zIndex: 1, color: over ? B.danger : B.navy }}>
+                    {st.sess}{limit !== Infinity && limit > 0 ? `/${limit}` : ""}
+                  </td>
                   <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700, fontSize: 12, position: "sticky", left: 236, background: B.white, zIndex: 1, color: st.offs > 0 ? "#f59e0b" : B.textLight }}>{st.offs}</td>
                   {dates.map((d) => {
                     const ds = dayKey(d); const on = inRange(ds, s.arr, s.dep);
