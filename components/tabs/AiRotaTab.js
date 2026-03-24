@@ -392,7 +392,7 @@ export default function AiRotaTab({ centreId, centreName, staff, groups, progSta
           AI Rota Generator
         </div>
         <div style={{ fontSize: 12, color: B.textMuted, marginTop: 2 }}>
-          {centreName} — OR-Tools constraint solver
+          {centreName} — Claude AI rota generator
         </div>
       </div>
 
