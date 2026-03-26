@@ -23,6 +23,26 @@ function isPublishDisabled(draftRota) {
   return !draftRota;
 }
 
+// ── buildDraftRotaGrid — replicated from AiRotaTab.js (pure function) ─────
+// Returns: { [staffId]: { [dateKey]: { AM, PM, Eve } } }
+function buildDraftRotaGrid(draftRota, staff) {
+  if (!draftRota?.grid || !staff?.length) return {};
+  const result = {};
+  staff.forEach((s) => { result[s.id] = {}; });
+  for (const [key, val] of Object.entries(draftRota.grid)) {
+    const slotMatch = key.match(/-(AM|PM|Eve)$/);
+    if (!slotMatch) continue;
+    const slot = slotMatch[1];
+    const withoutSlot = key.slice(0, key.length - slot.length - 1);
+    const staffMember = staff.find((s) => withoutSlot.startsWith(s.id));
+    if (!staffMember) continue;
+    const dateKey = withoutSlot.slice(staffMember.id.length + 1);
+    if (!result[staffMember.id][dateKey]) result[staffMember.id][dateKey] = {};
+    result[staffMember.id][dateKey][slot] = val;
+  }
+  return result;
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────
 
 describe("STORY-A1: AiRotaTab stepper", () => {
@@ -77,5 +97,67 @@ describe("STORY-A1: Publish button disabled logic", () => {
 
   it("is enabled when draftRota is any truthy value", () => {
     expect(isPublishDisabled({ rota: {} })).toBe(false);
+  });
+});
+
+// ── buildDraftRotaGrid ─────────────────────────────────────────────────────
+
+describe("STORY-A2: buildDraftRotaGrid", () => {
+  const staff = [
+    { id: "staff-1", name: "Alice" },
+    { id: "staff-2", name: "Bob" },
+  ];
+
+  it("returns correct grid structure from draft rota JSON", () => {
+    const draftRota = {
+      grid: {
+        "staff-1-2026-07-01-AM": "Lessons",
+        "staff-1-2026-07-01-PM": "Sports",
+        "staff-1-2026-07-01-Eve": "Eve Ent",
+        "staff-2-2026-07-01-AM": "Day Off",
+      },
+    };
+    const result = buildDraftRotaGrid(draftRota, staff);
+    expect(result["staff-1"]["2026-07-01"].AM).toBe("Lessons");
+    expect(result["staff-1"]["2026-07-01"].PM).toBe("Sports");
+    expect(result["staff-1"]["2026-07-01"].Eve).toBe("Eve Ent");
+    expect(result["staff-2"]["2026-07-01"].AM).toBe("Day Off");
+  });
+
+  it("returns empty grid when draftRota is null", () => {
+    const result = buildDraftRotaGrid(null, staff);
+    expect(result).toEqual({});
+  });
+
+  it("returns empty grid when draftRota has no grid property", () => {
+    const result = buildDraftRotaGrid({}, staff);
+    expect(result).toEqual({});
+  });
+
+  it("returns empty grid when staff is empty", () => {
+    const draftRota = { grid: { "staff-1-2026-07-01-AM": "Lessons" } };
+    const result = buildDraftRotaGrid(draftRota, []);
+    expect(result).toEqual({});
+  });
+
+  it("ignores keys that don't match any staff member", () => {
+    const draftRota = { grid: { "unknown-2026-07-01-AM": "Lessons" } };
+    const result = buildDraftRotaGrid(draftRota, staff);
+    expect(result["staff-1"]).toEqual({});
+    expect(result["staff-2"]).toEqual({});
+  });
+
+  it("handles multiple dates for the same staff member", () => {
+    const draftRota = {
+      grid: {
+        "staff-1-2026-07-01-AM": "Lessons",
+        "staff-1-2026-07-02-AM": "Sports",
+        "staff-1-2026-07-02-PM": "Day Off",
+      },
+    };
+    const result = buildDraftRotaGrid(draftRota, staff);
+    expect(result["staff-1"]["2026-07-01"].AM).toBe("Lessons");
+    expect(result["staff-1"]["2026-07-02"].AM).toBe("Sports");
+    expect(result["staff-1"]["2026-07-02"].PM).toBe("Day Off");
   });
 });

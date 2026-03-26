@@ -335,7 +335,7 @@ export default function Dashboard() {
       case "home": return <HomeTab groups={db.groups} staff={db.staff} excDays={db.excDays} progGrid={db.progGrid} rotaGrid={db.rotaGrid} progStart={progStart} progEnd={progEnd} />;
       case "students": return <StudentsTab groups={db.groups} setGroups={setGroups} progStart={progStart} progEnd={progEnd} readOnly={isReadOnly} />;
       case "rota": return <RotaTab staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} groups={activeGroups} rotaGrid={db.rotaGrid} setRotaGrid={setRotaGrid} progGrid={db.progGrid} centreName={centreName} readOnly={isReadOnly} />;
-      case "airota": return <AiRotaTab centreId={centreId} centreName={centreName} staff={db.staff} groups={activeGroups} progStart={progStart} progEnd={progEnd} readOnly={isReadOnly} />;
+      case "airota": return <AiRotaTab centreId={centreId} centreName={centreName} staff={db.staff} groups={activeGroups} progStart={progStart} progEnd={progEnd} progGrid={db.progGrid} rotaGrid={db.rotaGrid} setRotaGrid={setRotaGrid} readOnly={isReadOnly} />;
       case "programmes": return <ProgrammesTab groups={activeGroups} progStart={progStart} progEnd={progEnd} centre={centreName} excDays={db.excDays} setExcDays={setExcDays} progGrid={db.progGrid} setProgGrid={setProgGrid} settings={db.settings} saveSetting={db.saveSetting} readOnly={isReadOnly} />;
       case "catering": return <CateringTab groups={activeGroups} staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} cateringData={cateringData} setCateringData={setCateringData} readOnly={isReadOnly} />;
       case "transfers": return <TransfersTab groups={activeGroups} transfers={db.transfers} setTransfers={setTransfers} readOnly={isReadOnly} />;
