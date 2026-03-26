@@ -356,10 +356,9 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
 
       actStaff.filter((s) => avail(s, ds)).forEach((s) => { put(s.id, ds, "AM", lbl); put(s.id, ds, "PM", lbl); });
 
-      const talNeed = Math.max(1, Math.ceil((p.totalStu || 0) / 20));
-      let talDone = 0;
+      // All available TALs go on the excursion on FDE days (no teaching needed)
       teachers.filter((s) => s.role === "TAL" && avail(s, ds)).forEach((s) => {
-        if (talDone < talNeed) { put(s.id, ds, "AM", lbl); put(s.id, ds, "PM", lbl); talDone++; }
+        put(s.id, ds, "AM", lbl); put(s.id, ds, "PM", lbl);
       });
 
       return;
@@ -445,7 +444,9 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
         if (!am || am === "Day Off" || am === "Induction" || am === "Setup" || am === "pickup") continue;
         const isFullDayExc = am && pm && am === pm && !NO_SESSION.has(am) &&
           !["Lessons","Testing","Int English","Activities","Half Exc"].includes(am);
-        if (!eve && !isFullDayExc && hasRoom(s)) {
+        // Max 2 counted sessions per day — don't add Eve if AM+PM already fill the quota
+        const daySessionCount = [am, pm].filter((v) => v && !NO_SESSION.has(v)).length;
+        if (!eve && !isFullDayExc && hasRoom(s) && daySessionCount < 2) {
           ng[`${s.id}-${ds}-Eve`] = eventName;
           sess[s.id] = (sess[s.id] || 0) + 1;
           eveCount++;
@@ -482,7 +483,7 @@ function enforceSessionLimits(grid, staffIndex) {
     if (target === 0) continue;
     if (sessCount[staffEntry.id] > target) {
       const slot = key.split("-").pop();
-      if (slot === "Eve" || slot === "PM" || slot === "AM") {
+      if (slot === "Eve" || slot === "PM") {
         delete grid[key];
         sessCount[staffEntry.id]--;
       }
@@ -882,18 +883,19 @@ export async function POST(req) {
           }
         }
 
-        // Sweep: complete any partial day offs — if any slot is "Day Off", all 3 must be
-        for (const s of staffIndex) {
-          for (const d of dates) {
-            const ds = dayKey(d);
-            const vals = ["AM","PM","Eve"].map((sl) => mergedAfterAgent2[`${s.id}-${ds}-${sl}`]);
-            if (vals.some((v) => v === "Day Off")) {
-              ["AM","PM","Eve"].forEach((sl) => { mergedAfterAgent2[`${s.id}-${ds}-${sl}`] = "Day Off"; });
-            }
-          }
+        // Filter grid to programme dates only — agents can hallucinate keys outside progStart/progEnd
+        const validDateKeys = new Set(dates.map(dayKey));
+        for (const key of Object.keys(mergedAfterAgent2)) {
+          // Key format: staffId-YYYY-MM-DD-slot
+          // Extract date by matching known staff IDs
+          const staffEntry = staffIndex.find((s) => key.startsWith(s.id + "-"));
+          if (!staffEntry) { delete mergedAfterAgent2[key]; continue; }
+          const withoutStaff = key.slice(staffEntry.id.length + 1);
+          const dateKey = withoutStaff.slice(0, 10); // YYYY-MM-DD
+          if (!validDateKeys.has(dateKey)) delete mergedAfterAgent2[key];
         }
 
-        // Enforce session limits (removes excess sessions)
+        // Enforce session limits (removes excess Eve/PM sessions from over-target staff)
         enforceSessionLimits(mergedAfterAgent2, staffIndex);
 
         const suggestions = staffingGaps.map((g) => ({
