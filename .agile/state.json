@@ -1,0 +1,64 @@
+{
+  "project": {
+    "name": "UKLC Centre Dashboard v2",
+    "description": "Brownfield — AI Rota fixes, UX/UI audit, AI Chatbox feature",
+    "workflow": "brownfield-fullstack",
+    "createdAt": "2026-03-24",
+    "lastSessionDate": "2026-03-24"
+  },
+  "currentStage": "product",
+  "nextStep": "Begin Sprint 1 — start with STORY-A1",
+  "documents": {
+    "brief": {
+      "path": "docs/prd/brief.md",
+      "status": "approved",
+      "approvedAt": "2026-03-24"
+    },
+    "prd": {
+      "path": "docs/prd/prd.md",
+      "status": "approved",
+      "approvedAt": "2026-03-24"
+    },
+    "architecture": {
+      "path": "docs/architecture/architecture.md",
+      "status": "approved",
+      "approvedAt": "2026-03-24"
+    },
+    "frontendSpec": {
+      "path": "docs/ui/frontend-spec.md",
+      "status": "approved",
+      "approvedAt": "2026-03-24",
+      "brandGuidelinesApplied": true
+    }
+  },
+  "backlog": {
+    "stories": [
+      { "id": "STORY-A1", "title": "Fix AiRotaTab UI — Stepper, Publish Button & Constraint Checklist", "epic": "Workstream A", "status": "done", "sprint": 1, "path": "docs/stories/STORY-A1.md" },
+      { "id": "STORY-A2", "title": "Fix Generate/Publish Flow — Dry Run Architecture", "epic": "Workstream A", "status": "ready", "sprint": 1, "path": "docs/stories/STORY-A2.md" },
+      { "id": "STORY-A3", "title": "Full QA — Real Centre Verification", "epic": "Workstream A", "status": "ready", "sprint": 1, "path": "docs/stories/STORY-A3.md" },
+      { "id": "STORY-B1", "title": "Dashboard Audit — Discovery & Report", "epic": "Workstream B", "status": "ready", "sprint": 2, "path": "docs/stories/STORY-B1.md" },
+      { "id": "STORY-B2", "title": "Dashboard Audit — Apply Approved Fixes", "epic": "Workstream B", "status": "ready", "sprint": 2, "path": "docs/stories/STORY-B2.md" },
+      { "id": "STORY-C1", "title": "AI Chatbox — Backend (Context Builder + API Route)", "epic": "Workstream C", "status": "ready", "sprint": 3, "path": "docs/stories/STORY-C1.md" },
+      { "id": "STORY-C2", "title": "AI Chatbox — ChatButton UI Component", "epic": "Workstream C", "status": "ready", "sprint": 3, "path": "docs/stories/STORY-C2.md" }
+    ]
+  },
+  "sprints": {
+    "currentSprint": 1,
+    "sprints": [
+      { "number": 1, "status": "planned", "stories": ["STORY-A1", "STORY-A2", "STORY-A3"] },
+      { "number": 2, "status": "planned", "stories": ["STORY-B1", "STORY-B2"] },
+      { "number": 3, "status": "planned", "stories": ["STORY-C1", "STORY-C2"] }
+    ]
+  },
+  "buildStatus": {
+    "currentSprint": 0,
+    "currentStory": null,
+    "lastVerifiedStory": null,
+    "sessionBriefCount": 0
+  },
+  "techStackDecided": true,
+  "techStack": "Next.js 14 + Supabase + Vercel",
+  "orm": "Supabase client (existing — no Drizzle migration needed)",
+  "testingFramework": "Vitest",
+  "servicesConfigured": true
+}
