@@ -197,8 +197,13 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
     if (!onSite.length) return;
 
     const indDs = onSite[0].ds;
-    ng[`${s.id}-${indDs}-AM`] = "Induction";
-    ng[`${s.id}-${indDs}-PM`] = "Induction";
+    const indIsWeekend = [0, 6].includes(new Date(indDs).getDay());
+    if (s.role === "5FTT" && indIsWeekend) {
+      SLOTS.forEach((sl) => { ng[`${s.id}-${indDs}-${sl}`] = "Day Off"; });
+    } else {
+      ng[`${s.id}-${indDs}-AM`] = "Induction";
+      ng[`${s.id}-${indDs}-PM`] = "Induction";
+    }
 
     for (let i = 1; i < onSite.length; i++) {
       const ds = onSite[i].ds;
@@ -209,7 +214,14 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
 
     if (s.dep) {
       const depDs = dayKey(new Date(s.dep));
-      if (!ng[`${s.id}-${depDs}-AM`]) ng[`${s.id}-${depDs}-AM`] = "Airport";
+      const depIsWeekend = [0, 6].includes(new Date(depDs).getDay());
+      if (!ng[`${s.id}-${depDs}-AM`]) {
+        if (s.role === "5FTT" && depIsWeekend) {
+          SLOTS.forEach((sl) => { ng[`${s.id}-${depDs}-${sl}`] = "Day Off"; });
+        } else {
+          ng[`${s.id}-${depDs}-AM`] = "Airport";
+        }
+      }
     }
 
     onSite.forEach(({ ds }) => {
@@ -218,9 +230,23 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
     });
   });
 
-  // Pass 2: Day offs
+  // Pass 2: Day offs — 1 per week per staff member
+  // Helper: does this staff member already have a Day Off assigned anywhere in the week containing ds?
+  const hasWeeklyDayOff = (sid, ds) => {
+    const d = new Date(ds);
+    const dow = d.getDay();
+    const weekStart = new Date(d);
+    weekStart.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    const wsKey = dayKey(weekStart), weKey = dayKey(weekEnd);
+    return dates.some((x) => {
+      const xk = dayKey(x);
+      return xk >= wsKey && xk <= weKey && ng[`${sid}-${xk}-AM`] === "Day Off";
+    });
+  };
+
   allStaff.forEach((s) => {
-    if (["5FTT"].includes(s.role)) return;
     const tos = parseTimeOff(s.to);
     const i = gIdx[s.id] || 0;
 
@@ -236,7 +262,14 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
       if (!wk.length) continue;
 
       let pick = null;
-      if (["FTT"].includes(s.role)) {
+      if (s.role === "5FTT") {
+        // 5FTT: day off must fall on a weekday (Mon-Fri) — they don't work weekends anyway
+        const pool = wk.filter(({ date, ds }) => {
+          const d = date.getDay();
+          return d >= 1 && d <= 5 && !isFullDayOff(tos, ds) && !profileMap[ds]?.isFDE;
+        });
+        if (pool.length) pick = pool[i % pool.length];
+      } else if (["FTT"].includes(s.role)) {
         const pool = [
           ...wk.filter(({ ds }) => profileMap[ds]?.isFDE),
           ...wk.filter(({ date }) => date.getDay() === 0 || date.getDay() === 6),
@@ -282,7 +315,7 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
 
     if (p.isFirstArrival) {
       teachers.filter((s) => ["FTT","5FTT"].includes(s.role) && isOn(s, ds) && !ng[`${s.id}-${ds}-AM`])
-        .forEach((s) => SLOTS.forEach((sl) => { ng[`${s.id}-${ds}-${sl}`] = "Day Off"; }));
+        .forEach((s) => { if (!hasWeeklyDayOff(s.id, ds)) SLOTS.forEach((sl) => { ng[`${s.id}-${ds}-${sl}`] = "Day Off"; }); });
 
       const need = Math.max(2, Math.ceil((arrStu[ds] || 0) / 40));
       const pickPool = [...teachers.filter((s) => s.role === "TAL"), ...actStaff].filter((s) => avail(s, ds));
@@ -317,9 +350,9 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
 
     if (p.isFDE) {
       const lbl = p.fdeLabel;
-      // Bug fix #3: FTT day-off BEFORE activity staff assignment
+      // FTT/5FTT get Day Off on FDE days — but only if they don't already have one this week (from Pass 2)
       teachers.filter((s) => ["FTT","5FTT"].includes(s.role) && isOn(s, ds) && !ng[`${s.id}-${ds}-AM`])
-        .forEach((s) => SLOTS.forEach((sl) => { ng[`${s.id}-${ds}-${sl}`] = "Day Off"; }));
+        .forEach((s) => { if (!hasWeeklyDayOff(s.id, ds)) SLOTS.forEach((sl) => { ng[`${s.id}-${ds}-${sl}`] = "Day Off"; }); });
 
       actStaff.filter((s) => avail(s, ds)).forEach((s) => { put(s.id, ds, "AM", lbl); put(s.id, ds, "PM", lbl); });
 
@@ -449,7 +482,7 @@ function enforceSessionLimits(grid, staffIndex) {
     if (target === 0) continue;
     if (sessCount[staffEntry.id] > target) {
       const slot = key.split("-").pop();
-      if (slot === "Eve" || slot === "PM") {
+      if (slot === "Eve" || slot === "PM" || slot === "AM") {
         delete grid[key];
         sessCount[staffEntry.id]--;
       }
@@ -849,7 +882,18 @@ export async function POST(req) {
           }
         }
 
-        // Enforce session limits (removes excess PM/Eve sessions)
+        // Sweep: complete any partial day offs — if any slot is "Day Off", all 3 must be
+        for (const s of staffIndex) {
+          for (const d of dates) {
+            const ds = dayKey(d);
+            const vals = ["AM","PM","Eve"].map((sl) => mergedAfterAgent2[`${s.id}-${ds}-${sl}`]);
+            if (vals.some((v) => v === "Day Off")) {
+              ["AM","PM","Eve"].forEach((sl) => { mergedAfterAgent2[`${s.id}-${ds}-${sl}`] = "Day Off"; });
+            }
+          }
+        }
+
+        // Enforce session limits (removes excess sessions)
         enforceSessionLimits(mergedAfterAgent2, staffIndex);
 
         const suggestions = staffingGaps.map((g) => ({
