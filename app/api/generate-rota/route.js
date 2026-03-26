@@ -895,6 +895,21 @@ export async function POST(req) {
           if (!validDateKeys.has(dateKey)) delete mergedAfterAgent2[key];
         }
 
+        // Remove Eve sessions where AM+PM already account for 2 counted sessions that day.
+        // Agents don't respect the per-day cap — this sweep enforces it deterministically.
+        for (const s of staffIndex) {
+          for (const d of dates) {
+            const ds = dayKey(d);
+            const eveKey = `${s.id}-${ds}-Eve`;
+            const eveVal = mergedAfterAgent2[eveKey];
+            if (!eveVal || NO_COUNT.has(eveVal)) continue;
+            const am = mergedAfterAgent2[`${s.id}-${ds}-AM`] || "";
+            const pm = mergedAfterAgent2[`${s.id}-${ds}-PM`] || "";
+            const dayCount = [am, pm].filter((v) => v && !NO_COUNT.has(v)).length;
+            if (dayCount >= 2) delete mergedAfterAgent2[eveKey];
+          }
+        }
+
         // Enforce session limits (removes excess Eve/PM sessions from over-target staff)
         enforceSessionLimits(mergedAfterAgent2, staffIndex);
 
