@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { countSessions, validateDayOffs, NO_COUNT } from "@/lib/rotaRules";
 
 // ── Replicate the module-level constants from AiRotaTab.js ────────────────
 // (Avoids "use client" / Next.js module resolution issues in Vitest)
@@ -159,5 +160,98 @@ describe("STORY-A2: buildDraftRotaGrid", () => {
     expect(result["staff-1"]["2026-07-01"].AM).toBe("Lessons");
     expect(result["staff-1"]["2026-07-02"].AM).toBe("Sports");
     expect(result["staff-1"]["2026-07-02"].PM).toBe("Day Off");
+  });
+});
+
+// ── countSessions ──────────────────────────────────────────────────────────
+
+describe("STORY-A3: countSessions", () => {
+  it("counts sessions correctly for a staff member", () => {
+    const rotaGrid = {
+      "s1-2026-07-01-AM": "Lessons",
+      "s1-2026-07-01-PM": "Sports",
+      "s1-2026-07-01-Eve": "Evening Activity",
+      "s1-2026-07-02-AM": "Day Off",
+      "s1-2026-07-02-PM": "Day Off",
+      "s1-2026-07-02-Eve": "Day Off",
+      "s2-2026-07-01-AM": "Lessons",
+    };
+    expect(countSessions(rotaGrid, "s1", NO_COUNT)).toBe(3);
+  });
+
+  it("excludes NO_COUNT values (Day Off, Induction, Setup, Office, Airport)", () => {
+    const rotaGrid = {
+      "s1-2026-07-01-AM": "Day Off",
+      "s1-2026-07-01-PM": "Induction",
+      "s1-2026-07-02-AM": "Setup",
+      "s1-2026-07-02-PM": "Office",
+      "s1-2026-07-03-AM": "Airport",
+      "s1-2026-07-03-PM": "Lessons",
+    };
+    expect(countSessions(rotaGrid, "s1", NO_COUNT)).toBe(1);
+  });
+
+  it("returns 0 for a staff member with no entries", () => {
+    const rotaGrid = { "s2-2026-07-01-AM": "Lessons" };
+    expect(countSessions(rotaGrid, "s1", NO_COUNT)).toBe(0);
+  });
+
+  it("returns 0 for an empty grid", () => {
+    expect(countSessions({}, "s1", NO_COUNT)).toBe(0);
+  });
+
+  it("does not count sessions from other staff members", () => {
+    const rotaGrid = {
+      "s1-2026-07-01-AM": "Lessons",
+      "s2-2026-07-01-AM": "Lessons",
+      "s2-2026-07-01-PM": "Sports",
+    };
+    expect(countSessions(rotaGrid, "s1", NO_COUNT)).toBe(1);
+    expect(countSessions(rotaGrid, "s2", NO_COUNT)).toBe(2);
+  });
+});
+
+// ── validateDayOffs ────────────────────────────────────────────────────────
+
+describe("STORY-A3: validateDayOffs", () => {
+  const dates = ["2026-07-01", "2026-07-02", "2026-07-03"];
+
+  it("returns empty array when all day offs are complete (all 3 slots)", () => {
+    const rotaGrid = {
+      "s1-2026-07-01-AM": "Day Off",
+      "s1-2026-07-01-PM": "Day Off",
+      "s1-2026-07-01-Eve": "Day Off",
+    };
+    expect(validateDayOffs(rotaGrid, "s1", dates)).toEqual([]);
+  });
+
+  it("detects a partial day off (AM only)", () => {
+    const rotaGrid = {
+      "s1-2026-07-02-AM": "Day Off",
+      "s1-2026-07-02-PM": "Sports",
+      "s1-2026-07-02-Eve": "",
+    };
+    expect(validateDayOffs(rotaGrid, "s1", dates)).toContain("2026-07-02");
+  });
+
+  it("detects a partial day off (AM + PM but not Eve)", () => {
+    const rotaGrid = {
+      "s1-2026-07-03-AM": "Day Off",
+      "s1-2026-07-03-PM": "Day Off",
+      "s1-2026-07-03-Eve": "Evening Activity",
+    };
+    expect(validateDayOffs(rotaGrid, "s1", dates)).toContain("2026-07-03");
+  });
+
+  it("returns empty array when no day offs exist at all", () => {
+    const rotaGrid = {
+      "s1-2026-07-01-AM": "Lessons",
+      "s1-2026-07-01-PM": "Sports",
+    };
+    expect(validateDayOffs(rotaGrid, "s1", dates)).toEqual([]);
+  });
+
+  it("returns empty array for an empty grid", () => {
+    expect(validateDayOffs({}, "s1", dates)).toEqual([]);
   });
 });

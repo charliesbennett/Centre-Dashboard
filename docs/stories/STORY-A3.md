@@ -1,7 +1,7 @@
 # STORY-A3: Full QA — Real Centre Verification
 
 **Epic:** Workstream A — AI Rota Fix & Stabilise
-**Status:** Ready
+**Status:** Done
 **Sprint:** 1
 **Dependencies:** STORY-A1, STORY-A2 (both must be complete before QA)
 

@@ -1,7 +1,7 @@
 # STORY-A2: Fix Generate/Publish Flow — Dry Run Architecture
 
 **Epic:** Workstream A — AI Rota Fix & Stabilise
-**Status:** Ready
+**Status:** Done
 **Sprint:** 1
 **Dependencies:** STORY-A1 (stepper must be 3 steps before flow logic is wired)
 
