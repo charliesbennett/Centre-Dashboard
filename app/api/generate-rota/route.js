@@ -28,7 +28,10 @@ const SESSION_TARGET = (role) => {
   return 24;
 };
 
-const NO_COUNT = new Set(["Day Off","Induction","Setup","Office","Airport"]);
+const NO_COUNT = new Set([
+  "Day Off","Induction","Setup","Office","Airport",
+  "pickup","welcome","setup","dinner",
+]);
 const TEACHING_ROLES = ["FTT","5FTT","TAL","CD"];
 const ACTIVITY_ROLES = ["SAI","AL","EAL","SC","AC","EAC","LAL","LAC","FOOTBALL","DRAMA","DANCE","HP"];
 const MGMT_ROLES = ["CM","CD","EAM","SWC"];
@@ -129,7 +132,10 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
   const ACTIVITY = ["SAI","AL","EAL","SC","AC","EAC","FOOTBALL","DRAMA","DANCE","LAL","LAC","HP"];
   const MGMT = ["CM", "CD", "EAM", "SWC"];
   const SLOTS = ["AM","PM","Eve"];
-  const NO_SESSION = new Set(["Day Off","Induction","Setup","Office","Airport"]);
+  const NO_SESSION = new Set([
+    "Day Off","Induction","Setup","Office","Airport",
+    "pickup","welcome","setup","dinner",
+  ]);
 
   const target = (role) => MGMT.includes(role) ? 0 : ["TAL","FTT","5FTT","HP"].includes(role) ? 22 : 24;
   const teachers = staffIndex.filter((s) => TEACHING.includes(s.role));
@@ -367,7 +373,9 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
       return;
     }
 
-    // Normal weekday
+    // Normal weekday — skip if no students on site (gap between groups, or post-programme)
+    if (!p.totalStu) return;
+
     const amLbl = p.AM?.topDest || (p.AM?.hasExc ? "Excursion" : "Activities");
     const pmLbl = p.PM?.topDest || (p.PM?.hasExc ? "Excursion" : "Activities");
     const amTN  = p.AM?.teachersNeeded || 0;
@@ -877,8 +885,8 @@ export async function POST(req) {
           for (const [key, val] of Object.entries(agentResult)) {
             if (!val) continue;
             const existing = merged[key];
-            if (!allowOverwrite && existing && existing !== "Eve Ents") continue;
-            if (allowOverwrite && existing && existing !== "Eve Ents") continue;
+            // Only fill empty slots (agents should add, not overwrite the skeleton)
+            if (existing) continue;
             // Non-session values (Day Off, Airport, etc.) always accepted
             if (NO_COUNT.has(val)) { merged[key] = val; continue; }
             // Session values: only if staff is under their cap
@@ -886,6 +894,14 @@ export async function POST(req) {
             if (!se) continue;
             const tgt = SESSION_TARGET(se.role);
             if (tgt > 0 && counts[se.id] >= tgt) continue;
+            // Eve slots: only if AM+PM don't already account for 2 counted sessions that day
+            const slotName = key.split("-").pop();
+            if (slotName === "Eve") {
+              const dk = key.slice(se.id.length + 1, se.id.length + 11);
+              const amCounts = merged[`${se.id}-${dk}-AM`] && !NO_COUNT.has(merged[`${se.id}-${dk}-AM`]);
+              const pmCounts = merged[`${se.id}-${dk}-PM`] && !NO_COUNT.has(merged[`${se.id}-${dk}-PM`]);
+              if (amCounts && pmCounts) continue;
+            }
             merged[key] = val;
             counts[se.id]++;
           }
