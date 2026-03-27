@@ -919,7 +919,6 @@ export async function POST(req) {
         sendEvent(controller, { step: 2, message: "Planning evenings and activities…" });
         const agent2Result = await runAgent2EvePlanner(client, staffIndex, dayProfiles, mergedAfterAgent1, groups, knownDests);
         const mergedAfterAgent2 = capAwareMerge(mergedAfterAgent1, agent2Result);
-        }
 
         // Step 3: Reviewer
         sendEvent(controller, { step: 3, message: "Reviewing for violations…" });
