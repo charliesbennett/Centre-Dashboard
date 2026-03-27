@@ -231,20 +231,23 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
   });
 
   // Pass 2: Day offs — 1 per week per staff member
-  // Helper: does this staff member already have a Day Off assigned anywhere in the week containing ds?
-  const hasWeeklyDayOff = (sid, ds) => {
-    const d = new Date(ds);
-    const dow = d.getDay();
-    const weekStart = new Date(d);
-    weekStart.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-    const wsKey = dayKey(weekStart), weKey = dayKey(weekEnd);
-    return dates.some((x) => {
-      const xk = dayKey(x);
-      return xk >= wsKey && xk <= weKey && ng[`${sid}-${xk}-AM`] === "Day Off";
-    });
+  // Count total Day Off days already assigned for a staff member
+  const countDayOffs = (sid) =>
+    dates.filter((d) => ng[`${sid}-${dayKey(d)}-AM`] === "Day Off").length;
+
+  // Max Day Offs = 1 per 7 on-site programme days
+  const maxDayOffs = (s) => {
+    const onSiteProgrammeDays = dates.filter((d) => {
+      const ds = dayKey(d);
+      if (!inRange(ds, s.arr, s.dep) || !groupArrivalDate || ds < groupArrivalDate) return false;
+      const am = ng[`${s.id}-${ds}-AM`];
+      return !am || (am !== "Induction" && am !== "Setup" && am !== "Airport");
+    }).length;
+    return Math.max(1, Math.ceil(onSiteProgrammeDays / 7));
   };
+
+  // Gate: can this staff member receive another Day Off?
+  const canHaveDayOff = (s, ds) => countDayOffs(s.id) < maxDayOffs(s) && !ng[`${s.id}-${ds}-AM`];
 
   allStaff.forEach((s) => {
     const tos = parseTimeOff(s.to);
@@ -292,7 +295,7 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
         if (!pick) pick = wk.find(({ ds }) => !isFullDayOff(tos, ds)) || null;
       }
 
-      if (pick) SLOTS.forEach((sl) => { ng[`${s.id}-${pick.ds}-${sl}`] = "Day Off"; });
+      if (pick && canHaveDayOff(s, pick.ds)) SLOTS.forEach((sl) => { ng[`${s.id}-${pick.ds}-${sl}`] = "Day Off"; });
     }
   });
 
@@ -315,7 +318,7 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
 
     if (p.isFirstArrival) {
       teachers.filter((s) => ["FTT","5FTT"].includes(s.role) && isOn(s, ds) && !ng[`${s.id}-${ds}-AM`])
-        .forEach((s) => { if (!hasWeeklyDayOff(s.id, ds)) SLOTS.forEach((sl) => { ng[`${s.id}-${ds}-${sl}`] = "Day Off"; }); });
+        .forEach((s) => { if (countDayOffs(s.id) < maxDayOffs(s)) SLOTS.forEach((sl) => { ng[`${s.id}-${ds}-${sl}`] = "Day Off"; }); });
 
       const need = Math.max(2, Math.ceil((arrStu[ds] || 0) / 40));
       const pickPool = [...teachers.filter((s) => s.role === "TAL"), ...actStaff].filter((s) => avail(s, ds));
@@ -352,7 +355,7 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
       const lbl = p.fdeLabel;
       // FTT/5FTT get Day Off on FDE days — but only if they don't already have one this week (from Pass 2)
       teachers.filter((s) => ["FTT","5FTT"].includes(s.role) && isOn(s, ds) && !ng[`${s.id}-${ds}-AM`])
-        .forEach((s) => { if (!hasWeeklyDayOff(s.id, ds)) SLOTS.forEach((sl) => { ng[`${s.id}-${ds}-${sl}`] = "Day Off"; }); });
+        .forEach((s) => { if (countDayOffs(s.id) < maxDayOffs(s)) SLOTS.forEach((sl) => { ng[`${s.id}-${ds}-${sl}`] = "Day Off"; }); });
 
       actStaff.filter((s) => avail(s, ds)).forEach((s) => { put(s.id, ds, "AM", lbl); put(s.id, ds, "PM", lbl); });
 
@@ -456,6 +459,21 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
 
     // Advance event name index each night (so names rotate across the programme)
     if (ds !== groupArrivalDate) eveNameIdx++;
+  });
+
+  // Pass 5: At-target staff — mark remaining empty on-site days as Day Off
+  // This stops agents from filling those slots and pushing the count past the cap.
+  allStaff.forEach((s) => {
+    const t = target(s.role);
+    if (t === 0) return; // management: uncapped
+    if ((sess[s.id] || 0) < t) return; // still under target: leave for agents to fill normally
+    dates.forEach((d) => {
+      const ds = dayKey(d);
+      if (!isOn(s, ds)) return;
+      if (!ng[`${s.id}-${ds}-AM`]) {
+        SLOTS.forEach((sl) => { ng[`${s.id}-${ds}-${sl}`] = "Day Off"; });
+      }
+    });
   });
 
   return ng;
@@ -893,21 +911,6 @@ export async function POST(req) {
           const withoutStaff = key.slice(staffEntry.id.length + 1);
           const dateKey = withoutStaff.slice(0, 10); // YYYY-MM-DD
           if (!validDateKeys.has(dateKey)) delete mergedAfterAgent2[key];
-        }
-
-        // Remove Eve sessions where AM+PM already account for 2 counted sessions that day.
-        // Agents don't respect the per-day cap — this sweep enforces it deterministically.
-        for (const s of staffIndex) {
-          for (const d of dates) {
-            const ds = dayKey(d);
-            const eveKey = `${s.id}-${ds}-Eve`;
-            const eveVal = mergedAfterAgent2[eveKey];
-            if (!eveVal || NO_COUNT.has(eveVal)) continue;
-            const am = mergedAfterAgent2[`${s.id}-${ds}-AM`] || "";
-            const pm = mergedAfterAgent2[`${s.id}-${ds}-PM`] || "";
-            const dayCount = [am, pm].filter((v) => v && !NO_COUNT.has(v)).length;
-            if (dayCount >= 2) delete mergedAfterAgent2[eveKey];
-          }
         }
 
         // Enforce session limits (removes excess Eve/PM sessions from over-target staff)
