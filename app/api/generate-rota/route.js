@@ -461,21 +461,6 @@ function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
     if (ds !== groupArrivalDate) eveNameIdx++;
   });
 
-  // Pass 5: At-target staff — mark remaining empty on-site days as Day Off
-  // This stops agents from filling those slots and pushing the count past the cap.
-  allStaff.forEach((s) => {
-    const t = target(s.role);
-    if (t === 0) return; // management: uncapped
-    if ((sess[s.id] || 0) < t) return; // still under target: leave for agents to fill normally
-    dates.forEach((d) => {
-      const ds = dayKey(d);
-      if (!isOn(s, ds)) return;
-      if (!ng[`${s.id}-${ds}-AM`]) {
-        SLOTS.forEach((sl) => { ng[`${s.id}-${ds}-${sl}`] = "Day Off"; });
-      }
-    });
-  });
-
   return ng;
 }
 
@@ -861,27 +846,63 @@ export async function POST(req) {
         // Build deterministic skeleton
         const skeleton = buildSkeleton(staffIndex, dates, groups, dayProfiles);
 
+        // Count sessions per staff member in the skeleton — used to gate agent additions
+        const skelSessCounts = {};
+        staffIndex.forEach((s) => { skelSessCounts[s.id] = 0; });
+        for (const [key, val] of Object.entries(skeleton)) {
+          if (!val || NO_COUNT.has(val)) continue;
+          const se = staffIndex.find((s) => key.startsWith(s.id + "-"));
+          if (se) skelSessCounts[se.id]++;
+        }
+
+        // Cap-aware merge: agents may only add sessions to staff below their target.
+        // Non-session values (Day Off, corrections) are always accepted.
+        const capAwareMerge = (base, agentResult, allowOverwrite = false) => {
+          const merged = { ...base };
+          const counts = { ...skelSessCounts };
+          // Recount from current merged state
+          Object.entries(merged).forEach(([key, val]) => {
+            if (!val || NO_COUNT.has(val)) return;
+            const se = staffIndex.find((s) => key.startsWith(s.id + "-"));
+            if (se) counts[se.id] = (counts[se.id] || 0);
+          });
+          // Rebuild counts from merged
+          staffIndex.forEach((s) => { counts[s.id] = 0; });
+          Object.entries(merged).forEach(([key, val]) => {
+            if (!val || NO_COUNT.has(val)) return;
+            const se = staffIndex.find((s) => key.startsWith(s.id + "-"));
+            if (se) counts[se.id]++;
+          });
+
+          for (const [key, val] of Object.entries(agentResult)) {
+            if (!val) continue;
+            const existing = merged[key];
+            if (!allowOverwrite && existing && existing !== "Eve Ents") continue;
+            if (allowOverwrite && existing && existing !== "Eve Ents") continue;
+            // Non-session values (Day Off, Airport, etc.) always accepted
+            if (NO_COUNT.has(val)) { merged[key] = val; continue; }
+            // Session values: only if staff is under their cap
+            const se = staffIndex.find((s) => key.startsWith(s.id + "-"));
+            if (!se) continue;
+            const tgt = SESSION_TARGET(se.role);
+            if (tgt > 0 && counts[se.id] >= tgt) continue;
+            merged[key] = val;
+            counts[se.id]++;
+          }
+          return merged;
+        };
+
         const client = new Anthropic();
 
         // Step 1: TAL Slot Planner (fills any TAL gaps the skeleton left)
         sendEvent(controller, { step: 1, message: "Planning TAL slots…" });
         const agent1Result = await runAgent1TALPlanner(client, staffIndex, dayProfiles, skeleton, groups, knownDests);
-
-        // Merge agent 1 into skeleton (only fills empty slots)
-        const mergedAfterAgent1 = { ...skeleton };
-        for (const [key, val] of Object.entries(agent1Result)) {
-          if (val && !mergedAfterAgent1[key]) mergedAfterAgent1[key] = val;
-        }
+        const mergedAfterAgent1 = capAwareMerge(skeleton, agent1Result);
 
         // Step 2: Evening, Activities & Excursions Planner (top-up eve + dinner gaps)
         sendEvent(controller, { step: 2, message: "Planning evenings and activities…" });
         const agent2Result = await runAgent2EvePlanner(client, staffIndex, dayProfiles, mergedAfterAgent1, groups, knownDests);
-
-        // Merge agent 2 — allow overwriting "Eve Ents" placeholder with real event names
-        const mergedAfterAgent2 = { ...mergedAfterAgent1 };
-        for (const [key, val] of Object.entries(agent2Result)) {
-          const existing = mergedAfterAgent2[key];
-          if (val && (!existing || existing === "Eve Ents")) mergedAfterAgent2[key] = val;
+        const mergedAfterAgent2 = capAwareMerge(mergedAfterAgent1, agent2Result);
         }
 
         // Step 3: Reviewer
