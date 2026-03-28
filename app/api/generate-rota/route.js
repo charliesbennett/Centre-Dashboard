@@ -1,75 +1,87 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { readFileSync } from "fs";
-import { join } from "path";
+export const maxDuration = 60;
 
-export const maxDuration = 300;
-
-const INTEL_DOC = readFileSync(join(process.cwd(), "lib/rotaIntel.md"), "utf-8");
-
-// ── Utility functions (mirrored from lib/constants.js for server-side use) ──
+// ── Utilities ─────────────────────────────────────────────────────────────────
 function genDates(start, end) {
   const dates = [];
-  const s = new Date(start), e = new Date(end);
-  for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) dates.push(new Date(d));
+  for (let d = new Date(start); d <= new Date(end); d.setDate(d.getDate() + 1))
+    dates.push(new Date(d));
   return dates;
 }
 function dayKey(d) { return d.toISOString().split("T")[0]; }
 function dayName(d) { return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()]; }
+function isWeekend(d) { return d.getDay() === 0 || d.getDay() === 6; }
 function inRange(ds, arr, dep) { return !!(arr && dep && ds >= arr && ds <= dep); }
 function getGroupLessonSlot(g, ds) {
   if (!g.arr || !g.lessonSlot) return g.lessonSlot || "AM";
   const daysSince = Math.floor((new Date(ds) - new Date(g.arr)) / 86400000);
-  return Math.floor(daysSince / 7) % 2 === 0 ? g.lessonSlot : (g.lessonSlot === "AM" ? "PM" : "AM");
+  return Math.floor(daysSince / 7) % 2 === 0
+    ? g.lessonSlot
+    : (g.lessonSlot === "AM" ? "PM" : "AM");
 }
 
+// ── Constants ─────────────────────────────────────────────────────────────────
 const SESSION_TARGET = (role) => {
   if (["CM","CD","EAM","SWC"].includes(role)) return 0;
-  if (["TAL","FTT","5FTT","HP"].includes(role)) return 22;
-  return 24;
+  if (role === "5FTT") return 20;
+  if (["TAL","FTT","HP"].includes(role)) return 22;
+  return 24; // SAI, AL, EAL, SC, AC, EAC, LAL, LAC, FOOTBALL, DRAMA, DANCE
 };
 
+// Values that do NOT count as sessions
 const NO_COUNT = new Set([
   "Day Off","Induction","Setup","Office","Airport",
   "pickup","welcome","setup","dinner",
 ]);
-const TEACHING_ROLES = ["FTT","5FTT","TAL","CD"];
-const ACTIVITY_ROLES = ["SAI","AL","EAL","SC","AC","EAC","LAL","LAC","FOOTBALL","DRAMA","DANCE","HP"];
-const MGMT_ROLES = ["CM","CD","EAM","SWC"];
 
-const EVE_ENT_NAMES = [
-  "Disco","Karaoke","Quiz Night","Film Night","Talent Show","Scavenger Hunt",
-  "Flag Ceremony","Awards Night","Paparazzi","Dragons Den","Trashion Show",
-  "Murder Mystery","Oscars Night","Sports Night","Welcome Ents",
-];
+const TEACHING_ROLES  = ["FTT","5FTT","TAL"];
+const ACTIVITY_ROLES  = ["SAI","AL","EAL","SC","AC","EAC","LAL","LAC","FOOTBALL","DRAMA","DANCE","HP"];
+const MGMT_ROLES      = ["CM","CD","EAM","SWC"];
+const EVE_ELIGIBLE    = new Set(["TAL","SAI","AL","EAL","SC","AC","EAC","LAL","LAC","FOOTBALL","DRAMA","DANCE","HP"]);
 
 // ── Day profile builder ───────────────────────────────────────────────────────
+// KEY FIX: if the programme grid has an explicit value for a slot, trust it as
+// an excursion destination — do NOT override it with the lesson-slot calculation.
 function buildDayProfiles(dates, groups, progGrid) {
-  const allArrivalDates = new Set((groups || []).map((g) => g.arr).filter(Boolean));
-  const firstArrival = [...allArrivalDates].sort()[0] || null;
+  const allArrivalDates = new Set((groups || []).map(g => g.arr).filter(Boolean));
+  const firstArrival    = [...allArrivalDates].sort()[0] || null;
   const arrStu = {};
-  (groups || []).forEach((g) => {
+  (groups || []).forEach(g => {
     if (g.arr) arrStu[g.arr] = (arrStu[g.arr] || 0) + (g.stu || 0) + (g.gl || 0);
   });
 
-  return dates.map((d) => {
-    const ds = dayKey(d);
-    const dow = dayName(d);
+  return dates.map(d => {
+    const ds  = dayKey(d);
     let totalStu = 0;
-    (groups || []).forEach((g) => { if (inRange(ds, g.arr, g.dep)) totalStu += (g.stu || 0) + (g.gl || 0); });
+    (groups || []).forEach(g => {
+      if (inRange(ds, g.arr, g.dep)) totalStu += (g.stu || 0) + (g.gl || 0);
+    });
 
     const slotInfo = {};
-    ["AM", "PM"].forEach((slot) => {
+    ["AM","PM"].forEach(slot => {
       let lessonStu = 0, testStu = 0;
       const excDests = {};
-      (groups || []).forEach((g) => {
+
+      (groups || []).forEach(g => {
         if (!inRange(ds, g.arr, g.dep)) return;
-        if (ds === g.arr || ds === g.dep) return;
+        if (ds === g.arr || ds === g.dep) return; // skip arrival/departure day for that group
+
         const val = String(progGrid?.[g.id + "-" + ds + "-" + slot] || "").trim();
         const pax = (g.stu || 0) + (g.gl || 0);
-        if (val && /english\s*test|placement\s*test/i.test(val)) { testStu += pax; return; }
-        if (getGroupLessonSlot(g, ds) === slot) { lessonStu += pax; return; }
-        if (val && !/arriv|depart/i.test(val)) excDests[val] = (excDests[val] || 0) + pax;
+
+        // 1. Testing takes priority
+        if (val && /english\s*test|placement\s*test/i.test(val)) {
+          testStu += pax; return;
+        }
+        // 2. Explicit programme grid entry → excursion (trust the programme)
+        if (val && !/arriv|depart/i.test(val)) {
+          excDests[val] = (excDests[val] || 0) + pax; return;
+        }
+        // 3. No explicit entry → fall back to lesson-slot calculation
+        if (!val && getGroupLessonSlot(g, ds) === slot) {
+          lessonStu += pax;
+        }
       });
+
       const sortedDests = Object.keys(excDests).sort((a, b) => excDests[b] - excDests[a]);
       slotInfo[slot] = {
         lessonStu, testStu,
@@ -78,7 +90,7 @@ function buildDayProfiles(dates, groups, progGrid) {
         topDest: sortedDests[0] || null,
         teachersNeeded: Math.ceil((lessonStu + testStu) / 16),
         excSummary: sortedDests.length > 0
-          ? sortedDests.map((dest) => `${dest}(${excDests[dest]}stu)`).join(", ")
+          ? sortedDests.map(dest => `${dest}(${excDests[dest]}stu)`).join(", ")
           : null,
       };
     });
@@ -86,13 +98,13 @@ function buildDayProfiles(dates, groups, progGrid) {
     const isFDE = slotInfo.AM.hasExc && slotInfo.PM.hasExc
       && slotInfo.AM.lessonStu === 0 && slotInfo.PM.lessonStu === 0
       && slotInfo.AM.testStu === 0 && slotInfo.PM.testStu === 0;
-    const isTestingDay = slotInfo.AM.isTesting || slotInfo.PM.isTesting;
 
     return {
-      ds, dow,
+      ds, dow: dayName(d),
       isFirstArrival: ds === firstArrival,
       isArrival: allArrivalDates.has(ds),
-      isTestingDay, isFDE,
+      isTestingDay: slotInfo.AM.isTesting || slotInfo.PM.isTesting,
+      isFDE,
       fdeLabel: isFDE ? (slotInfo.AM.topDest || slotInfo.PM.topDest || "Excursion") : null,
       isHDE: !isFDE && (slotInfo.AM.hasExc || slotInfo.PM.hasExc),
       totalStu, arrivingStu: arrStu[ds] || 0,
@@ -101,868 +113,495 @@ function buildDayProfiles(dates, groups, progGrid) {
   });
 }
 
-// ── Staffing gap calculator ───────────────────────────────────────────────────
-function calcStaffingGaps(staffIndex, dayProfiles) {
-  const gaps = [];
-  dayProfiles.forEach((p) => {
-    if (p.isFirstArrival || p.isFDE || p.isArrival) return;
-    ["AM", "PM"].forEach((slot) => {
-      const needed = p[slot].teachersNeeded;
-      if (!needed) return;
-      const avail = staffIndex.filter((s) => {
-        if (!TEACHING_ROLES.includes(s.role)) return false;
-        if (!inRange(p.ds, s.arr, s.dep)) return false;
-        if (s.role === "5FTT" && (new Date(p.ds).getDay() === 0 || new Date(p.ds).getDay() === 6)) return false;
-        return true;
-      }).length;
-      const conservativeAvail = Math.floor(avail * 0.8);
-      if (conservativeAvail < needed) {
-        gaps.push({ ds: p.ds, dow: p.dow, slot, needed, available: avail, shortfall: needed - conservativeAvail });
-      }
-    });
-  });
-  return gaps;
+// ── Time-off helpers ──────────────────────────────────────────────────────────
+function parseTimeOff(toStr, refYear) {
+  if (!toStr) return [];
+  return toStr.split(",").map(p => p.trim()).filter(Boolean).map(p => {
+    const rm = p.match(/(\d{1,2})\/(\d{1,2})\s*-\s*(\d{1,2})\/(\d{1,2})/);
+    if (rm) return {
+      start: `${refYear}-${rm[2].padStart(2,"0")}-${rm[1].padStart(2,"0")}`,
+      end:   `${refYear}-${rm[4].padStart(2,"0")}-${rm[3].padStart(2,"0")}`,
+    };
+    const sm = p.match(/(\d{1,2})\/(\d{1,2})\s*(am|pm|eve)?/i);
+    if (sm) return {
+      date: `${refYear}-${sm[2].padStart(2,"0")}-${sm[1].padStart(2,"0")}`,
+      slot: sm[3] || null,
+    };
+    return null;
+  }).filter(Boolean);
 }
 
-// ── Skeleton generator (deterministic pre-fill) ──────────────────────────────
-function buildSkeleton(staffIndex, dates, groups, dayProfiles) {
-  const ng = {};
+function isFullDayOffEntry(tos, ds) {
+  for (const to of tos) {
+    if (to.start && to.end && ds >= to.start && ds <= to.end) return true;
+    if (to.date === ds && !to.slot) return true;
+  }
+  return false;
+}
 
-  const TEACHING = ["TAL", "FTT", "5FTT"];
-  const ACTIVITY = ["SAI","AL","EAL","SC","AC","EAC","FOOTBALL","DRAMA","DANCE","LAL","LAC","HP"];
-  const MGMT = ["CM", "CD", "EAM", "SWC"];
+// ── Deterministic rota builder ────────────────────────────────────────────────
+function buildRota(staffIndex, dates, groups, progGrid, dayProfiles) {
+  const ng   = {}; // the rota grid
+  const sess = {}; // running session counts per staff
+  staffIndex.forEach(s => { sess[s.id] = 0; });
+
   const SLOTS = ["AM","PM","Eve"];
-  const NO_SESSION = new Set([
-    "Day Off","Induction","Setup","Office","Airport",
-    "pickup","welcome","setup","dinner",
-  ]);
 
-  const target = (role) => MGMT.includes(role) ? 0 : ["TAL","FTT","5FTT","HP"].includes(role) ? 22 : 24;
-  const teachers = staffIndex.filter((s) => TEACHING.includes(s.role));
-  const actStaff = staffIndex.filter((s) => ACTIVITY.includes(s.role));
-  const mgmt     = staffIndex.filter((s) => MGMT.includes(s.role));
-  const allStaff = [...mgmt, ...teachers, ...actStaff];
-
-  const sess = {};
-  allStaff.forEach((s) => { sess[s.id] = 0; });
-
+  // Put a value in the grid. Does not overwrite. Returns true if placed.
   const put = (sid, ds, slot, val) => {
     const k = `${sid}-${ds}-${slot}`;
     if (ng[k]) return false;
     ng[k] = val;
-    if (!NO_SESSION.has(val)) sess[sid] = (sess[sid] || 0) + 1;
+    if (val && !NO_COUNT.has(val)) sess[sid] = (sess[sid] || 0) + 1;
     return true;
   };
 
-  const hasRoom  = (s) => { const t = target(s.role); return t === 0 || (sess[s.id] || 0) < t; };
-  // Exclude departure day from session assignment (staff are travelling, not working)
-  const isOn     = (s, ds) => inRange(ds, s.arr, s.dep) && ds < s.dep;
-  const slotFree = (sid, ds) => !ng[`${sid}-${ds}-AM`];
-  const avail    = (s, ds) => isOn(s, ds) && slotFree(s.id, ds) && hasRoom(s);
+  // Set all 3 slots to Day Off
+  const setDayOff = (sid, ds) => SLOTS.forEach(sl => { ng[`${sid}-${ds}-${sl}`] = "Day Off"; });
 
-  const gIdx = {};
-  allStaff.forEach((s, i) => { gIdx[s.id] = i; });
+  // Is staff member on site (arrival ≤ date < departure)?
+  const onSite = (s, ds) => inRange(ds, s.arr, s.dep) && ds < s.dep;
 
-  // Build profile lookups
+  // Does staff have sessions remaining below cap?
+  const hasCapacity = s => {
+    const t = SESSION_TARGET(s.role);
+    return t === 0 || (sess[s.id] || 0) < t;
+  };
+
+  // Build fast lookups
   const profileMap = {};
-  dayProfiles.forEach((p) => { profileMap[p.ds] = p; });
+  dayProfiles.forEach(p => { profileMap[p.ds] = p; });
 
-  const allArrivalDates = new Set((groups || []).map((g) => g.arr).filter(Boolean));
+  const allArrivalDates = new Set((groups || []).map(g => g.arr).filter(Boolean));
   const groupArrivalDate = [...allArrivalDates].sort()[0] || null;
 
-  const arrStu = {};
-  (groups || []).forEach((g) => {
-    if (g.arr) arrStu[g.arr] = (arrStu[g.arr] || 0) + (g.stu || 0) + (g.gl || 0);
-  });
+  const teachers  = staffIndex.filter(s => TEACHING_ROLES.includes(s.role));
+  const actStaff  = staffIndex.filter(s => ACTIVITY_ROLES.includes(s.role));
+  const mgmt      = staffIndex.filter(s => MGMT_ROLES.includes(s.role));
 
-  // Helpers for parsing time-off
-  const parseTimeOff = (toStr) => {
-    if (!toStr) return [];
-    const yr = new Date(groupArrivalDate || dates[0] || new Date()).getFullYear();
-    return toStr.split(",").map((p) => p.trim()).filter(Boolean).map((p) => {
-      const rm = p.match(/(\d{1,2})\/(\d{1,2})\s*-\s*(\d{1,2})\/(\d{1,2})/);
-      if (rm) return { start: yr+"-"+rm[2].padStart(2,"0")+"-"+rm[1].padStart(2,"0"), end: yr+"-"+rm[4].padStart(2,"0")+"-"+rm[3].padStart(2,"0") };
-      const sm = p.match(/(\d{1,2})\/(\d{1,2})\s*(am|pm|eve)?/i);
-      if (sm) return { date: yr+"-"+sm[2].padStart(2,"0")+"-"+sm[1].padStart(2,"0"), slot: sm[3] || null };
-      return null;
-    }).filter(Boolean);
-  };
+  const refYear = groupArrivalDate
+    ? new Date(groupArrivalDate).getFullYear()
+    : new Date(dates[0]).getFullYear();
 
-  const isFullDayOff = (tos, ds) => {
-    for (const to of tos) {
-      if (to.start && to.end && ds >= to.start && ds <= to.end) return true;
-      if (to.date === ds && !to.slot) return true;
-    }
-    return false;
-  };
+  // ── Pass 1: Fixed per-staff assignments ────────────────────────────────────
+  // Induction, Setup (pre-arrival days), Airport, explicit time-off.
+  staffIndex.forEach(s => {
+    const tos = parseTimeOff(s.to, refYear);
+    const onSiteDays = dates.map(dayKey).filter(ds => inRange(ds, s.arr, s.dep));
+    if (!onSiteDays.length) return;
 
-  // Pass 1: Fixed per-staff assignments (induction, setup, airport, explicit time-off)
-  allStaff.forEach((s) => {
-    const tos = parseTimeOff(s.to);
-    const onSite = dates.map((d) => ({ date: d, ds: dayKey(d) })).filter(({ ds }) => inRange(ds, s.arr, s.dep));
-    if (!onSite.length) return;
-
-    const indDs = onSite[0].ds;
-    const indIsWeekend = [0, 6].includes(new Date(indDs).getDay());
-    if (s.role === "5FTT" && indIsWeekend) {
-      SLOTS.forEach((sl) => { ng[`${s.id}-${indDs}-${sl}`] = "Day Off"; });
+    // Induction — first day on site
+    const indDs = onSiteDays[0];
+    if (s.role === "5FTT" && isWeekend(new Date(indDs))) {
+      setDayOff(s.id, indDs); // 5FTT can't work weekends, treat as Day Off
     } else {
       ng[`${s.id}-${indDs}-AM`] = "Induction";
       ng[`${s.id}-${indDs}-PM`] = "Induction";
     }
 
-    for (let i = 1; i < onSite.length; i++) {
-      const ds = onSite[i].ds;
+    // Setup — days between induction and first student arrival
+    for (let i = 1; i < onSiteDays.length; i++) {
+      const ds = onSiteDays[i];
       if (groupArrivalDate && ds >= groupArrivalDate) break;
       ng[`${s.id}-${ds}-AM`] = "Setup";
       ng[`${s.id}-${ds}-PM`] = "Setup";
     }
 
+    // Airport — departure day
     if (s.dep) {
       const depDs = dayKey(new Date(s.dep));
-      const depIsWeekend = [0, 6].includes(new Date(depDs).getDay());
       if (!ng[`${s.id}-${depDs}-AM`]) {
-        if (s.role === "5FTT" && depIsWeekend) {
-          SLOTS.forEach((sl) => { ng[`${s.id}-${depDs}-${sl}`] = "Day Off"; });
+        if (s.role === "5FTT" && isWeekend(new Date(depDs))) {
+          setDayOff(s.id, depDs);
         } else {
           ng[`${s.id}-${depDs}-AM`] = "Airport";
         }
       }
     }
 
-    onSite.forEach(({ ds }) => {
-      if (isFullDayOff(tos, ds) && !ng[`${s.id}-${ds}-AM`])
-        SLOTS.forEach((sl) => { ng[`${s.id}-${ds}-${sl}`] = "Day Off"; });
+    // Explicit time-off
+    onSiteDays.forEach(ds => {
+      if (!ng[`${s.id}-${ds}-AM`] && isFullDayOffEntry(tos, ds)) setDayOff(s.id, ds);
     });
   });
 
-  // Pass 2: Day offs — 1 per week per staff member
-  // Count total Day Off days already assigned for a staff member
-  const countDayOffs = (sid) =>
-    dates.filter((d) => ng[`${sid}-${dayKey(d)}-AM`] === "Day Off").length;
+  // ── Pass 2: Day offs ───────────────────────────────────────────────────────
+  // 1 full Day Off (all 3 slots) per 7 programme days on site.
+  // FTTs: prefer FDE days, then weekends.
+  // 5FTTs: prefer Mon-Fri (they don't work weekends anyway).
+  // TAL / activity: prefer weekends, distribute Sat/Sun by staff index.
 
-  // Max Day Offs = 1 per 7 on-site programme days
-  const maxDayOffs = (s) => {
-    const onSiteProgrammeDays = dates.filter((d) => {
+  const countDayOffs = sid =>
+    dates.filter(d => ng[`${sid}-${dayKey(d)}-AM`] === "Day Off").length;
+
+  const maxDayOffs = s => {
+    const programmeDays = dates.filter(d => {
       const ds = dayKey(d);
-      if (!inRange(ds, s.arr, s.dep) || !groupArrivalDate || ds < groupArrivalDate) return false;
+      if (!onSite(s, ds) || !groupArrivalDate || ds < groupArrivalDate) return false;
       const am = ng[`${s.id}-${ds}-AM`];
-      return !am || (am !== "Induction" && am !== "Setup" && am !== "Airport");
+      return !am || !["Induction","Setup","Airport"].includes(am);
     }).length;
-    return Math.max(1, Math.ceil(onSiteProgrammeDays / 7));
+    return Math.max(1, Math.ceil(programmeDays / 7));
   };
 
-  // Gate: can this staff member receive another Day Off?
-  const canHaveDayOff = (s, ds) => countDayOffs(s.id) < maxDayOffs(s) && !ng[`${s.id}-${ds}-AM`];
+  staffIndex.forEach((s, si) => {
+    // Available programme days (on site, after first arrival, no fixed assignment yet)
+    const available = dates.map(d => ({ date: d, ds: dayKey(d) })).filter(({ ds }) =>
+      onSite(s, ds) && groupArrivalDate && ds >= groupArrivalDate && !ng[`${s.id}-${ds}-AM`]
+    );
 
-  allStaff.forEach((s) => {
-    const tos = parseTimeOff(s.to);
-    const i = gIdx[s.id] || 0;
+    const maxOff  = maxDayOffs(s);
+    let assigned  = countDayOffs(s.id);
+    const weeks   = Math.ceil(available.length / 7);
 
-    const progDays = dates.map((d) => ({ date: d, ds: dayKey(d) })).filter(({ ds }) => {
-      if (!inRange(ds, s.arr, s.dep)) return false;
-      const am = ng[`${s.id}-${ds}-AM`];
-      return !am || (am !== "Induction" && am !== "Setup" && am !== "Airport" && am !== "Day Off");
-    });
-
-    const weeks = Math.ceil(progDays.length / 7);
-    for (let w = 0; w < weeks; w++) {
-      const wk = progDays.slice(w * 7, w * 7 + 7);
+    for (let w = 0; w < weeks && assigned < maxOff; w++) {
+      const wk = available.slice(w * 7, w * 7 + 7);
       if (!wk.length) continue;
 
       let pick = null;
-      if (s.role === "5FTT") {
-        // 5FTT: day off must fall on a weekday (Mon-Fri) — they don't work weekends anyway
-        const pool = wk.filter(({ date, ds }) => {
-          const d = date.getDay();
-          return d >= 1 && d <= 5 && !isFullDayOff(tos, ds) && !profileMap[ds]?.isFDE;
-        });
-        if (pool.length) pick = pool[i % pool.length];
-      } else if (["FTT"].includes(s.role)) {
-        const pool = [
+
+      if (s.role === "FTT") {
+        // FTTs: FDE day first, then alternate Sat/Sun by staff index
+        const satFirst = si % 2 === 0;
+        const wkend1 = satFirst ? 6 : 0; // Sat or Sun
+        const wkend2 = satFirst ? 0 : 6;
+        const candidates = [
           ...wk.filter(({ ds }) => profileMap[ds]?.isFDE),
-          ...wk.filter(({ date }) => date.getDay() === 0 || date.getDay() === 6),
+          ...wk.filter(({ date }) => date.getDay() === wkend1),
+          ...wk.filter(({ date }) => date.getDay() === wkend2),
           ...wk,
-        ].filter(({ ds }) => !isFullDayOff(tos, ds));
-        if (pool.length) pick = pool[i % pool.length];
+        ];
+        pick = candidates.find(({ ds }) => !ng[`${s.id}-${ds}-AM`]) || null;
+
+      } else if (s.role === "5FTT") {
+        // 5FTTs: weekday only (not FDE, weekdays Mon-Fri)
+        pick = wk.find(({ date, ds }) =>
+          date.getDay() >= 1 && date.getDay() <= 5 &&
+          !profileMap[ds]?.isFDE && !ng[`${s.id}-${ds}-AM`]
+        ) || null;
+
       } else {
-        const basePref = [3, 4, 2, 5, 1, 6, 0];
-        const pref = basePref.map((_, j) => basePref[(j + i + w) % basePref.length]);
-        for (const pd of pref) {
-          const cand = wk.find(({ date, ds }) => {
-            if (date.getDay() !== pd) return false;
-            if (isFullDayOff(tos, ds)) return false;
-            // Bug fix #5: Only avoid day off on FIRST arrival day (not all arrival dates)
-            if (ACTIVITY.includes(s.role) && (profileMap[ds]?.isFDE || ds === groupArrivalDate)) return false;
-            return true;
-          });
-          if (cand) { pick = cand; break; }
-        }
-        if (!pick) pick = wk.find(({ ds }) => !isFullDayOff(tos, ds)) || null;
+        // TAL / activity: prefer weekends, alternate Sat/Sun by staff index, avoid FDE
+        const satFirst = si % 2 === 0;
+        const wkend1 = satFirst ? 6 : 0;
+        const wkend2 = satFirst ? 0 : 6;
+        const candidates = [
+          ...wk.filter(({ date, ds }) => date.getDay() === wkend1 && !profileMap[ds]?.isFDE),
+          ...wk.filter(({ date, ds }) => date.getDay() === wkend2 && !profileMap[ds]?.isFDE),
+          ...wk.filter(({ ds }) => !isWeekend(new Date(ds)) && !profileMap[ds]?.isFDE && ds !== groupArrivalDate),
+          ...wk,
+        ];
+        pick = candidates.find(({ ds }) => !ng[`${s.id}-${ds}-AM`]) || null;
       }
 
-      if (pick && canHaveDayOff(s, pick.ds)) SLOTS.forEach((sl) => { ng[`${s.id}-${pick.ds}-${sl}`] = "Day Off"; });
+      if (pick) { setDayOff(s.id, pick.ds); assigned++; }
     }
   });
 
-  // Pass 3: Programme sessions per day
-  const weekNum = (ds) => groupArrivalDate
-    ? Math.max(0, Math.floor((new Date(ds) - new Date(groupArrivalDate)) / (7 * 86400000)))
-    : 0;
-
-  dates.forEach((d) => {
+  // ── Pass 3: Programme sessions day by day ──────────────────────────────────
+  dates.forEach((d, di) => {
     const ds = dayKey(d);
     if (!groupArrivalDate || ds < groupArrivalDate) return;
-    const p = profileMap[ds] || {};
+    const p = profileMap[ds];
+    if (!p) return;
 
-    mgmt.forEach((s) => {
-      if (isOn(s, ds) && !ng[`${s.id}-${ds}-AM`]) {
+    // Management always get Office on programme days
+    mgmt.forEach(s => {
+      if (onSite(s, ds) && !ng[`${s.id}-${ds}-AM`]) {
         ng[`${s.id}-${ds}-AM`] = "Office";
         ng[`${s.id}-${ds}-PM`] = "Office";
       }
     });
 
+    // ── First arrival day ──────────────────────────────────────────────────
     if (p.isFirstArrival) {
-      teachers.filter((s) => ["FTT","5FTT"].includes(s.role) && isOn(s, ds) && !ng[`${s.id}-${ds}-AM`])
-        .forEach((s) => { if (countDayOffs(s.id) < maxDayOffs(s)) SLOTS.forEach((sl) => { ng[`${s.id}-${ds}-${sl}`] = "Day Off"; }); });
+      // FTTs/5FTTs: Day Off on first arrival (no teaching needed yet)
+      teachers.filter(s => ["FTT","5FTT"].includes(s.role) && onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
+        .forEach(s => {
+          if (countDayOffs(s.id) < maxDayOffs(s)) setDayOff(s.id, ds);
+          // If day off quota used up, leave empty — they're floating
+        });
 
-      const need = Math.max(2, Math.ceil((arrStu[ds] || 0) / 40));
-      const pickPool = [...teachers.filter((s) => s.role === "TAL"), ...actStaff].filter((s) => avail(s, ds));
-      let pickDone = 0;
-      pickPool.forEach((s) => { if (pickDone < need) { put(s.id, ds, "AM", "pickup"); pickDone++; } });
+      // TALs + activity staff: pickup and welcome duties
+      const eligible = [...teachers.filter(s => s.role === "TAL"), ...actStaff]
+        .filter(s => onSite(s, ds) && !ng[`${s.id}-${ds}-AM`]);
 
-      [...teachers.filter((s) => s.role === "TAL"), ...actStaff]
-        .filter((s) => isOn(s, ds) && slotFree(s.id, ds) && ng[`${s.id}-${ds}-AM`] !== "Day Off")
-        .forEach((s) => { put(s.id, ds, "AM", "setup"); put(s.id, ds, "PM", "welcome"); });
+      const pickNeed = Math.max(1, Math.ceil((p.arrivingStu || 0) / 40));
+      eligible.slice(0, pickNeed).forEach(s => {
+        ng[`${s.id}-${ds}-AM`] = "pickup";
+        ng[`${s.id}-${ds}-PM`] = "welcome";
+      });
+      eligible.slice(pickNeed).forEach(s => {
+        ng[`${s.id}-${ds}-AM`] = "setup";
+        ng[`${s.id}-${ds}-PM`] = "welcome";
+      });
       return;
     }
 
+    // ── Subsequent arrival days ────────────────────────────────────────────
     if (p.isArrival) {
-      const need = Math.max(1, Math.ceil((arrStu[ds] || 0) / 40));
-      const pickPool = [...teachers.filter((s) => s.role === "TAL"), ...actStaff].filter((s) => avail(s, ds));
-      let pickDone = 0;
-      pickPool.forEach((s) => {
-        if (pickDone < need) { put(s.id, ds, "AM", "pickup"); put(s.id, ds, "PM", "welcome"); pickDone++; }
+      const eligible = [...teachers.filter(s => s.role === "TAL"), ...actStaff]
+        .filter(s => onSite(s, ds) && !ng[`${s.id}-${ds}-AM`]);
+      const pickNeed = Math.max(1, Math.ceil((p.arrivingStu || 0) / 40));
+      eligible.slice(0, pickNeed).forEach(s => {
+        ng[`${s.id}-${ds}-AM`] = "pickup";
+        ng[`${s.id}-${ds}-PM`] = "welcome";
       });
+      // Others fall through to the day-type logic below
     }
 
-    if (p.isTestingDay) {
-      teachers.filter((s) => s.role === "FTT" && avail(s, ds))
-        .forEach((s) => { put(s.id, ds, "AM", "Testing"); put(s.id, ds, "PM", "Testing"); });
-      // TALs also show "Testing" on testing days (oral/interview component)
-      teachers.filter((s) => s.role === "TAL" && avail(s, ds))
-        .forEach((s) => { put(s.id, ds, "AM", "Testing"); put(s.id, ds, "PM", "Activities"); });
-      actStaff.filter((s) => avail(s, ds))
-        .forEach((s) => { put(s.id, ds, "AM", "Activities"); put(s.id, ds, "PM", "Activities"); });
-      return;
-    }
-
-    if (p.isFDE) {
-      const lbl = p.fdeLabel;
-      // FTT/5FTT get Day Off on FDE days — but only if they don't already have one this week (from Pass 2)
-      teachers.filter((s) => ["FTT","5FTT"].includes(s.role) && isOn(s, ds) && !ng[`${s.id}-${ds}-AM`])
-        .forEach((s) => { if (countDayOffs(s.id) < maxDayOffs(s)) SLOTS.forEach((sl) => { ng[`${s.id}-${ds}-${sl}`] = "Day Off"; }); });
-
-      actStaff.filter((s) => avail(s, ds)).forEach((s) => { put(s.id, ds, "AM", lbl); put(s.id, ds, "PM", lbl); });
-
-      // All available TALs go on the excursion on FDE days (no teaching needed)
-      teachers.filter((s) => s.role === "TAL" && avail(s, ds)).forEach((s) => {
-        put(s.id, ds, "AM", lbl); put(s.id, ds, "PM", lbl);
-      });
-
-      return;
-    }
-
-    // Normal weekday — skip if no students on site (gap between groups, or post-programme)
+    // No students on site → nothing to schedule
     if (!p.totalStu) return;
 
-    const amLbl = p.AM?.topDest || (p.AM?.hasExc ? "Excursion" : "Activities");
-    const pmLbl = p.PM?.topDest || (p.PM?.hasExc ? "Excursion" : "Activities");
-    const amTN  = p.AM?.teachersNeeded || 0;
-    const pmTN  = p.PM?.teachersNeeded || 0;
-    let amTD = 0, pmTD = 0;
+    // ── Full day excursion ─────────────────────────────────────────────────
+    if (p.isFDE) {
+      const lbl = p.fdeLabel;
 
-    // Bug fix #1: FTTs only teach when lesson demand exists
-    teachers.filter((s) => s.role === "FTT" && avail(s, ds)).forEach((s) => {
-      const amVal = amTN > 0 ? "Lessons" : "Activities";
-      const pmVal = pmTN > 0 ? "Lessons" : "Activities";
-      put(s.id, ds, "AM", amVal); put(s.id, ds, "PM", pmVal);
-      if (amTN > 0) amTD++;
-      if (pmTN > 0) pmTD++;
-    });
+      // FTTs: Day Off if quota allows, otherwise they stay at centre (Activities)
+      teachers.filter(s => ["FTT","5FTT"].includes(s.role) && onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
+        .forEach(s => {
+          if (countDayOffs(s.id) < maxDayOffs(s)) setDayOff(s.id, ds);
+          // If quota used: leave empty (FTTs float on FDE when day off exhausted)
+        });
 
-    if (d.getDay() >= 1 && d.getDay() <= 5) {
-      teachers.filter((s) => s.role === "5FTT" && avail(s, ds)).forEach((s) => {
-        const amVal = amTN > 0 ? "Lessons" : "Activities";
-        const pmVal = pmTN > 0 ? "Lessons" : "Activities";
-        put(s.id, ds, "AM", amVal); put(s.id, ds, "PM", pmVal);
-        if (amTN > 0) amTD++;
-        if (pmTN > 0) pmTD++;
-      });
+      // TALs + activity staff → excursion
+      [...teachers.filter(s => s.role === "TAL"), ...actStaff]
+        .filter(s => onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
+        .forEach(s => {
+          if (!hasCapacity(s)) return;
+          put(s.id, ds, "AM", lbl);
+          put(s.id, ds, "PM", lbl);
+        });
+      return;
     }
 
-    teachers.filter((s) => s.role === "TAL" && avail(s, ds)).forEach((s) => {
-      const ri = gIdx[s.id] || 0;
-      const prefAM = ((ri + weekNum(ds)) % 2 === 0);
-      const remAM = amTN - amTD, remPM = pmTN - pmTD;
-      const teachAM = remAM > 0 && remPM > 0 ? prefAM : remAM > 0 ? true : remPM > 0 ? false : prefAM;
-      if (teachAM) { put(s.id, ds, "AM", "Lessons"); put(s.id, ds, "PM", pmLbl); amTD++; }
-      else          { put(s.id, ds, "AM", amLbl);     put(s.id, ds, "PM", "Lessons"); pmTD++; }
-    });
+    // ── Testing / English Test day ─────────────────────────────────────────
+    if (p.isTestingDay) {
+      // All FTTs and TALs: English Test AM + PM
+      teachers.filter(s => onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
+        .forEach(s => {
+          if (s.role === "5FTT" && isWeekend(d)) return;
+          if (!hasCapacity(s)) return;
+          put(s.id, ds, "AM", "English Test");
+          put(s.id, ds, "PM", "English Test");
+        });
 
-    actStaff.filter((s) => avail(s, ds)).forEach((s) => {
-      if      (s.role === "FOOTBALL") { put(s.id, ds, "AM", p.AM?.hasExc ? amLbl : "Activities"); put(s.id, ds, "PM", "Football"); }
-      else if (s.role === "DRAMA")    { put(s.id, ds, "AM", "Drama"); put(s.id, ds, "PM", p.PM?.hasExc ? pmLbl : "Activities"); }
-      else                            { put(s.id, ds, "AM", p.AM?.hasExc ? amLbl : "Activities"); put(s.id, ds, "PM", p.PM?.hasExc ? pmLbl : "Activities"); }
-    });
+      // Activity staff: Activities
+      actStaff.filter(s => onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
+        .forEach(s => {
+          if (!hasCapacity(s)) return;
+          put(s.id, ds, "AM", "Activities");
+          put(s.id, ds, "PM", "Activities");
+        });
+      return;
+    }
+
+    // ── Normal programme day ───────────────────────────────────────────────
+    const amNeed  = p.AM?.teachersNeeded || 0;
+    const pmNeed  = p.PM?.teachersNeeded || 0;
+    // Excursion labels for activity slots
+    const amLbl   = p.AM?.topDest || "Activities";
+    const pmLbl   = p.PM?.topDest || "Activities";
+
+    let amCovered = 0, pmCovered = 0;
+
+    // FTTs: teach in every slot that has lesson demand
+    teachers.filter(s => s.role === "FTT" && onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
+      .forEach(s => {
+        if (!hasCapacity(s)) return;
+        if (amNeed > 0) { put(s.id, ds, "AM", "Lessons"); amCovered++; }
+        if (pmNeed > 0) { put(s.id, ds, "PM", "Lessons"); pmCovered++; }
+        // If only one slot has demand the other remains empty (FTT floats)
+      });
+
+    // 5FTTs: same, weekdays only
+    if (d.getDay() >= 1 && d.getDay() <= 5) {
+      teachers.filter(s => s.role === "5FTT" && onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
+        .forEach(s => {
+          if (!hasCapacity(s)) return;
+          if (amNeed > 0) { put(s.id, ds, "AM", "Lessons"); amCovered++; }
+          if (pmNeed > 0) { put(s.id, ds, "PM", "Lessons"); pmCovered++; }
+        });
+    }
+
+    // TALs: teach in ONE slot (the one with remaining demand), activities in the other.
+    // Rotate which slot each TAL covers across the week for fairness.
+    const weekNum = groupArrivalDate
+      ? Math.floor((new Date(ds) - new Date(groupArrivalDate)) / (7 * 86400000))
+      : 0;
+
+    teachers.filter(s => s.role === "TAL" && onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
+      .forEach((s, i) => {
+        if (!hasCapacity(s)) return;
+        const remAM = amNeed - amCovered;
+        const remPM = pmNeed - pmCovered;
+
+        // Decide which slot this TAL teaches today
+        const prefAM = (i + weekNum) % 2 === 0;
+        let teachAM;
+        if (remAM > 0 && remPM > 0)  teachAM = prefAM;
+        else if (remAM > 0)           teachAM = true;
+        else if (remPM > 0)           teachAM = false;
+        else                          teachAM = prefAM; // no demand — just pick consistently
+
+        if (teachAM) {
+          put(s.id, ds, "AM", remAM > 0 ? "Lessons" : amLbl);
+          put(s.id, ds, "PM", pmLbl);
+          if (remAM > 0) amCovered++;
+        } else {
+          put(s.id, ds, "AM", amLbl);
+          put(s.id, ds, "PM", remPM > 0 ? "Lessons" : pmLbl);
+          if (remPM > 0) pmCovered++;
+        }
+      });
+
+    // Activity staff: excursion or activities each slot
+    actStaff.filter(s => onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
+      .forEach(s => {
+        if (!hasCapacity(s)) return;
+        put(s.id, ds, "AM", amLbl);
+        put(s.id, ds, "PM", pmLbl);
+      });
   });
 
-  // Pass 4: Evening sweep — assign real event names, include TAL + activity staff
-  const regularEveNames = EVE_ENT_NAMES.filter((n) => n !== "Welcome Ents");
-  let eveNameIdx = 0;
-
-  dates.forEach((d) => {
+  // ── Pass 4: Evening Activity ───────────────────────────────────────────────
+  // One "Evening Activity" value for all nights. Rotate eligible staff fairly.
+  dates.forEach((d, di) => {
     const ds = dayKey(d);
     if (!groupArrivalDate || ds < groupArrivalDate) return;
-    const stu = (groups || []).reduce((sum, g) =>
+    const p = profileMap[ds];
+
+    // Count students still on site this evening (not departing today)
+    const eveningStu = (groups || []).reduce((sum, g) =>
       inRange(ds, g.arr, g.dep) && ds !== g.dep ? sum + (g.stu || 0) + (g.gl || 0) : sum, 0);
-    if (!stu) return;
-    const eveTarget = Math.max(2, Math.ceil(stu / 20));
+    if (!eveningStu) return;
 
-    // Pick event name for this night
-    const eventName = ds === groupArrivalDate ? "Welcome Ents" : regularEveNames[eveNameIdx % regularEveNames.length];
+    const eveNeed = Math.max(2, Math.ceil(eveningStu / 20));
 
-    let eveCount = allStaff.filter((s) => { const v = ng[`${s.id}-${ds}-Eve`]; return v && v !== "Day Off"; }).length;
-
-    if (eveCount < eveTarget) {
-      const di = dates.findIndex((x) => dayKey(x) === ds);
-      // Order: activity staff first (most available), then TALs, exclude mgmt/FTT/5FTT
-      const ordered = [...actStaff, ...teachers.filter((s) => s.role === "TAL"), ...mgmt]
-        .map((s, idx) => allStaff[(di + idx) % allStaff.length] || s) // rotate start point
-        .filter((s, i, arr) => arr.findIndex((x) => x.id === s.id) === i); // dedupe
-      // Actually just rotate the combined eligible pool
-      const eligible = [...actStaff, ...teachers.filter((s) => s.role === "TAL")];
-      const rotated = [...eligible.slice(di % eligible.length), ...eligible.slice(0, di % eligible.length)];
-
-      for (const s of rotated) {
-        if (eveCount >= eveTarget) break;
-        if (!isOn(s, ds)) continue;
-        // Exclude management-only roles and 5FTTs
-        if (["CM","CD","EAM","FTT","5FTT"].includes(s.role)) continue;
+    // Eligible: EVE_ELIGIBLE roles, on site, not Day Off, Eve slot empty, under cap
+    // Only assign Eve if staff does NOT already have 2 counted sessions today (no 3-session days)
+    const eligible = staffIndex
+      .filter(s => EVE_ELIGIBLE.has(s.role) && onSite(s, ds))
+      .filter(s => ng[`${s.id}-${ds}-AM`] !== "Day Off")
+      .filter(s => !ng[`${s.id}-${ds}-Eve`])
+      .filter(s => hasCapacity(s))
+      .filter(s => {
         const am = ng[`${s.id}-${ds}-AM`];
         const pm = ng[`${s.id}-${ds}-PM`];
-        const eve = ng[`${s.id}-${ds}-Eve`];
-        if (!am || am === "Day Off" || am === "Induction" || am === "Setup" || am === "pickup") continue;
-        const isFullDayExc = am && pm && am === pm && !NO_SESSION.has(am) &&
-          !["Lessons","Testing","Int English","Activities","Half Exc"].includes(am);
-        // Max 2 counted sessions per day — don't add Eve if AM+PM already fill the quota
-        const daySessionCount = [am, pm].filter((v) => v && !NO_SESSION.has(v)).length;
-        if (!eve && !isFullDayExc && hasRoom(s) && daySessionCount < 2) {
-          ng[`${s.id}-${ds}-Eve`] = eventName;
-          sess[s.id] = (sess[s.id] || 0) + 1;
-          eveCount++;
-        }
-      }
-    }
+        // Block if already 2 counted sessions today
+        return !((am && !NO_COUNT.has(am)) && (pm && !NO_COUNT.has(pm)));
+      });
 
-    // Advance event name index each night (so names rotate across the programme)
-    if (ds !== groupArrivalDate) eveNameIdx++;
+    // Sort by fewest evening sessions so far (fairness), then rotate by day index
+    const sorted = eligible.slice().sort((a, b) => {
+      const aEve = dates.filter(x => ng[`${a.id}-${dayKey(x)}-Eve`] === "Evening Activity").length;
+      const bEve = dates.filter(x => ng[`${b.id}-${dayKey(x)}-Eve`] === "Evening Activity").length;
+      return aEve - bEve;
+    });
+    const offset  = di % Math.max(1, sorted.length);
+    const rotated = [...sorted.slice(offset), ...sorted.slice(0, offset)];
+
+    let eveAssigned = 0;
+    for (const s of rotated) {
+      if (eveAssigned >= eveNeed) break;
+      ng[`${s.id}-${ds}-Eve`] = "Evening Activity";
+      sess[s.id] = (sess[s.id] || 0) + 1;
+      eveAssigned++;
+    }
   });
 
   return ng;
 }
 
-// ── Session limit enforcer ────────────────────────────────────────────────────
+// ── Session limit enforcer (safety net) ───────────────────────────────────────
+// Removes excess sessions from over-target staff (PM before AM, Eve before PM).
 function enforceSessionLimits(grid, staffIndex) {
-  const sessCount = {};
-  staffIndex.forEach((s) => { sessCount[s.id] = 0; });
+  const counts = {};
+  staffIndex.forEach(s => { counts[s.id] = 0; });
 
   for (const [key, val] of Object.entries(grid)) {
     if (!val || NO_COUNT.has(val)) continue;
-    // Bug fix #6: Use startsWith to find staff entry (avoids fragile split logic)
-    const staffEntry = staffIndex.find((s) => key.startsWith(s.id + "-"));
-    if (staffEntry) sessCount[staffEntry.id]++;
+    const se = staffIndex.find(s => key.startsWith(s.id + "-"));
+    if (se) counts[se.id]++;
   }
 
-  const sortedKeys = Object.keys(grid).sort().reverse();
+  // Process Eve first, then PM (least critical slots removed first)
+  const bySlot = key => {
+    const s = key.split("-").pop();
+    return s === "Eve" ? 0 : s === "PM" ? 1 : 2;
+  };
+  const sortedKeys = Object.keys(grid).sort((a, b) => bySlot(a) - bySlot(b));
+
   for (const key of sortedKeys) {
     const val = grid[key];
     if (!val || NO_COUNT.has(val)) continue;
-    const staffEntry = staffIndex.find((s) => key.startsWith(s.id + "-"));
-    if (!staffEntry) continue;
-    const target = SESSION_TARGET(staffEntry.role);
+    const se = staffIndex.find(s => key.startsWith(s.id + "-"));
+    if (!se) continue;
+    const target = SESSION_TARGET(se.role);
     if (target === 0) continue;
-    if (sessCount[staffEntry.id] > target) {
-      const slot = key.split("-").pop();
-      if (slot === "Eve" || slot === "PM") {
-        delete grid[key];
-        sessCount[staffEntry.id]--;
-      }
+    if (counts[se.id] > target) {
+      delete grid[key];
+      counts[se.id]--;
     }
   }
   return grid;
 }
 
-// ── Valid session values (used for output validation) ────────────────────────
-function buildKnownDests(progGrid, groups, dates) {
-  const dests = new Set();
-  (groups || []).forEach((g) => {
-    dates.forEach((d) => {
-      const ds = dayKey(d);
-      ["AM","PM"].forEach((slot) => {
-        const val = String(progGrid?.[g.id + "-" + ds + "-" + slot] || "").trim();
-        if (val && !/arriv|depart|english\s*test|placement\s*test|lesson|induct/i.test(val)) {
-          dests.add(val);
-        }
-      });
-    });
-  });
-  return dests;
-}
-
-const BASE_VALID_SESSIONS = new Set([
-  "Lessons","Testing","Int English","Lesson Prep",
-  "Activities","Football","Drama","Dance","Half Exc",
-  "Excursion","dinner","pickup","welcome","setup",
-  "Day Off","Induction","Setup","Office","Airport",
-  ...EVE_ENT_NAMES,
-]);
-
-function isValidSessionValue(val, knownDests = new Set()) {
-  if (!val) return false;
-  if (BASE_VALID_SESSIONS.has(val)) return true;
-  if (knownDests.has(val)) return true;
-  // Reject everything else — strict whitelist prevents AI placeholder text
-  return false;
-}
-
-function validateAgentOutput(raw, knownDests) {
-  if (!raw || typeof raw !== "object") return {};
-  const out = {};
-  for (const [key, val] of Object.entries(raw)) {
-    if (typeof val === "string" && isValidSessionValue(val, knownDests)) {
-      out[key] = val;
-    }
-  }
-  return out;
-}
-
-// ── Extract relevant sections of rotaIntel.md ────────────────────────────────
-function extractTALSection(intelDoc) {
-  // Extract sections 4.2 (Teaching Roles) and programme type sections
-  const sections = [];
-  const lines = intelDoc.split("\n");
-  let inSection = false;
-  let depth = 0;
-  for (const line of lines) {
-    if (line.match(/^## 2\.|^## 3\.|^### 4\.2|^### 4\.1/)) { inSection = true; depth = 0; }
-    if (inSection && line.match(/^## [^23]|^## [0-9]{2}/)) { inSection = false; }
-    if (inSection) sections.push(line);
-  }
-  // Also always include section 11 (generation rules)
-  let in11 = false;
-  for (const line of lines) {
-    if (line.match(/^## 11\./)) in11 = true;
-    if (in11 && line.match(/^## 12\./)) break;
-    if (in11) sections.push(line);
-  }
-  return sections.join("\n");
-}
-
-function extractEveningSection(intelDoc) {
-  const sections = [];
-  const lines = intelDoc.split("\n");
-  let inSec = false;
-  for (const line of lines) {
-    if (line.match(/^## 3\.|^## 7\.|^## 9\.|^## 11\./)) inSec = true;
-    if (inSec && line.match(/^## [0-9]+\./) && !line.match(/^## 3\.|^## 7\.|^## 9\.|^## 11\./)) inSec = false;
-    if (inSec) sections.push(line);
-  }
-  return sections.join("\n");
-}
-
-// ── Agent 1: TAL Slot Planner ─────────────────────────────────────────────────
-async function runAgent1TALPlanner(client, staffIndex, dayProfiles, skeleton, groups, knownDests) {
-  const talStaff = staffIndex.filter((s) => s.role === "TAL");
-  if (!talStaff.length) return {};
-
-  const isZZ = (groups || []).some((g) => g.lessonSlot === "PM");
-  const talSystemPrompt = extractTALSection(INTEL_DOC);
-
-  const roleRulesSummary = `
-TAL RULES:
-- Target: 22 sessions/fortnight
-- Can teach: YES (Lessons, Testing, Int English)
-- Can do excursions: YES
-- Can do Eve Ents: YES (max 4/fortnight)
-- Pattern: teach in ONE slot per day, activities/excursion in the OTHER slot. NEVER teach both slots on the same day.
-- Prefer consistency: if a TAL teaches AM on Monday, keep them on AM lessons all week unless FDE/day-off breaks it.
-${isZZ ? "- This is a ZZ centre: lessons and activities run simultaneously in AM and PM. Each TAL covers ONE slot." : "- This is an NZZ centre: lessons AM, activities PM."}
-`.trim();
-
-  // Build unfilled TAL slots from skeleton
-  const unfilledByTAL = {};
-  talStaff.forEach((s) => {
-    const entries = [];
-    dayProfiles.forEach((p) => {
-      ["AM","PM"].forEach((slot) => {
-        const key = `${s.id}-${p.ds}-${slot}`;
-        if (!skeleton[key] && !skeleton[`${s.id}-${p.ds}-AM`]) {
-          // Day not assigned yet — might need TAL assignment
-          entries.push({ date: p.ds, dow: p.dow, slot, dayType: p.isFDE ? "FDE" : p.isArrival ? "ARRIVAL" : p.isTestingDay ? "TESTING" : "NORMAL", amTeachersNeeded: p.AM.teachersNeeded, pmTeachersNeeded: p.PM.teachersNeeded, fdeLabel: p.fdeLabel });
-        }
-      });
-    });
-    if (entries.length) unfilledByTAL[s.id] = { name: s.name, entries };
-  });
-
-  if (!Object.keys(unfilledByTAL).length) return {};
-
-  const prompt = `
-You are Agent 1 — TAL Slot Planner.
-
-${roleRulesSummary}
-
-## SKELETON (already filled — do NOT change these)
-${JSON.stringify(Object.fromEntries(Object.entries(skeleton).filter(([k]) => talStaff.some((t) => k.startsWith(t.id + "-")))), null, 0)}
-
-## UNFILLED TAL SLOTS TO DECIDE
-For each TAL, decide: teach "Lessons" (or "Int English" on testing days) OR do activities/excursion in each slot.
-${JSON.stringify(unfilledByTAL, null, 0)}
-
-## DAY PROFILES (for context)
-${dayProfiles.map((p) => `${p.ds} ${p.dow}: ${p.isFDE ? "FDE:"+p.fdeLabel : p.isTestingDay ? "TESTING" : p.isArrival ? "ARRIVAL" : "NORMAL"} | AM need ${p.AM.teachersNeeded} teachers | PM need ${p.PM.teachersNeeded} teachers${p.AM.topDest ? " | AM exc:"+p.AM.topDest : ""}${p.PM.topDest ? " | PM exc:"+p.PM.topDest : ""}`).join("\n")}
-
-## OUTPUT
-Return ONLY a JSON object with keys "staffId-date-slot" and values being the assignment.
-Allowed values: "Lessons" | "Int English" | "Activities" | "Excursion" | "[destination name]" | "Day Off"
-Rules:
-- If teaching AM → must do activities/excursion PM (not "Lessons" again)
-- If teaching PM → must do activities/excursion AM
-- Stay consistent: same slot for lessons across the week
-- On FDE days that are NOT already filled: TALs join the excursion (use fdeLabel as value)
-- On Day Off days: skip (already in skeleton)
-Output JSON starting with "{":`;
-
-  const resp = await client.messages.create({
-    model: "claude-opus-4-5",
-    max_tokens: 8000,
-    system: [{ type: "text", text: talSystemPrompt, cache_control: { type: "ephemeral" } }],
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  const text = resp.content.find((b) => b.type === "text")?.text || "";
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) return {};
-  try { return validateAgentOutput(JSON.parse(match[0]), knownDests); } catch { return {}; }
-}
-
-// ── Agent 2: Evening, Activities & Excursions Planner ─────────────────────────
-async function runAgent2EvePlanner(client, staffIndex, dayProfiles, mergedGrid, groups, knownDests) {
-  const eveSystemPrompt = extractEveningSection(INTEL_DOC);
-
-  const eveEntNames = EVE_ENT_NAMES.join(", ");
-  const activityRoles = ACTIVITY_ROLES.concat(["TAL"]);
-
-  // Summarise what's unfilled in the Eve column + activity staff gaps
-  const eveSummary = [];
-  const actSummary = [];
-
-  dayProfiles.forEach((p) => {
-    if (!p.totalStu && !p.arrivingStu) return;
-    const eveStaffed = staffIndex.filter((s) => {
-      const v = mergedGrid[`${s.id}-${p.ds}-Eve`];
-      return v && v !== "Day Off";
-    }).length;
-    const eveNeeded = Math.max(2, Math.ceil((p.totalStu || 0) / 20));
-    eveSummary.push({ date: p.ds, dow: p.dow, studentsOnSite: p.totalStu, eveNeeded, eveStaffed, deficit: Math.max(0, eveNeeded - eveStaffed), dayType: p.isFDE ? "FDE" : p.isTestingDay ? "TESTING" : p.isArrival ? "ARRIVAL" : "NORMAL", fdeLabel: p.fdeLabel || null });
-
-    // Activity/dinner gaps
-    const needsDinner = !p.isFirstArrival && p.totalStu > 0;
-    if (needsDinner) {
-      const dinnerAssigned = staffIndex.filter((s) => {
-        const pm = mergedGrid[`${s.id}-${p.ds}-PM`];
-        const eve = mergedGrid[`${s.id}-${p.ds}-Eve`];
-        return pm === "dinner" || eve === "dinner";
-      }).length;
-      if (dinnerAssigned < 2) actSummary.push({ date: p.ds, dow: p.dow, type: "dinner", need: 2, have: dinnerAssigned });
-    }
-  });
-
-  // Staff availability summary for Eve
-  const staffSummary = staffIndex
-    .filter((s) => activityRoles.includes(s.role))
-    .map((s) => ({
-      id: s.id, name: s.name, role: s.role,
-      daysOff: dayProfiles.filter((p) => mergedGrid[`${s.id}-${p.ds}-AM`] === "Day Off").map((p) => p.ds),
-      currentEveCount: dayProfiles.filter((p) => { const v = mergedGrid[`${s.id}-${p.ds}-Eve`]; return v && v !== "Day Off"; }).length,
-    }));
-
-  const prompt = `
-You are Agent 2 — Evening, Activities & Excursions Planner.
-
-ROLE RULES:
-- Eligible for Eve Ents: TAL (max 4/fortnight), SAI, AL, EAL, LAL, LAC, SC, AC, HP, FOOTBALL, DRAMA, DANCE
-- FTTs do NOT do evenings (except 1-2 per fortnight max — skip for now, skeleton handles it)
-- Dinner supervision: SAI, AL, EAL, LAL, LAC, SC, AC, HP only. 2 staff per evening. Rotate fairly.
-- Eve Ent names to use (rotate variety): ${eveEntNames}
-- Minimum Eve staff = ceil(studentsOnSite / 20), minimum 2
-
-MANDATORY RULES:
-1. EVERY night with students on site MUST have at least the required Eve staff count. Empty Eve = FAILURE.
-2. EVERY day with students on site needs 2 dinner supervision assignments (in PM or Eve slot).
-3. On FDE days, ALL eligible activity staff should be on the excursion already — just ensure Eve is covered.
-4. Do NOT assign Eve Ents to staff who already have Eve filled in the skeleton.
-5. For dinner: add "dinner" to PM or Eve slot for eligible staff who don't already have those slots filled.
-
-## STAFF AVAILABILITY
-${JSON.stringify(staffSummary, null, 0)}
-
-## EVENINGS NEEDING STAFF
-${JSON.stringify(eveSummary, null, 0)}
-
-## DINNER GAPS
-${JSON.stringify(actSummary, null, 0)}
-
-## CURRENT MERGED GRID (partial — what's already assigned for these staff)
-${JSON.stringify(Object.fromEntries(Object.entries(mergedGrid).filter(([k]) => staffSummary.some((s) => k.startsWith(s.id + "-")))), null, 0)}
-
-## OUTPUT
-Return ONLY a JSON object with keys "staffId-date-slot" and values being the assignment.
-For Eve slots: use Eve Ent names (Disco, Karaoke, Quiz Night, Film Night, etc.) — vary them across nights.
-For dinner: use "dinner" as the value.
-Only output NEW assignments — do not repeat what's already in the skeleton.
-Output JSON starting with "{":`;
-
-  const resp = await client.messages.create({
-    model: "claude-opus-4-5",
-    max_tokens: 12000,
-    system: [{ type: "text", text: eveSystemPrompt, cache_control: { type: "ephemeral" } }],
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  const text = resp.content.find((b) => b.type === "text")?.text || "";
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) return {};
-  try { return validateAgentOutput(JSON.parse(match[0]), knownDests); } catch { return {}; }
-}
-
-// ── Agent 3: Reviewer ─────────────────────────────────────────────────────────
-async function runAgent3Reviewer(client, staffIndex, dayProfiles, mergedGrid, knownDests) {
-  const REVIEWER_CONSTRAINTS = `
-CONSTRAINT LIST — output a JSON array of violations only. Each fix value MUST be one of the exact strings listed in VALID VALUES below.
-
-VALID VALUES: "Lessons", "Testing", "Activities", "Day Off", "Induction", "Setup", "Office", "Airport", "dinner", "pickup", "welcome", "Excursion", "Half Exc", "Disco", "Karaoke", "Quiz Night", "Film Night", "Talent Show", "Scavenger Hunt", "Flag Ceremony", "Awards Night", "Paparazzi", "Dragons Den", "Trashion Show", "Murder Mystery", "Oscars Night", "Sports Night", "Welcome Ents"
-
-RULES TO CHECK:
-1. FTTs must NEVER be assigned excursion destination names on teaching days. Fix: "Day Off" or "Lessons".
-2. Activity-only roles (SAI, AL, EAL, SC, AC, EAC, LAL, LAC, FOOTBALL, DRAMA, DANCE, HP) must NEVER have "Lessons" or "Testing". Fix: "Activities".
-3. TAL must NEVER have "Lessons" in both AM and PM on the same day. Fix the PM to "Activities".
-4. 5FTT must not have non-Day-Off sessions on Saturday or Sunday. Fix: "Day Off".
-5. If a staff member has "Day Off" in AM but not PM/Eve on the same day (or vice versa), add "Day Off" to the missing slots.
-`.trim();
-
-  // Build a compact summary of the merged grid for review
-  const gridSummary = {};
-  staffIndex.forEach((s) => {
-    const sessions = [];
-    let count = 0;
-    dayProfiles.forEach((p) => {
-      const am = mergedGrid[`${s.id}-${p.ds}-AM`];
-      const pm = mergedGrid[`${s.id}-${p.ds}-PM`];
-      const eve = mergedGrid[`${s.id}-${p.ds}-Eve`];
-      if (am || pm || eve) sessions.push({ date: p.ds, dow: p.dow, AM: am||"", PM: pm||"", Eve: eve||"" });
-      if (am && !NO_COUNT.has(am)) count++;
-      if (pm && !NO_COUNT.has(pm)) count++;
-      if (eve && !NO_COUNT.has(eve)) count++;
-    });
-    gridSummary[s.id] = { name: s.name, role: s.role, target: SESSION_TARGET(s.role), sessionsCount: count, sessions };
-  });
-
-  const prompt = `
-You are Agent 3 — Rota Reviewer.
-
-${REVIEWER_CONSTRAINTS}
-
-## GRID TO REVIEW
-${JSON.stringify(gridSummary, null, 0)}
-
-## DAY PROFILES (for FDE/testing day context)
-${dayProfiles.map((p) => `${p.ds} ${p.dow}: ${p.isFDE ? "FDE" : p.isTestingDay ? "TESTING" : p.isArrival ? "ARRIVAL" : "NORMAL"} | students:${p.totalStu}`).join("\n")}
-
-## OUTPUT
-Return ONLY a JSON array of violations (max 20). Each violation:
-{"key": "staffId-date-slot", "current": "currentValue", "fix": "correctedValue", "reason": "brief reason"}
-If no violations found, return [].
-Output JSON array starting with "[":`;
-
-  const resp = await client.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 4000,
-    system: [{ type: "text", text: REVIEWER_CONSTRAINTS, cache_control: { type: "ephemeral" } }],
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  const text = resp.content.find((b) => b.type === "text")?.text || "";
-  const match = text.match(/\[[\s\S]*\]/);
-  if (!match) return [];
-  try {
-    const raw = JSON.parse(match[0]);
-    // Only keep fixes where the suggested value is a valid session string
-    return Array.isArray(raw) ? raw.filter((fix) =>
-      fix && fix.key && typeof fix.key === "string" &&
-      (fix.fix === "" || fix.fix === null || isValidSessionValue(fix.fix, knownDests))
-    ) : [];
-  } catch { return []; }
-}
-
-// ── Main POST handler with SSE streaming ─────────────────────────────────────
+// ── POST handler ──────────────────────────────────────────────────────────────
 export async function POST(req) {
-  const encoder = new TextEncoder();
-
-  const sendEvent = (controller, data) => {
-    controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
-  };
+  const encoder  = new TextEncoder();
+  const sendEvent = (ctrl, data) =>
+    ctrl.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const { staff, groups, progGrid, progStart, progEnd, centreName } = await req.json();
+        const { staff, groups, progGrid, progStart, progEnd } = await req.json();
 
         if (!staff?.length) {
           sendEvent(controller, { error: "No staff provided" });
-          controller.close();
-          return;
+          controller.close(); return;
         }
         if (!progStart || !progEnd) {
           sendEvent(controller, { error: "Date range required" });
-          controller.close();
-          return;
+          controller.close(); return;
         }
+
+        sendEvent(controller, { step: 1, message: "Reading programme…" });
 
         const dates = genDates(progStart, progEnd);
         const staffIndex = staff.map((s, i) => ({
-          i, id: s.id, name: s.name || `Staff ${i}`,
-          role: s.role || "SAI", arr: s.arr || progStart, dep: s.dep || progEnd, to: s.to || "",
+          i, id: s.id,
+          name: s.name || `Staff ${i}`,
+          role: s.role || "SAI",
+          arr: s.arr || progStart,
+          dep: s.dep || progEnd,
+          to: s.to || "",
         }));
+
         const dayProfiles = buildDayProfiles(dates, groups, progGrid);
-        const staffingGaps = calcStaffingGaps(staffIndex, dayProfiles);
 
-        // Build known excursion destinations for output validation
-        const knownDests = buildKnownDests(progGrid, groups, dates);
+        sendEvent(controller, { step: 2, message: "Building rota…" });
 
-        // Build deterministic skeleton
-        const skeleton = buildSkeleton(staffIndex, dates, groups, dayProfiles);
+        const grid = buildRota(staffIndex, dates, groups, progGrid, dayProfiles);
 
-        // Count sessions per staff member in the skeleton — used to gate agent additions
-        const skelSessCounts = {};
-        staffIndex.forEach((s) => { skelSessCounts[s.id] = 0; });
-        for (const [key, val] of Object.entries(skeleton)) {
-          if (!val || NO_COUNT.has(val)) continue;
-          const se = staffIndex.find((s) => key.startsWith(s.id + "-"));
-          if (se) skelSessCounts[se.id]++;
-        }
+        sendEvent(controller, { step: 3, message: "Checking session limits…" });
 
-        // Cap-aware merge: agents may only add sessions to staff below their target.
-        // Non-session values (Day Off, corrections) are always accepted.
-        const capAwareMerge = (base, agentResult, allowOverwrite = false) => {
-          const merged = { ...base };
-          const counts = { ...skelSessCounts };
-          // Recount from current merged state
-          Object.entries(merged).forEach(([key, val]) => {
-            if (!val || NO_COUNT.has(val)) return;
-            const se = staffIndex.find((s) => key.startsWith(s.id + "-"));
-            if (se) counts[se.id] = (counts[se.id] || 0);
-          });
-          // Rebuild counts from merged
-          staffIndex.forEach((s) => { counts[s.id] = 0; });
-          Object.entries(merged).forEach(([key, val]) => {
-            if (!val || NO_COUNT.has(val)) return;
-            const se = staffIndex.find((s) => key.startsWith(s.id + "-"));
-            if (se) counts[se.id]++;
-          });
-
-          for (const [key, val] of Object.entries(agentResult)) {
-            if (!val) continue;
-            const existing = merged[key];
-            // Only fill empty slots (agents should add, not overwrite the skeleton)
-            if (existing) continue;
-            // Non-session values (Day Off, Airport, etc.) always accepted
-            if (NO_COUNT.has(val)) { merged[key] = val; continue; }
-            // Session values: only if staff is under their cap
-            const se = staffIndex.find((s) => key.startsWith(s.id + "-"));
-            if (!se) continue;
-            const tgt = SESSION_TARGET(se.role);
-            if (tgt > 0 && counts[se.id] >= tgt) continue;
-            // Eve slots: only if AM+PM don't already account for 2 counted sessions that day
-            const slotName = key.split("-").pop();
-            if (slotName === "Eve") {
-              const dk = key.slice(se.id.length + 1, se.id.length + 11);
-              const amCounts = merged[`${se.id}-${dk}-AM`] && !NO_COUNT.has(merged[`${se.id}-${dk}-AM`]);
-              const pmCounts = merged[`${se.id}-${dk}-PM`] && !NO_COUNT.has(merged[`${se.id}-${dk}-PM`]);
-              if (amCounts && pmCounts) continue;
-            }
-            merged[key] = val;
-            counts[se.id]++;
-          }
-          return merged;
-        };
-
-        const client = new Anthropic();
-
-        // Step 1: TAL Slot Planner (fills any TAL gaps the skeleton left)
-        sendEvent(controller, { step: 1, message: "Planning TAL slots…" });
-        const agent1Result = await runAgent1TALPlanner(client, staffIndex, dayProfiles, skeleton, groups, knownDests);
-        const mergedAfterAgent1 = capAwareMerge(skeleton, agent1Result);
-
-        // Step 2: Evening, Activities & Excursions Planner (top-up eve + dinner gaps)
-        sendEvent(controller, { step: 2, message: "Planning evenings and activities…" });
-        const agent2Result = await runAgent2EvePlanner(client, staffIndex, dayProfiles, mergedAfterAgent1, groups, knownDests);
-        const mergedAfterAgent2 = capAwareMerge(mergedAfterAgent1, agent2Result);
-
-        // Step 3: Reviewer
-        sendEvent(controller, { step: 3, message: "Reviewing for violations…" });
-        const violations = await runAgent3Reviewer(client, staffIndex, dayProfiles, mergedAfterAgent2, knownDests);
-
-        // Apply reviewer fixes (values already pre-validated in runAgent3Reviewer)
-        let corrections = 0;
-        for (const fix of (violations || [])) {
-          if (fix.key && fix.fix !== undefined) {
-            if (fix.fix === "" || fix.fix === null) {
-              delete mergedAfterAgent2[fix.key];
-            } else {
-              mergedAfterAgent2[fix.key] = fix.fix;
-            }
-            corrections++;
-          }
-        }
-
-        // Filter grid to programme dates only — agents can hallucinate keys outside progStart/progEnd
+        // Safety net: remove any cells beyond the programme date range
         const validDateKeys = new Set(dates.map(dayKey));
-        for (const key of Object.keys(mergedAfterAgent2)) {
-          // Key format: staffId-YYYY-MM-DD-slot
-          // Extract date by matching known staff IDs
-          const staffEntry = staffIndex.find((s) => key.startsWith(s.id + "-"));
-          if (!staffEntry) { delete mergedAfterAgent2[key]; continue; }
-          const withoutStaff = key.slice(staffEntry.id.length + 1);
-          const dateKey = withoutStaff.slice(0, 10); // YYYY-MM-DD
-          if (!validDateKeys.has(dateKey)) delete mergedAfterAgent2[key];
+        for (const key of Object.keys(grid)) {
+          const se = staffIndex.find(s => key.startsWith(s.id + "-"));
+          if (!se) { delete grid[key]; continue; }
+          const dk = key.slice(se.id.length + 1, se.id.length + 11);
+          if (!validDateKeys.has(dk)) delete grid[key];
         }
 
-        // Enforce session limits (removes excess Eve/PM sessions from over-target staff)
-        enforceSessionLimits(mergedAfterAgent2, staffIndex);
+        enforceSessionLimits(grid, staffIndex);
 
-        const suggestions = staffingGaps.map((g) => ({
-          ds: g.ds, dow: g.dow, slot: g.slot, needed: g.needed, available: g.available, shortfall: g.shortfall,
-        }));
-
-        sendEvent(controller, {
-          grid: mergedAfterAgent2,
-          suggestions,
-          corrections,
-        });
+        sendEvent(controller, { grid, corrections: 0, suggestions: [] });
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
+
       } catch (e) {
         console.error("generate-rota error:", e);
         sendEvent(controller, { error: e.message });
