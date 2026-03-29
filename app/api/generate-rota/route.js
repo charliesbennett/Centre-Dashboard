@@ -172,6 +172,16 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles) {
     return t === 0 || (sess[s.id] || 0) < t;
   };
 
+  // Daytime capacity: reserves 3 sessions for Eve-eligible staff (TAL, activity roles)
+  // so Pass 3 doesn't fill their entire cap before Eve assignments happen in Pass 4.
+  const EVE_RESERVE = 3;
+  const hasCapacityForDaytime = s => {
+    const t = SESSION_TARGET(s.role);
+    if (t === 0) return true;
+    const reserve = EVE_ELIGIBLE.has(s.role) ? EVE_RESERVE : 0;
+    return (sess[s.id] || 0) < (t - reserve);
+  };
+
   // Build fast lookups
   const profileMap = {};
   dayProfiles.forEach(p => { profileMap[p.ds] = p; });
@@ -372,7 +382,7 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles) {
       [...teachers.filter(s => s.role === "TAL"), ...actStaff]
         .filter(s => onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
         .forEach(s => {
-          if (!hasCapacity(s)) return;
+          if (!hasCapacityForDaytime(s)) return;
           put(s.id, ds, "AM", lbl);
           put(s.id, ds, "PM", lbl);
         });
@@ -393,7 +403,7 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles) {
       // Activity staff: Activities
       actStaff.filter(s => onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
         .forEach(s => {
-          if (!hasCapacity(s)) return;
+          if (!hasCapacityForDaytime(s)) return;
           put(s.id, ds, "AM", "Activities");
           put(s.id, ds, "PM", "Activities");
         });
@@ -436,7 +446,7 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles) {
 
     teachers.filter(s => s.role === "TAL" && onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
       .forEach((s, i) => {
-        if (!hasCapacity(s)) return;
+        if (!hasCapacityForDaytime(s)) return;
         const remAM = amNeed - amCovered;
         const remPM = pmNeed - pmCovered;
 
@@ -462,7 +472,7 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles) {
     // Activity staff: excursion or activities each slot
     actStaff.filter(s => onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
       .forEach(s => {
-        if (!hasCapacity(s)) return;
+        if (!hasCapacityForDaytime(s)) return;
         put(s.id, ds, "AM", amLbl);
         put(s.id, ds, "PM", pmLbl);
       });
@@ -475,12 +485,18 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles) {
     if (!groupArrivalDate || ds < groupArrivalDate) return;
     const p = profileMap[ds];
 
-    // Count students still on site this evening (not departing today)
+    // Check if Evening Activity is needed tonight:
+    // Primary: any group has an Eve entry in progGrid for this date
+    // Fallback: calculate from student presence (group arr/dep dates)
+    const hasProgEve = (groups || []).some(g => {
+      const val = progGrid?.[`${g.id}-${ds}-Eve`];
+      return val && val !== "Day Off" && val !== "";
+    });
     const eveningStu = (groups || []).reduce((sum, g) =>
       inRange(ds, g.arr, g.dep) && ds !== g.dep ? sum + (g.stu || 0) + (g.gl || 0) : sum, 0);
-    if (!eveningStu) return;
+    if (!hasProgEve && !eveningStu) return;
 
-    const eveNeed = Math.max(2, Math.ceil(eveningStu / 20));
+    const eveNeed = Math.max(2, Math.ceil(Math.max(eveningStu, 1) / 20));
 
     // Eligible: EVE_ELIGIBLE roles, on site, not Day Off, Eve slot empty, under cap
     const eligible = staffIndex

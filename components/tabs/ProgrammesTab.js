@@ -20,7 +20,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
   const isLondon = LONDON_CENTRES.includes(centre);
   const isMinistay = /mini[\s-]?stay/i.test(centre || "");
-  const slots = isMinistay ? ["AM", "PM", "EVE"] : ["AM", "PM"];
+  const slots = ["AM", "PM", "Eve"];
   const [viewMode, setViewMode] = useState("all");
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const grid = progGrid || {};
@@ -85,16 +85,16 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     dates.forEach(d => {
       const s = dayKey(d), day = d.getDay(), we = isWeekend(d);
       if (!inRange(s, g.arr, g.dep)) return;
-      if (g.arr && s === dayKey(new Date(g.arr))) { ng[g.id+"-"+s+"-PM"] = "ARRIVAL"; return; }
+      if (g.arr && s === dayKey(new Date(g.arr))) { ng[g.id+"-"+s+"-PM"] = "ARRIVAL"; ng[g.id+"-"+s+"-Eve"] = "Evening Activity"; return; }
       if (g.dep && s === dayKey(new Date(g.dep))) { ng[g.id+"-"+s+"-AM"] = "DEPARTURE"; return; }
-      if (excDays[s] === "Full") { ng[g.id+"-"+s+"-AM"] = "Full Exc"; ng[g.id+"-"+s+"-PM"] = "Full Exc"; return; }
-      if (we) { ng[g.id+"-"+s+"-AM"] = "Full Exc"; ng[g.id+"-"+s+"-PM"] = "Full Exc"; return; }
+      if (excDays[s] === "Full") { ng[g.id+"-"+s+"-AM"] = "Full Exc"; ng[g.id+"-"+s+"-PM"] = "Full Exc"; ng[g.id+"-"+s+"-Eve"] = "Evening Activity"; return; }
+      if (we) { ng[g.id+"-"+s+"-AM"] = "Full Exc"; ng[g.id+"-"+s+"-PM"] = "Full Exc"; ng[g.id+"-"+s+"-Eve"] = "Evening Activity"; return; }
       const ls = getGroupLessonSlot(g, s);
       const spec = g.prog === "Multi-Activity" ? "Multi-Activity" : g.prog === "Intensive English" ? "English+" : g.prog === "Performing Arts" ? "Perf Arts" : g.prog || "Multi-Activity";
       if (excDays[s] === "Half") {
         if (ls === "AM") { ng[g.id+"-"+s+"-AM"] = "Lessons"; ng[g.id+"-"+s+"-PM"] = "Half Exc"; }
         else { ng[g.id+"-"+s+"-AM"] = "Half Exc"; ng[g.id+"-"+s+"-PM"] = "Lessons"; }
-        return;
+        ng[g.id+"-"+s+"-Eve"] = "Evening Activity"; return;
       }
       if (isLondon && (day === 1 || day === 3 || day === 5)) {
         if (ls === "AM") { ng[g.id+"-"+s+"-AM"] = "Lessons"; ng[g.id+"-"+s+"-PM"] = "Half Exc"; }
@@ -103,6 +103,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         if (ls === "AM") { ng[g.id+"-"+s+"-AM"] = "Lessons"; ng[g.id+"-"+s+"-PM"] = spec; }
         else { ng[g.id+"-"+s+"-AM"] = spec; ng[g.id+"-"+s+"-PM"] = "Lessons"; }
       }
+      ng[g.id+"-"+s+"-Eve"] = "Evening Activity";
     });
   };
 
@@ -151,7 +152,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           if (day) {
             if (day.am) ng[g.id+"-"+s+"-AM"] = day.am;
             if (day.pm) ng[g.id+"-"+s+"-PM"] = day.pm;
-            if (day.eve) ng[g.id+"-"+s+"-EVE"] = day.eve;
+            if (day.eve) ng[g.id+"-"+s+"-Eve"] = day.eve;
             if (day.exc === "Full") newExcDays[s] = "Full";
             else if (day.exc === "Half" && !newExcDays[s]) newExcDays[s] = "Half";
           }
@@ -175,6 +176,14 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       }
       // No per-group template: use default template or built-in logic
       if (defaultTmpl) { applyTmplInto(defaultTmpl, [g], ng); } else { defaultPopGroup(g, ng); }
+    });
+    // Ensure Evening Activity is set for all on-site days (not departure day)
+    groups.forEach(g => {
+      dates.forEach(d => {
+        const s = dayKey(d);
+        if (!inRange(s, g.arr, g.dep) || s === g.dep) return;
+        if (!ng[g.id+"-"+s+"-Eve"]) ng[g.id+"-"+s+"-Eve"] = "Evening Activity";
+      });
     });
     setGrid(ng);
   };
@@ -209,7 +218,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   const toggleExc = (dStr) => { setExcDays(p => { const c = p[dStr]; if (!c) return {...p,[dStr]:"Full"}; if (c==="Full") return {...p,[dStr]:"Half"}; const n={...p}; delete n[dStr]; return n; }); };
   const quickPick = (key, val) => { setGrid(p => ({...p, [key]: val})); setQuickPickCell(null); };
   const handleCellClick = (key, sl, on, e) => {
-    if (readOnly || !on || !isMinistay) return; const rect = e.currentTarget.getBoundingClientRect(); setQpPos({top: rect.bottom, left: rect.left});
+    if (readOnly || !on) return; const rect = e.currentTarget.getBoundingClientRect(); setQpPos({top: rect.bottom, left: rect.left});
     if (editingCell === key) return;
     setQuickPickCell(quickPickCell === key ? null : key);
   };
@@ -308,7 +317,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
             <th style={{...thStyle,width:90,position:"sticky",left:100,zIndex:2,background:"#f8fafc"}}>Group</th>
             <th style={{...thStyle,width:30,textAlign:"center"}}>Pax</th>
             <th style={{...thStyle,width:30,textAlign:"center",fontSize:8}}>Wk1</th>
-            {dates.map(d=>{const s=dayKey(d),exc=excDays[s],we=isWeekend(d);return<th key={s} colSpan={slots.length} onClick={()=>toggleExc(s)} style={{...thStyle,textAlign:"center",borderLeft:"2px solid "+B.border,padding:"3px 2px",minWidth:isMinistay?192:128,cursor:"pointer",background:exc?"#fff7ed":we?"#fef2f2":"#f8fafc"}}>
+            {dates.map(d=>{const s=dayKey(d),exc=excDays[s],we=isWeekend(d);return<th key={s} colSpan={slots.length} onClick={()=>toggleExc(s)} style={{...thStyle,textAlign:"center",borderLeft:"2px solid "+B.border,padding:"3px 2px",minWidth:192,cursor:"pointer",background:exc?"#fff7ed":we?"#fef2f2":"#f8fafc"}}>
               <div style={{fontSize:7,color:B.textMuted}}>{fmtDate(d)}</div>
               <div style={{fontWeight:800,fontSize:9,color:we?B.red:B.navy}}>{dayName(d)}</div>
               {exc&&<div style={{fontSize:6,color:"#ea580c",fontWeight:800}}>{exc==="Full"?"FD EXC":"HD EXC"}</div>}
