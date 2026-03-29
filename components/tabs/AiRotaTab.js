@@ -53,7 +53,7 @@ export function buildDraftRotaGrid(draftRota, staff) {
 function cellBg(val) {
   if (!val) return "transparent";
   if (val === "Day Off") return B.ice;
-  if (val === "Lessons" || val === "Testing" || val === "Int English") return B.pink;
+  if (/^(lessons?|testing|english test|int english)$/i.test(val)) return B.pink;
   if (val === "Induction" || val === "Setup" || val === "Office") return "#f0f4f8";
   if (/welcome|pickup|dinner/i.test(val)) return "#f0f4f8";
   return "#f0fdf4";
@@ -193,12 +193,12 @@ function ReviewStep({ draftRota, staff, progStart, progEnd, onPublish, onStartOv
 
       {draftRota?.grid ? (
         <TableWrap>
-          <table style={{ borderCollapse: "collapse", fontSize: 10, fontFamily: OS, minWidth: "100%" }}>
+          <table style={{ borderCollapse: "collapse", fontSize: 9, fontFamily: OS, minWidth: "100%" }}>
             <thead>
               <tr>
-                <th style={{ ...thStyle, position: "sticky", left: 0, zIndex: 2, minWidth: 120 }}>Staff</th>
+                <th style={{ ...thStyle, position: "sticky", left: 0, zIndex: 2, minWidth: 90, fontSize: 9 }}>Staff</th>
                 {dates.map((d) => (
-                  <th key={dayKey(d)} style={{ ...thStyle, textAlign: "center", minWidth: 56, padding: "6px 4px" }}>
+                  <th key={dayKey(d)} style={{ ...thStyle, textAlign: "center", minWidth: 44, padding: "4px 2px", fontSize: 9 }}>
                     <div>{dayName(d)}</div>
                     <div style={{ fontWeight: 400, opacity: 0.7, fontSize: 9 }}>{d.getDate()}/{d.getMonth() + 1}</div>
                   </th>
@@ -208,17 +208,17 @@ function ReviewStep({ draftRota, staff, progStart, progEnd, onPublish, onStartOv
             <tbody>
               {(staff || []).map((s) => (
                 <tr key={s.id}>
-                  <td style={{ ...tdStyle, position: "sticky", left: 0, zIndex: 1, background: B.white, fontWeight: 600, whiteSpace: "nowrap" }}>
+                  <td style={{ ...tdStyle, position: "sticky", left: 0, zIndex: 1, background: B.white, fontWeight: 600, whiteSpace: "nowrap", fontSize: 9, minWidth: 90 }}>
                     <div>{s.name}</div>
-                    <div style={{ fontSize: 9, color: B.textMuted }}>{s.role}</div>
+                    <div style={{ fontSize: 8, color: B.textMuted }}>{s.role}</div>
                   </td>
                   {dates.map((d) => {
                     const dk = dayKey(d);
                     const cell = grid[s.id]?.[dk] || {};
                     return (
-                      <td key={dk} style={{ ...tdStyle, padding: "3px 4px", verticalAlign: "top" }}>
+                      <td key={dk} style={{ ...tdStyle, padding: "2px 2px", verticalAlign: "top" }}>
                         {["AM", "PM", "Eve"].map((slot) => cell[slot] ? (
-                          <div key={slot} style={{ fontSize: 9, padding: "1px 3px", borderRadius: 3, marginBottom: 1, background: cellBg(cell[slot]), color: B.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 52 }} title={`${slot}: ${cell[slot]}`}>
+                          <div key={slot} style={{ fontSize: 8, padding: "1px 2px", borderRadius: 3, marginBottom: 1, background: cellBg(cell[slot]), color: B.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 40 }} title={`${slot}: ${cell[slot]}`}>
                             <span style={{ color: B.textMuted, marginRight: 2 }}>{slot[0]}</span>{cell[slot]}
                           </div>
                         ) : null)}

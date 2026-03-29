@@ -72,12 +72,16 @@ function buildDayProfiles(dates, groups, progGrid) {
         if (val && /english\s*test|placement\s*test/i.test(val)) {
           testStu += pax; return;
         }
-        // 2. Explicit programme grid entry → excursion (trust the programme)
+        // 2. Lesson-type values in programme grid → count as lessons
+        if (val && /^(english\s+lessons?|lessons?|classes?)$/i.test(val)) {
+          lessonStu += pax; return;
+        }
+        // 3. Explicit programme grid entry → excursion (trust the programme)
         if (val && !/arriv|depart/i.test(val)) {
           excDests[val] = (excDests[val] || 0) + pax; return;
         }
-        // 3. No explicit entry → fall back to lesson-slot calculation
-        if (!val && getGroupLessonSlot(g, ds) === slot) {
+        // 4. No explicit entry → fall back to lesson-slot calculation (no lessons on Sundays)
+        if (!val && d.getDay() !== 0 && getGroupLessonSlot(g, ds) === slot) {
           lessonStu += pax;
         }
       });
@@ -479,18 +483,11 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles) {
     const eveNeed = Math.max(2, Math.ceil(eveningStu / 20));
 
     // Eligible: EVE_ELIGIBLE roles, on site, not Day Off, Eve slot empty, under cap
-    // Only assign Eve if staff does NOT already have 2 counted sessions today (no 3-session days)
     const eligible = staffIndex
       .filter(s => EVE_ELIGIBLE.has(s.role) && onSite(s, ds))
       .filter(s => ng[`${s.id}-${ds}-AM`] !== "Day Off")
       .filter(s => !ng[`${s.id}-${ds}-Eve`])
-      .filter(s => hasCapacity(s))
-      .filter(s => {
-        const am = ng[`${s.id}-${ds}-AM`];
-        const pm = ng[`${s.id}-${ds}-PM`];
-        // Block if already 2 counted sessions today
-        return !((am && !NO_COUNT.has(am)) && (pm && !NO_COUNT.has(pm)));
-      });
+      .filter(s => hasCapacity(s));
 
     // Sort by fewest evening sessions so far (fairness), then rotate by day index
     const sorted = eligible.slice().sort((a, b) => {
