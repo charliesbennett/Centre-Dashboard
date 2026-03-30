@@ -18,6 +18,7 @@ import PettyCashTab from "@/components/tabs/PettyCashTab";
 import ContactsTab from "@/components/tabs/ContactsTab";
 import RoomingTab from "@/components/tabs/RoomingTab";
 import HomeTab from "@/components/tabs/HomeTab";
+import ChatButton from "@/components/ChatButton";
 
 export default function Dashboard() {
   const auth = useAuth();
@@ -481,6 +482,32 @@ export default function Dashboard() {
       </nav>
 
       <div style={{ minHeight: "calc(100vh - 120px)" }}>{renderTab()}</div>
+
+      {centreId && (
+        <ChatButton
+          centreId={centreId}
+          centreName={centreName}
+          centreData={{
+            groups: db.groups,
+            students: (db.groups || []).flatMap((g) =>
+            (g.students || []).map((s) => ({
+              ...s,
+              name: [s.firstName, s.surname].filter(Boolean).join(" "),
+              groupId: g.id,
+            }))
+          ),
+            staff: db.staff,
+            rotaGrid: db.rotaGrid,
+            progGrid: db.progGrid,
+            excursions: db.excursions,
+            transfers: db.transfers,
+            settings: db.settings,
+            roomingHouses: db.roomingHouses,
+            roomingRooms: db.roomingRooms,
+            roomingAssignments: db.roomingAssignments,
+          }}
+        />
+      )}
     </div>
   );
 }

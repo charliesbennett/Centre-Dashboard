@@ -103,6 +103,11 @@ export const btnNavy = {
   boxShadow: "0 2px 8px rgba(28,48,72,0.2)",
 };
 
+export const btnYellow = {
+  ...btnPrimary, background: "#f6c90e", color: B.navy,
+  boxShadow: "0 2px 8px rgba(246,201,14,0.3)",
+};
+
 // ── Base SVG icon ─────────────────────────────────────────────────────────
 function Ic({ d, s = 16, c = "currentColor", sw = 1.8 }) {
   return (
@@ -121,6 +126,7 @@ export function IcX()       { return <Ic d="M18 6L6 18M6 6l12 12" s={12} />; }
 export function IcWand()    { return <Ic d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8l1.4 1.4M12.2 11.8l-1.4 1.4M17.8 6.2l1.4-1.4M12.2 6.2l-1.4-1.4M12 21l3-7h4l-7 3z" />; }
 export function IcEdit()    { return <Ic d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" s={14} />; }
 export function IcCheck()   { return <Ic d="M20 6L9 17l-5-5" s={14} />; }
+export function IcChat()    { return <Ic d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" s={20} />; }
 
 // ── Tab navigation icons ──────────────────────────────────────────────────
 export function IcHome()     { return <Ic s={15} d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 22V12h6v10" />; }
