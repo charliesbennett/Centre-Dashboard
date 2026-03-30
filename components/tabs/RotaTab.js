@@ -574,7 +574,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     return a;
   }, [grid, ratioData, dates, groups]);
 
-  const cellColor = (v) => {
+  const cellColor = (v, slot = "AM") => {
     if (!v) return null;
     if (v === "Day Off") return "#f59e0b";
     if (SESSION_TYPES[v]) return SESSION_TYPES[v];
@@ -588,7 +588,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     if (vl === "pickup" || vl === "welcome" || vl === "setup" || vl === "departure duty") return SESSION_TYPES["Setup"];
     if (vl === "football") return "#16a34a";
     if (vl === "drama" || vl === "dance") return "#9333ea";
-    return SESSION_TYPES["Excursion"];
+    return slot === "Eve" ? SESSION_TYPES["Eve Ents"] : SESSION_TYPES["Excursion"];
   };
 
   const tableMinWidth = 272 + dates.length * (CELL_W * 3 + 6);
@@ -809,7 +809,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                       const key = s.id+"-"+ds+"-"+sl;
                       const v = grid[key];
                       const off = v === "Day Off";
-                      const col = cellColor(v);
+                      const col = cellColor(v, sl);
                       const isEd = editingCell === key;
                       return (
                         <td key={key}
