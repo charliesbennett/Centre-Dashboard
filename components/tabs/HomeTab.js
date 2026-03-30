@@ -1,7 +1,7 @@
 "use client";
-import { useState, useMemo } from "react";
-import { B, dayKey, dayName, fmtDate, ACTIVITY_TYPES, SESSION_TYPES, ROLES, calcLessonSplit } from "@/lib/constants";
-import { StatCard, IcPlaneUp, IcPlaneDn, IcCake, IcBus, IcMountain, IcSparkles } from "@/components/ui";
+import { useState, useMemo, useEffect } from "react";
+import { B, dayKey, dayName, fmtDate, ACTIVITY_TYPES, SESSION_TYPES, ROLES, calcLessonSplit, uid } from "@/lib/constants";
+import { StatCard, IcPlaneUp, IcPlaneDn, IcCake, IcBus, IcMountain, IcSparkles, IconBtn, IcTrash, btnPrimary, inputStyle } from "@/components/ui";
 
 // ── Helpers ────────────────────────────────────────────────
 function inBed(dateStr, arrDate, depDate) {
@@ -64,8 +64,151 @@ function ActivityBadge({ value }) {
   );
 }
 
+// ── Pure functions (exported for testing) ─────────────────
+
+export function assembleBriefingData({ centreName, today, groups, staff, excursions, rotaGrid }) {
+  const dateStr = new Date(today).toLocaleDateString("en-GB", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
+
+  const activeGroups = (groups || []).filter((g) => !g.archived);
+
+  const onSiteCount = activeGroups
+    .filter((g) => g.arr && g.dep && new Date(today) >= new Date(g.arr) && new Date(today) < new Date(g.dep))
+    .reduce((s, g) => s + (g.stu || 0), 0);
+
+  const arriving = activeGroups
+    .filter((g) => g.arr === today)
+    .map((g) => ({ groupName: g.group || g.name || "", stu: g.stu || 0 }));
+
+  const departing = activeGroups
+    .filter((g) => g.dep === today)
+    .map((g) => ({ groupName: g.group || g.name || "", stu: g.stu || 0 }));
+
+  const excursionsToday = (excursions || [])
+    .filter((e) => e.exc_date === today)
+    .map((e) => ({ destination: e.destination || "", coaches: e.coaches || [] }));
+
+  const slots = ["AM", "PM", "Eve"];
+  const rotaBySlot = { AM: [], PM: [], Eve: [] };
+  Object.entries(rotaGrid || {}).forEach(([key, val]) => {
+    if (!val) return;
+    for (const slot of slots) {
+      const suffix = `-${today}-${slot}`;
+      if (key.endsWith(suffix)) {
+        const staffId = key.slice(0, key.length - suffix.length);
+        const member = (staff || []).find((s) => s.id === staffId);
+        const staffName = member
+          ? [member.firstName, member.surname].filter(Boolean).join(" ").trim()
+          : staffId;
+        rotaBySlot[slot].push({ staffName, assignment: val });
+        break;
+      }
+    }
+  });
+
+  return { centreName: centreName || "", dateStr, onSiteCount, arriving, departing, excursionsToday, rotaBySlot };
+}
+
+export function generateBriefingHtml(data) {
+  const { centreName, dateStr, onSiteCount, arriving, departing, excursionsToday, rotaBySlot } = data;
+
+  const list = (items) =>
+    items.length === 0
+      ? "<p>None</p>"
+      : `<ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul>`;
+
+  const arrivingItems = arriving.map((g) => `${g.groupName} — ${g.stu} student${g.stu !== 1 ? "s" : ""}`);
+  const departingItems = departing.map((g) => `${g.groupName} — ${g.stu} student${g.stu !== 1 ? "s" : ""}`);
+  const excItems = excursionsToday.map((e) =>
+    `${e.destination}${e.coaches && e.coaches.length ? " (coaches: " + e.coaches.join(", ") + ")" : ""}`
+  );
+
+  const slotRows = ["AM", "PM", "Eve"].map((slot) => {
+    const entries = rotaBySlot[slot] || [];
+    const items = entries.map((e) => `${e.staffName} — ${e.assignment}`);
+    return `<h3>${slot}</h3>${list(items)}`;
+  }).join("");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>${centreName} — Daily Briefing — ${dateStr}</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 11pt; color: #000; margin: 0; }
+  h1 { font-size: 16pt; margin: 0 0 2px; }
+  h2 { font-size: 13pt; margin: 0 0 12px; font-weight: normal; color: #333; }
+  h3 { font-size: 11pt; margin: 10px 0 4px; }
+  ul { margin: 0 0 8px; padding-left: 20px; }
+  li { margin-bottom: 3px; }
+  p { margin: 0 0 8px; }
+  .stat { font-size: 13pt; font-weight: bold; margin-bottom: 12px; }
+  section { margin-bottom: 10px; }
+  hr { border: none; border-top: 1px solid #000; margin: 10px 0; }
+  @media print { body { margin: 0; } }
+  @page { size: A4; margin: 15mm; }
+</style>
+</head>
+<body>
+<h1>${centreName}</h1>
+<h2>${dateStr}</h2>
+<hr>
+<section>
+  <h3>Students on Site</h3>
+  <p class="stat">${onSiteCount}</p>
+</section>
+<hr>
+<section>
+  <h3>Arriving Today</h3>
+  ${list(arrivingItems)}
+</section>
+<hr>
+<section>
+  <h3>Departing Today</h3>
+  ${list(departingItems)}
+</section>
+<hr>
+<section>
+  <h3>Excursions Today</h3>
+  ${list(excItems)}
+</section>
+<hr>
+<section>
+  <h3>Rota</h3>
+  ${slotRows}
+</section>
+<script>window.onload = function(){ window.print(); }</script>
+</body>
+</html>`;
+}
+
+export function addNotice(notices, { title, body, urgency, createdBy }) {
+  const notice = {
+    id: uid(),
+    title,
+    body,
+    urgency: urgency || "Normal",
+    createdAt: new Date().toISOString(),
+    createdBy: createdBy || "",
+  };
+  return [notice, ...(notices || [])];
+}
+
+export function deleteNotice(notices, id) {
+  return (notices || []).filter((n) => n.id !== id);
+}
+
+export function openBriefingSheet(data) {
+  const html = generateBriefingHtml(data);
+  const newWin = window.open("", "_blank");
+  if (!newWin) return;
+  newWin.document.write(html);
+  newWin.document.close();
+}
+
 // ──────────────────────────────────────────────────────────
-export default function HomeTab({ groups = [], staff = [], excDays = {}, progGrid = {}, rotaGrid = {}, progStart, progEnd }) {
+export default function HomeTab({ groups = [], staff = [], excDays = {}, progGrid = {}, rotaGrid = {}, progStart, progEnd, excursions = [], userRole = "", centreName = "", settings = {}, saveSetting }) {
   const today = useMemo(() => dayKey(new Date()), []);
   const todayDate = useMemo(() => new Date(today), [today]);
   const activeGroups = useMemo(() => groups.filter((g) => !g.archived), [groups]);
@@ -94,6 +237,33 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
 
   const [arrOpen, setArrOpen] = useState(true);
   const [depOpen, setDepOpen] = useState(true);
+
+  // ── Notice board ───────────────────────────────────────
+  const canManageNotices = ["head_office", "centre_manager"].includes(userRole);
+  const [notices, setNotices] = useState([]);
+  useEffect(() => {
+    try { setNotices(JSON.parse(settings?.notice_board || "[]")); } catch { setNotices([]); }
+  }, [settings?.notice_board]);
+  const [nTitle, setNTitle] = useState("");
+  const [nBody, setNBody] = useState("");
+  const [nUrgency, setNUrgency] = useState("Normal");
+
+  function handleAddNotice(e) {
+    e.preventDefault();
+    if (!nTitle.trim() || !nBody.trim()) return;
+    const updated = addNotice(notices, { title: nTitle.trim(), body: nBody.trim(), urgency: nUrgency, createdBy: userRole });
+    setNotices(updated);
+    saveSetting?.("notice_board", JSON.stringify(updated));
+    setNTitle("");
+    setNBody("");
+    setNUrgency("Normal");
+  }
+
+  function handleDeleteNotice(id) {
+    const updated = deleteNotice(notices, id);
+    setNotices(updated);
+    saveSetting?.("notice_board", JSON.stringify(updated));
+  }
 
   // ── Excursion today ────────────────────────────────────
   const excToday = excDays[today];
@@ -265,6 +435,18 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
           </div>
         </div>
       </div>
+
+      {/* ── Print Briefing button (HO / CM only) ─────────── */}
+      {["head_office", "centre_manager"].includes(userRole) && (
+        <div style={{ padding: "10px 20px 0", display: "flex", justifyContent: "flex-end" }}>
+          <button
+            onClick={() => openBriefingSheet(assembleBriefingData({ centreName, today, groups, staff, excursions, rotaGrid }))}
+            style={{ background: B.navy, color: B.white, border: "none", borderRadius: 6, padding: "7px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+          >
+            🖨 Print Briefing
+          </button>
+        </div>
+      )}
 
       {/* ── Stat row ─────────────────────────────────────── */}
       <div style={{ padding: "12px 20px 4px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
@@ -585,6 +767,90 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
           </div>
         </div>
       )}
+
+      {/* ── Notice Board ──────────────────────────────────── */}
+      <div style={{ padding: "10px 12px 24px" }}>
+        <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ padding: "8px 14px", background: B.navy, backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 10px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontWeight: 800, fontSize: 11, color: B.white }}>📋 Notice Board</span>
+            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.5)" }}>{notices.length} notice{notices.length !== 1 ? "s" : ""}</span>
+          </div>
+
+          {/* Add form — authorised roles only */}
+          {canManageNotices && (
+            <form onSubmit={handleAddNotice} style={{ padding: "12px 14px", borderBottom: "1px solid " + B.border, background: "#f8fafc" }}>
+              <div style={{ marginBottom: 8 }}>
+                <input
+                  value={nTitle}
+                  onChange={(e) => setNTitle(e.target.value)}
+                  placeholder="Notice title…"
+                  style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }}
+                />
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <textarea
+                  value={nBody}
+                  onChange={(e) => setNBody(e.target.value)}
+                  placeholder="Notice body…"
+                  rows={3}
+                  style={{ ...inputStyle, width: "100%", boxSizing: "border-box", minHeight: 60, resize: "vertical" }}
+                />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {["Normal", "Urgent"].map((u) => (
+                    <button
+                      key={u}
+                      type="button"
+                      onClick={() => setNUrgency(u)}
+                      style={{
+                        padding: "4px 12px", borderRadius: 20, border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                        background: nUrgency === u ? (u === "Urgent" ? B.red : B.navy) : B.border,
+                        color: nUrgency === u ? B.white : B.textMuted,
+                      }}
+                    >{u}</button>
+                  ))}
+                </div>
+                <button type="submit" style={{ ...btnPrimary, marginLeft: "auto" }}>Post Notice</button>
+              </div>
+            </form>
+          )}
+
+          {/* Notice list */}
+          <div style={{ padding: notices.length === 0 ? "20px 14px" : "8px 14px" }}>
+            {notices.length === 0 ? (
+              <div style={{ textAlign: "center", color: B.textLight, fontSize: 10 }}>No notices posted yet</div>
+            ) : notices.map((n) => (
+              <div key={n.id} style={{
+                background: B.white,
+                border: "1px solid " + B.border,
+                borderLeft: "4px solid " + (n.urgency === "Urgent" ? B.red : B.border),
+                borderRadius: 8,
+                padding: "10px 14px",
+                marginBottom: 6,
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      {n.urgency === "Urgent" && (
+                        <span style={{ fontSize: 9, fontWeight: 800, color: B.red, background: B.red + "18", padding: "1px 6px", borderRadius: 4, textTransform: "uppercase" }}>Urgent</span>
+                      )}
+                      <span style={{ fontWeight: 700, fontSize: 12, color: B.navy }}>{n.title}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: B.text, lineHeight: 1.5, marginBottom: 4 }}>{n.body}</div>
+                    <div style={{ fontSize: 9, color: B.textMuted }}>
+                      Posted by {n.createdBy} &middot; {new Date(n.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                  </div>
+                  {canManageNotices && (
+                    <IconBtn title="Delete notice" onClick={() => handleDeleteNotice(n.id)}><IcTrash /></IconBtn>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
     </div>
   );

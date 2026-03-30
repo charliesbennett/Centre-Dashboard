@@ -333,7 +333,7 @@ export default function Dashboard() {
     );
     const activeGroups = (db.groups || []).filter((g) => !g.archived);
     switch (tab) {
-      case "home": return <HomeTab groups={db.groups} staff={db.staff} excDays={db.excDays} progGrid={db.progGrid} rotaGrid={db.rotaGrid} progStart={progStart} progEnd={progEnd} />;
+      case "home": return <HomeTab groups={db.groups} staff={db.staff} excDays={db.excDays} progGrid={db.progGrid} rotaGrid={db.rotaGrid} progStart={progStart} progEnd={progEnd} excursions={db.excursions} userRole={auth.userRole} centreName={centreName} settings={db.settings} saveSetting={db.saveSetting} />;
       case "students": return <StudentsTab groups={db.groups} setGroups={setGroups} progStart={progStart} progEnd={progEnd} readOnly={isReadOnly} userRole={auth.userRole} roomingAssignments={db.roomingAssignments} roomingRooms={db.roomingRooms} centreName={centreName} />;
       case "rota": return <RotaTab staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} groups={activeGroups} rotaGrid={db.rotaGrid} setRotaGrid={setRotaGrid} progGrid={db.progGrid} centreName={centreName} readOnly={isReadOnly} />;
       case "airota": return <AiRotaTab centreId={centreId} centreName={centreName} staff={db.staff} groups={activeGroups} progStart={progStart} progEnd={progEnd} progGrid={db.progGrid} rotaGrid={db.rotaGrid} setRotaGrid={setRotaGrid} readOnly={isReadOnly} />;
