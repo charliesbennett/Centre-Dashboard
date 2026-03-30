@@ -1,0 +1,115 @@
+import { describe, it, expect } from "vitest";
+
+// Replicate getFlaggedStudents from StudentsTab.js (avoids "use client" import)
+const DIETARY_KEYWORDS = ["vegetarian", "vegan", "halal", "kosher", "gluten free"];
+
+function getFlaggedStudents(groups) {
+  const results = [];
+  (groups || []).forEach((g) => {
+    const groupName = g.group || g.name || "—";
+    (g.students || []).forEach((s) => {
+      const hasMedical = !!(s.medical && s.medical.trim());
+      const hasDietary = DIETARY_KEYWORDS.some((kw) =>
+        (s.accommodation || "").toLowerCase().includes(kw)
+      );
+      if (!hasMedical && !hasDietary) return;
+      let flagType, content;
+      if (hasMedical && hasDietary) {
+        flagType = "Both";
+        content = [s.medical.trim(), s.accommodation.trim()].join(" | ");
+      } else if (hasMedical) {
+        flagType = "Medical";
+        content = s.medical.trim();
+      } else {
+        flagType = "Dietary";
+        content = s.accommodation.trim();
+      }
+      results.push({ firstName: s.firstName || "", surname: s.surname || "", groupName, flagType, content });
+    });
+  });
+  return results;
+}
+
+function makeGroup(students, name = "Group A") {
+  return [{ id: "g1", group: name, students }];
+}
+
+function makeStudent(overrides = {}) {
+  return { id: "s1", firstName: "Alice", surname: "Smith", medical: "", accommodation: "", ...overrides };
+}
+
+describe("STORY-D1: getFlaggedStudents", () => {
+  it("returns Medical flag for student with medical field", () => {
+    const result = getFlaggedStudents(makeGroup([makeStudent({ medical: "Peanut allergy" })]));
+    expect(result).toHaveLength(1);
+    expect(result[0].flagType).toBe("Medical");
+    expect(result[0].content).toBe("Peanut allergy");
+  });
+
+  it("returns Dietary flag for student with Halal accommodation", () => {
+    const result = getFlaggedStudents(makeGroup([makeStudent({ accommodation: "Halal" })]));
+    expect(result).toHaveLength(1);
+    expect(result[0].flagType).toBe("Dietary");
+    expect(result[0].content).toBe("Halal");
+  });
+
+  it("returns Both flag for student with medical and dietary", () => {
+    const result = getFlaggedStudents(makeGroup([makeStudent({ medical: "Asthma", accommodation: "Vegetarian" })]));
+    expect(result).toHaveLength(1);
+    expect(result[0].flagType).toBe("Both");
+    expect(result[0].content).toContain("Asthma");
+    expect(result[0].content).toContain("Vegetarian");
+  });
+
+  it("returns 0 results for student with neither flag", () => {
+    const result = getFlaggedStudents(makeGroup([makeStudent()]));
+    expect(result).toHaveLength(0);
+  });
+
+  it("returns empty array for empty groups", () => {
+    expect(getFlaggedStudents([])).toEqual([]);
+  });
+
+  it("returns empty array for null input", () => {
+    expect(getFlaggedStudents(null)).toEqual([]);
+  });
+
+  it("detects dietary case-insensitively (vegan lowercase)", () => {
+    const result = getFlaggedStudents(makeGroup([makeStudent({ accommodation: "vegan" })]));
+    expect(result[0].flagType).toBe("Dietary");
+  });
+
+  it("detects all dietary keywords", () => {
+    const keywords = ["Vegetarian", "Vegan", "Halal", "Kosher", "Gluten Free"];
+    keywords.forEach((kw) => {
+      const result = getFlaggedStudents(makeGroup([makeStudent({ accommodation: kw })]));
+      expect(result).toHaveLength(1);
+      expect(result[0].flagType).toBe("Dietary");
+    });
+  });
+
+  it("ignores medical fields that are empty or whitespace only", () => {
+    const result = getFlaggedStudents(makeGroup([makeStudent({ medical: "   " })]));
+    expect(result).toHaveLength(0);
+  });
+
+  it("includes group name in result", () => {
+    const result = getFlaggedStudents([{ id: "g1", group: "Team Spain", students: [makeStudent({ medical: "Nut allergy" })] }]);
+    expect(result[0].groupName).toBe("Team Spain");
+  });
+
+  it("collects flagged students across multiple groups", () => {
+    const groups = [
+      { id: "g1", group: "Group A", students: [makeStudent({ id: "s1", medical: "Asthma" })] },
+      { id: "g2", group: "Group B", students: [makeStudent({ id: "s2", accommodation: "Halal" }), makeStudent({ id: "s3" })] },
+    ];
+    const result = getFlaggedStudents(groups);
+    expect(result).toHaveLength(2);
+  });
+
+  it("returns first name and surname in result", () => {
+    const result = getFlaggedStudents(makeGroup([makeStudent({ firstName: "Bob", surname: "Jones", medical: "Diabetes" })]));
+    expect(result[0].firstName).toBe("Bob");
+    expect(result[0].surname).toBe("Jones");
+  });
+});

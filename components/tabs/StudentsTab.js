@@ -4,8 +4,39 @@ import { B, MEALS, PROGRAMMES, uid, fmtDate, dayKey, dayName, isWeekend, genDate
 import { Fld, StatCard, TableWrap, IconBtn, IcPlus, IcTrash, IcSearch, inputStyle, thStyle, tdStyle, btnPrimary } from "@/components/ui";
 import * as XLSX from "xlsx";
 
+const DIETARY_KEYWORDS = ["vegetarian", "vegan", "halal", "kosher", "gluten free"];
+
+export function getFlaggedStudents(groups) {
+  const results = [];
+  (groups || []).forEach((g) => {
+    const groupName = g.group || g.name || "—";
+    (g.students || []).forEach((s) => {
+      const hasMedical = !!(s.medical && s.medical.trim());
+      const hasDietary = DIETARY_KEYWORDS.some((kw) =>
+        (s.accommodation || "").toLowerCase().includes(kw)
+      );
+      if (!hasMedical && !hasDietary) return;
+      let flagType, content;
+      if (hasMedical && hasDietary) {
+        flagType = "Both";
+        content = [s.medical.trim(), s.accommodation.trim()].join(" | ");
+      } else if (hasMedical) {
+        flagType = "Medical";
+        content = s.medical.trim();
+      } else {
+        flagType = "Dietary";
+        content = s.accommodation.trim();
+      }
+      results.push({ firstName: s.firstName || "", surname: s.surname || "", groupName, flagType, content });
+    });
+  });
+  return results;
+}
+
 export default function StudentsTab({ groups = [], setGroups, progStart, progEnd, readOnly = false }) {
   const [showAdd, setShowAdd] = useState(false);
+  const [view, setView] = useState("groups");
+  const [flagFilter, setFlagFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [importMsg, setImportMsg] = useState(null);
   const [importPreview, setImportPreview] = useState(null);
@@ -384,9 +415,22 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
       )}
 
       <div style={{ background: B.white, borderBottom: "1px solid " + B.border, padding: "8px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, border: "1px solid " + B.border, borderRadius: 6, padding: "4px 10px" }}>
-          <IcSearch />
-          <input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ background: "none", border: "none", fontSize: 12, width: 130, fontFamily: "inherit", color: B.text }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, border: "1px solid " + B.border, borderRadius: 6, padding: "4px 10px" }}>
+            <IcSearch />
+            <input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ background: "none", border: "none", fontSize: 12, width: 130, fontFamily: "inherit", color: B.text }} />
+          </div>
+          {["groups", "flags"].map((v) => (
+            <button key={v} onClick={() => setView(v)} style={{
+              padding: "5px 14px", borderRadius: 20, fontSize: 10, fontWeight: 700,
+              fontFamily: "inherit", cursor: "pointer",
+              border: `1px solid ${view === v ? B.navy : B.border}`,
+              background: view === v ? B.navy : B.white,
+              color: view === v ? B.white : B.textMuted,
+            }}>
+              {v === "groups" ? "Groups" : "⚑ Flags"}
+            </button>
+          ))}
         </div>
         {!readOnly && <div style={{ display: "flex", gap: 6 }}>
           <label style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", background: B.navy, border: "none", color: B.white, borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
@@ -413,7 +457,57 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
         </div>
       )}
 
-      <div style={{ padding: "0 12px 16px", overflowX: "auto" }}>
+      {/* ── Flags view ──────────────────────────────────── */}
+      {view === "flags" && (() => {
+        const allFlagged = getFlaggedStudents(groups);
+        const filtered = flagFilter === "All" ? allFlagged : allFlagged.filter((f) => f.flagType === flagFilter);
+        const BADGE = { Medical: { bg: "#fef2f2", color: B.danger }, Dietary: { bg: "#f0fdf4", color: B.success }, Both: { bg: "#faf5ff", color: B.purple } };
+        return (
+          <div style={{ padding: "12px 20px 20px" }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+              {["All", "Medical", "Dietary", "Both"].map((f) => (
+                <button key={f} onClick={() => setFlagFilter(f)} style={{
+                  padding: "4px 12px", borderRadius: 20, fontSize: 10, fontWeight: 700,
+                  fontFamily: "inherit", cursor: "pointer",
+                  border: `1px solid ${flagFilter === f ? B.navy : B.border}`,
+                  background: flagFilter === f ? B.navy : B.white,
+                  color: flagFilter === f ? B.white : B.textMuted,
+                }}>{f}{f !== "All" && ` (${allFlagged.filter((x) => x.flagType === f).length})`}</button>
+              ))}
+              <span style={{ marginLeft: "auto", fontSize: 11, color: B.textMuted, alignSelf: "center" }}>{allFlagged.length} flagged student{allFlagged.length !== 1 ? "s" : ""}</span>
+            </div>
+            <TableWrap>
+              <table style={{ minWidth: 600, borderCollapse: "collapse", fontSize: 11 }}>
+                <thead>
+                  <tr>
+                    {["First Name", "Surname", "Group", "Flag", "Details"].map((h) => (
+                      <th key={h} style={thStyle}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.length === 0 ? (
+                    <tr><td colSpan={5} style={{ textAlign: "center", padding: 36, color: B.textLight }}>No flagged students{flagFilter !== "All" ? ` with flag type "${flagFilter}"` : ""}</td></tr>
+                  ) : filtered.map((f, i) => (
+                    <tr key={i} style={{ borderBottom: "1px solid " + B.borderLight }}>
+                      <td style={tdStyle}>{f.firstName}</td>
+                      <td style={{ ...tdStyle, fontWeight: 700 }}>{f.surname}</td>
+                      <td style={{ ...tdStyle, color: B.navy, fontWeight: 600 }}>{f.groupName}</td>
+                      <td style={tdStyle}>
+                        <span style={{ background: BADGE[f.flagType]?.bg, color: BADGE[f.flagType]?.color, padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700 }}>{f.flagType}</span>
+                      </td>
+                      <td style={{ ...tdStyle, color: B.text, maxWidth: 300 }}>{f.content}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableWrap>
+          </div>
+        );
+      })()}
+
+      {/* ── Groups view ─────────────────────────────────── */}
+      {view === "groups" && <div style={{ padding: "0 12px 16px", overflowX: "auto" }}>
         <TableWrap>
           <table style={{ minWidth: 800, borderCollapse: "collapse", fontSize: 11 }}>
             <thead><tr>{["", "Agent", "Group", "Nat", "Stu", "GLs", "Total", "Wk1", "Prog", "Arr", "Dep", "", ""].map((h, i) => <th key={h + i} style={thStyle}>{h}</th>)}</tr></thead>
@@ -511,7 +605,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
             </tbody>
           </table>
         </TableWrap>
-      </div>
+      </div>}
       <div style={{ padding: "0 20px 8px", fontSize: 10, color: B.success, fontWeight: 600 }}>{"\u2713"} Click Wk1 column to toggle AM/PM lessons · Groups auto-flip after Week 1 · Data flows to Rota &amp; Programmes</div>
     </div>
   );
