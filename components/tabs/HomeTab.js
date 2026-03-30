@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { B, dayKey, dayName, fmtDate, ACTIVITY_TYPES, SESSION_TYPES, ROLES, calcLessonSplit } from "@/lib/constants";
 import { StatCard, IcPlaneUp, IcPlaneDn, IcCake, IcBus, IcMountain, IcSparkles } from "@/components/ui";
 
@@ -91,6 +91,9 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
 
   const departingToday = useMemo(() =>
     activeGroups.filter((g) => g.dep === today), [activeGroups, today]);
+
+  const [arrOpen, setArrOpen] = useState(true);
+  const [depOpen, setDepOpen] = useState(true);
 
   // ── Excursion today ────────────────────────────────────
   const excToday = excDays[today];
@@ -293,6 +296,45 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
           </div>
         )}
       </div>
+
+      {/* ── Arrivals & departures panels ─────────────────── */}
+      {(arrivingToday.length > 0 || departingToday.length > 0) && (
+        <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 8 }}>
+          {[
+            { key: "arr", label: "Arriving Today", groups: arrivingToday, open: arrOpen, setOpen: setArrOpen, accent: B.success, empty: "No arrivals today" },
+            { key: "dep", label: "Departing Today", groups: departingToday, open: depOpen, setOpen: setDepOpen, accent: B.warning, empty: "No departures today" },
+          ].map(({ key, label, groups: gs, open, setOpen, accent, empty }) => (
+            <div key={key} style={{ background: B.white, border: `1px solid ${B.border}`, borderRadius: 10, overflow: "hidden" }}>
+              <div
+                onClick={() => setOpen(!open)}
+                style={{ background: B.navy, padding: "8px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", borderRadius: open ? "10px 10px 0 0" : 10 }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: accent, display: "inline-block" }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: B.white, fontFamily: "'Raleway', sans-serif" }}>{label}</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>{gs.length} group{gs.length !== 1 ? "s" : ""}</span>
+                </div>
+                <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 10 }}>{open ? "▼" : "▶"}</span>
+              </div>
+              {open && (
+                <div style={{ padding: "4px 0" }}>
+                  {gs.length === 0 ? (
+                    <div style={{ padding: "14px", textAlign: "center", color: B.textLight, fontSize: 10 }}>{empty}</div>
+                  ) : gs.map((g, i) => (
+                    <div key={g.id} style={{ padding: "6px 14px", display: "flex", alignItems: "center", gap: 10, borderBottom: i < gs.length - 1 ? `1px solid ${B.borderLight}` : "none" }}>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: GROUP_COLORS[i % GROUP_COLORS.length], flexShrink: 0 }} />
+                      <span style={{ fontWeight: 700, color: B.navy, fontSize: 12, flex: 1 }}>{g.group}</span>
+                      <span style={{ fontSize: 10, color: B.textMuted, background: B.ice, border: `1px solid ${B.border}`, borderRadius: 4, padding: "2px 8px" }}>
+                        {g.stu || 0} students{g.gl ? `, ${g.gl} GLs` : ""}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ── Main 3-column grid ────────────────────────────── */}
       <div style={{ padding: "8px 12px 0", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 10 }}>
