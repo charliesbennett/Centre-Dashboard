@@ -27,10 +27,14 @@ const SESSION_TARGET = (role) => {
   return 24; // SAI, AL, EAL, SC, AC, EAC, LAL, LAC, FOOTBALL, DRAMA, DANCE
 };
 
-// Values that do NOT count as sessions
+// Values that do NOT count as sessions (within this scheduler)
+// Note: "Evening Activity" is treated as non-restrictive here so it can always be
+// assigned regardless of session cap. The frontend (rotaRules.js) still counts it
+// in the session total shown to managers.
 const NO_COUNT = new Set([
   "Day Off","Induction","Setup","Office","Airport",
   "pickup","welcome","setup","dinner",
+  "Evening Activity",
 ]);
 
 const TEACHING_ROLES  = ["FTT","5FTT","TAL"];
@@ -255,7 +259,7 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles) {
       const am = ng[`${s.id}-${ds}-AM`];
       return !am || !["Induction","Setup","Airport"].includes(am);
     }).length;
-    return Math.max(1, Math.ceil(programmeDays / 7));
+    return Math.max(1, Math.floor(programmeDays / 7));
   };
 
   staffIndex.forEach((s, si) => {
@@ -498,12 +502,12 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles) {
 
     const eveNeed = Math.max(2, Math.ceil(Math.max(eveningStu, 1) / 20));
 
-    // Eligible: EVE_ELIGIBLE roles, on site, not Day Off, Eve slot empty, under cap
+    // Eligible: EVE_ELIGIBLE roles, on site, not Day Off, Eve slot empty.
+    // Eve sessions are not restricted by daytime session cap — no hasCapacity check.
     const eligible = staffIndex
       .filter(s => EVE_ELIGIBLE.has(s.role) && onSite(s, ds))
       .filter(s => ng[`${s.id}-${ds}-AM`] !== "Day Off")
-      .filter(s => !ng[`${s.id}-${ds}-Eve`])
-      .filter(s => hasCapacity(s));
+      .filter(s => !ng[`${s.id}-${ds}-Eve`]);
 
     // Sort by fewest evening sessions so far (fairness), then rotate by day index
     const sorted = eligible.slice().sort((a, b) => {
@@ -518,7 +522,6 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles) {
     for (const s of rotated) {
       if (eveAssigned >= eveNeed) break;
       ng[`${s.id}-${ds}-Eve`] = "Evening Activity";
-      sess[s.id] = (sess[s.id] || 0) + 1;
       eveAssigned++;
     }
   });
