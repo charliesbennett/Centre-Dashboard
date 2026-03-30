@@ -209,9 +209,9 @@ export default function RoomingImportModal({
               )}
 
               <div style={{ marginTop: 14, padding: "10px 14px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, fontSize: 10, color: "#0369a1", lineHeight: 1.6 }}>
-                <strong>Expected columns:</strong><br />
-                B: Floor label &nbsp;·&nbsp; C: Building/House name &nbsp;·&nbsp; D: Room number<br />
-                E: Type (M/F/GL/UKLC) &nbsp;·&nbsp; F: First name &nbsp;·&nbsp; G: Last name
+                <strong>Expected columns (in order):</strong><br />
+                Floor label &nbsp;·&nbsp; Building/House name &nbsp;·&nbsp; Room number &nbsp;·&nbsp; Type (M/F/GL/UKLC) &nbsp;·&nbsp; First name &nbsp;·&nbsp; Last name<br />
+                <span style={{ color: "#64748b" }}>Column letters are auto-detected — A–F and B–G layouts both work.</span>
               </div>
             </div>
           )}
