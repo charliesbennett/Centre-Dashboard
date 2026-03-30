@@ -476,7 +476,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
           ))}
         </div>
         <div style={{ display: "flex", gap: 6 }}>
-          {["centre_manager", "head_office", "course_director"].includes(userRole) && (
+          {["centre_manager", "head_office", "course_director", "excursion_activity_manager", "safeguarding_welfare"].includes(userRole) && (
             <button onClick={() => exportStudentsXlsx(groups, roomingAssignments, roomingRooms, centreName)} style={{ padding: "6px 12px", background: B.success, border: "none", color: B.white, borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
               ↓ Export Excel
             </button>
