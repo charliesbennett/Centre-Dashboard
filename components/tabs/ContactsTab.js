@@ -44,7 +44,7 @@ export default function ContactsTab({ contacts = [], setContacts, readOnly = fal
         </div>
       )}
 
-      <div style={{ padding: "12px 20px" }}>
+      <div style={{ padding: "12px 20px", maxWidth: "100%" }}>
         {contacts.length === 0 ? (
           <div style={{ textAlign: "center", padding: 40, color: B.textLight }}>Add venue, coach, excursion &amp; emergency contacts</div>
         ) : (
@@ -57,18 +57,24 @@ export default function ContactsTab({ contacts = [], setContacts, readOnly = fal
                   {contacts.filter((x) => x.cat === cat).length}
                 </span>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 10 }}>
                 {contacts.filter((x) => x.cat === cat).map((x) => (
                   <div key={x.id} style={{ background: B.white, border: `1px solid ${B.border}`, borderRadius: 10, padding: "14px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", position: "relative" }}>
-                    {!readOnly && <button onClick={() => setContacts((p) => p.filter((z) => z.id !== x.id))}
-                      style={{ position: "absolute", top: 8, right: 8, background: "none", border: "none", color: B.textLight, cursor: "pointer" }}>
+                    {!readOnly && <button
+                      onClick={() => setContacts((p) => p.filter((z) => z.id !== x.id))}
+                      title="Delete contact"
+                      aria-label="Delete contact"
+                      style={{ position: "absolute", top: 8, right: 8, background: "none", border: "none", color: B.textLight, cursor: "pointer", outline: "2px solid " + B.navy, outlineOffset: 2, outlineColor: "transparent" }}
+                      onFocus={(e) => e.currentTarget.style.outlineColor = B.navy}
+                      onBlur={(e) => e.currentTarget.style.outlineColor = "transparent"}
+                    >
                       <IcX />
                     </button>}
                     <div style={{ fontWeight: 800, fontSize: 14, color: B.navy, paddingRight: 24 }}>{x.name || "Unnamed"}</div>
                     {x.role && <div style={{ fontSize: 11, color: B.textMuted, marginTop: 2 }}>{x.role}</div>}
                     <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
-                      {x.email && <div style={{ fontSize: 12 }}>✉️ <a href={`mailto:${x.email}`} style={{ color: "#0369a1", textDecoration: "none" }}>{x.email}</a></div>}
-                      {x.phone && <div style={{ fontSize: 12 }}>📞 <a href={`tel:${x.phone}`} style={{ color: "#0369a1", textDecoration: "none" }}>{x.phone}</a></div>}
+                      {x.email && <div style={{ fontSize: 12 }}>✉️ <a href={`mailto:${x.email}`} style={{ color: B.link, textDecoration: "none" }}>{x.email}</a></div>}
+                      {x.phone && <div style={{ fontSize: 12 }}>📞 <a href={`tel:${x.phone}`} style={{ color: B.link, textDecoration: "none" }}>{x.phone}</a></div>}
                     </div>
                     {x.notes && <div style={{ marginTop: 6, fontSize: 11, color: B.textMuted, borderTop: `1px solid ${B.borderLight}`, paddingTop: 6 }}>{x.notes}</div>}
                   </div>

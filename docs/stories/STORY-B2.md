@@ -1,7 +1,7 @@
 # STORY-B2: Dashboard Audit — Apply Approved Fixes
 
 **Epic:** Workstream B — Dashboard Audit
-**Status:** Ready
+**Status:** Review
 **Sprint:** 2
 **Dependencies:** STORY-B1 (audit report complete and reviewed by Charlie)
 
@@ -69,3 +69,34 @@ Then all tests pass with no failures.
 
 - Vitest: run full test suite before and after — no regressions permitted
 - Any new utility functions introduced by fixes must have Vitest unit tests
+
+---
+
+## Dev Agent Record
+- Implementation Date: 2026-03-30
+- All tasks completed: yes
+- All tests passing: yes
+
+### Files Created:
+- /Users/charlie/Centre-Dashboard/components/RoomingOverviewView.js
+- /Users/charlie/Centre-Dashboard/components/RoomingHousesView.js
+
+### Files Modified:
+- /Users/charlie/Centre-Dashboard/lib/constants.js (CN-1: added link, purple, purpleBg, cyan, cyanBg to B object)
+- /Users/charlie/Centre-Dashboard/components/tabs/TransfersTab.js (TR-1, TR-2: replaced hardcoded hex colours with B.* constants)
+- /Users/charlie/Centre-Dashboard/components/tabs/TeamTab.js (TM-1, TM-2, TM-3: replaced hardcoded link/badge/accent colours)
+- /Users/charlie/Centre-Dashboard/components/tabs/ExcursionsTab.js (EX-1, EX-2: replaced hardcoded colours, btnNavy for action buttons)
+- /Users/charlie/Centre-Dashboard/components/tabs/RoomingTab.js (RM-1, RM-2: refactored to container using sub-components, removed inline CSS string)
+- /Users/charlie/Centre-Dashboard/components/tabs/PettyCashTab.js (PC-1, PC-2, PC-3, PC-4: responsive grid, TableWrap, btnNavy buttons, empty states)
+- /Users/charlie/Centre-Dashboard/components/tabs/ContactsTab.js (CT-1, CT-2, CT-3, CT-4: mobile grid, accessible delete, link colour, focus ring)
+
+### Test Results:
+- Total tests: 26
+- Passing: 26
+- Failing: 0
+
+### Notes:
+- The B object already contained success, successBg, warning, warningBg, danger, dangerBg — only link, purple, purpleBg, cyan, cyanBg were added.
+- RM-2 addressed in two ways: (1) the print CSS string `.bed.away .name{color:#bbb;text-decoration:line-through}` was replaced with a `.name.away` class selector approach that avoids embedding conditional styles in a JS string; (2) the interactive nightly view in RoomingHousesView.js uses inline conditional styles for the away state.
+- PC-4 empty states are implemented as table rows within the TableWrap tables added for PC-2.
+- CT-4 focus ring uses onFocus/onBlur handlers since inline styles cannot express :focus-visible pseudo-selectors.

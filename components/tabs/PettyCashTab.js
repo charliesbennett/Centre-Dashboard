@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef } from "react";
 import { B, uid, fmtMoney, fmtDate, dayKey } from "@/lib/constants";
-import { Fld, StatCard, IconBtn, IcPlus, IcTrash, inputStyle } from "@/components/ui";
+import { Fld, StatCard, TableWrap, IconBtn, IcPlus, IcTrash, inputStyle, thStyle, tdStyle, btnPrimary, btnNavy } from "@/components/ui";
 
 const TODAY = dayKey(new Date());
 
@@ -44,12 +44,12 @@ export default function PettyCashTab({ pettyCash = {}, setPettyCash, readOnly = 
         <Fld label="To ROM (£)"><input type="number" step="0.01" value={toRom} onChange={(e) => setToRom(+e.target.value || 0)} style={{ ...fi, width: 80 }} disabled={readOnly} /></Fld>
       </div>
 
-      <div style={{ padding: "12px 20px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div style={{ padding: "12px 20px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
         {/* Income */}
         <div style={{ background: B.white, borderRadius: 10, border: `1px solid ${B.border}`, overflow: "hidden" }}>
           <div style={{ padding: "8px 12px", background: B.successBg, borderBottom: `1px solid ${B.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 800, fontSize: 11, color: B.success }}>Cash In</span>
-            {!readOnly && <button onClick={() => setShowAddInc(!showAddInc)} style={{ display: "flex", alignItems: "center", gap: 3, padding: "3px 8px", background: B.success, color: B.white, border: "none", borderRadius: 4, cursor: "pointer", fontSize: 9, fontWeight: 700, fontFamily: "inherit" }}>
+            {!readOnly && <button onClick={() => setShowAddInc(!showAddInc)} style={{ ...btnNavy, background: B.success, fontSize: 9, padding: "3px 8px", boxShadow: "none" }}>
               <IcPlus /> Add
             </button>}
           </div>
@@ -69,33 +69,53 @@ export default function PettyCashTab({ pettyCash = {}, setPettyCash, readOnly = 
                   setNi({ date: TODAY, group: "", cat: "Activity", amt: "" });
                   setTimeout(() => incGroupRef.current?.focus(), 0);
                 }
-              }} style={{ padding: "4px 10px", background: B.navy, border: "none", color: B.white, borderRadius: 4, cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit" }}>Add</button>
+              }} style={{ ...btnNavy, padding: "4px 10px", fontSize: 10 }}>Add</button>
             </div>
           )}
-          {income.map((i) => (
-            <div key={i.id} style={{ padding: "5px 12px", borderBottom: `1px solid ${B.borderLight}`, display: "flex", justifyContent: "space-between", fontSize: 11, alignItems: "center" }}>
-              <span>
-                {i.date && <span style={{ color: B.textMuted, fontSize: 9, marginRight: 4 }}>{fmtDate(i.date)}</span>}
-                {i.group} <span style={{ color: B.textMuted, fontSize: 8 }}>({i.cat})</span>
-              </span>
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <span style={{ fontWeight: 800, color: B.success }}>{fmtMoney(+i.amt)}</span>
-                {!readOnly && <IconBtn danger onClick={() => setPettyCash((p) => ({ ...p, income: (p.income || []).filter((z) => z.id !== i.id) }))}><IcTrash /></IconBtn>}
-              </div>
-            </div>
-          ))}
-          {income.length > 0 && (
-            <div style={{ padding: "6px 12px", background: B.ice, fontWeight: 800, fontSize: 11, display: "flex", justifyContent: "space-between" }}>
-              <span>Total</span><span style={{ color: B.success }}>{fmtMoney(totalInc)}</span>
-            </div>
-          )}
+          <TableWrap>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+              <thead>
+                <tr>
+                  <th style={{ ...thStyle, fontSize: 9 }}>Date</th>
+                  <th style={{ ...thStyle, fontSize: 9 }}>Description</th>
+                  <th style={{ ...thStyle, fontSize: 9, textAlign: "right" }}>Amount</th>
+                  {!readOnly && <th style={{ ...thStyle, fontSize: 9, width: 32 }}></th>}
+                </tr>
+              </thead>
+              <tbody>
+                {income.length === 0 ? (
+                  <tr>
+                    <td colSpan={readOnly ? 3 : 4} style={{ color: B.textMuted, fontSize: 12, padding: "12px 0", textAlign: "center" }}>No income recorded yet</td>
+                  </tr>
+                ) : income.map((i) => (
+                  <tr key={i.id} style={{ borderBottom: `1px solid ${B.borderLight}` }}>
+                    <td style={{ ...tdStyle, fontSize: 10, color: B.textMuted, whiteSpace: "nowrap" }}>{fmtDate(i.date)}</td>
+                    <td style={{ ...tdStyle, fontSize: 11 }}>
+                      {i.group} <span style={{ color: B.textMuted, fontSize: 9 }}>({i.cat})</span>
+                    </td>
+                    <td style={{ ...tdStyle, fontWeight: 800, color: B.success, textAlign: "right", whiteSpace: "nowrap" }}>{fmtMoney(+i.amt)}</td>
+                    {!readOnly && <td style={{ ...tdStyle, textAlign: "center", padding: "4px" }}>
+                      <IconBtn danger onClick={() => setPettyCash((p) => ({ ...p, income: (p.income || []).filter((z) => z.id !== i.id) }))}><IcTrash /></IconBtn>
+                    </td>}
+                  </tr>
+                ))}
+                {income.length > 0 && (
+                  <tr style={{ background: B.ice }}>
+                    <td colSpan={readOnly ? 2 : 3} style={{ ...tdStyle, fontWeight: 800, fontSize: 11 }}>Total</td>
+                    <td style={{ ...tdStyle, fontWeight: 800, fontSize: 11, color: B.success, textAlign: "right" }}>{fmtMoney(totalInc)}</td>
+                    {!readOnly && <td style={tdStyle}></td>}
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </TableWrap>
         </div>
 
         {/* Expenses */}
         <div style={{ background: B.white, borderRadius: 10, border: `1px solid ${B.border}`, overflow: "hidden" }}>
           <div style={{ padding: "8px 12px", background: B.dangerBg, borderBottom: `1px solid ${B.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 800, fontSize: 11, color: B.danger }}>Cash Out</span>
-            {!readOnly && <button onClick={() => setShowAddExp(!showAddExp)} style={{ display: "flex", alignItems: "center", gap: 3, padding: "3px 8px", background: B.danger, color: B.white, border: "none", borderRadius: 4, cursor: "pointer", fontSize: 9, fontWeight: 700, fontFamily: "inherit" }}>
+            {!readOnly && <button onClick={() => setShowAddExp(!showAddExp)} style={{ ...btnNavy, background: B.danger, fontSize: 9, padding: "3px 8px", boxShadow: "none" }}>
               <IcPlus /> Add
             </button>}
           </div>
@@ -115,26 +135,46 @@ export default function PettyCashTab({ pettyCash = {}, setPettyCash, readOnly = 
                   setNe({ date: TODAY, desc: "", cat: "Activities & Equipment", amt: "" });
                   setTimeout(() => expDescRef.current?.focus(), 0);
                 }
-              }} style={{ padding: "4px 10px", background: B.navy, border: "none", color: B.white, borderRadius: 4, cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit" }}>Add</button>
+              }} style={{ ...btnNavy, padding: "4px 10px", fontSize: 10 }}>Add</button>
             </div>
           )}
-          {expenses.map((e) => (
-            <div key={e.id} style={{ padding: "5px 12px", borderBottom: `1px solid ${B.borderLight}`, display: "flex", justifyContent: "space-between", fontSize: 11, alignItems: "center" }}>
-              <span>
-                {e.date && <span style={{ color: B.textMuted, fontSize: 9, marginRight: 4 }}>{fmtDate(e.date)}</span>}
-                {e.desc} <span style={{ color: B.textMuted, fontSize: 8 }}>({e.cat})</span>
-              </span>
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <span style={{ fontWeight: 800, color: B.danger }}>{fmtMoney(+e.amt)}</span>
-                {!readOnly && <IconBtn danger onClick={() => setPettyCash((p) => ({ ...p, expenses: (p.expenses || []).filter((z) => z.id !== e.id) }))}><IcTrash /></IconBtn>}
-              </div>
-            </div>
-          ))}
-          {expenses.length > 0 && (
-            <div style={{ padding: "6px 12px", background: B.ice, fontWeight: 800, fontSize: 11, display: "flex", justifyContent: "space-between" }}>
-              <span>Total</span><span style={{ color: B.danger }}>{fmtMoney(totalExp)}</span>
-            </div>
-          )}
+          <TableWrap>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+              <thead>
+                <tr>
+                  <th style={{ ...thStyle, fontSize: 9 }}>Date</th>
+                  <th style={{ ...thStyle, fontSize: 9 }}>Description</th>
+                  <th style={{ ...thStyle, fontSize: 9, textAlign: "right" }}>Amount</th>
+                  {!readOnly && <th style={{ ...thStyle, fontSize: 9, width: 32 }}></th>}
+                </tr>
+              </thead>
+              <tbody>
+                {expenses.length === 0 ? (
+                  <tr>
+                    <td colSpan={readOnly ? 3 : 4} style={{ color: B.textMuted, fontSize: 12, padding: "12px 0", textAlign: "center" }}>No expenses recorded yet</td>
+                  </tr>
+                ) : expenses.map((e) => (
+                  <tr key={e.id} style={{ borderBottom: `1px solid ${B.borderLight}` }}>
+                    <td style={{ ...tdStyle, fontSize: 10, color: B.textMuted, whiteSpace: "nowrap" }}>{fmtDate(e.date)}</td>
+                    <td style={{ ...tdStyle, fontSize: 11 }}>
+                      {e.desc} <span style={{ color: B.textMuted, fontSize: 9 }}>({e.cat})</span>
+                    </td>
+                    <td style={{ ...tdStyle, fontWeight: 800, color: B.danger, textAlign: "right", whiteSpace: "nowrap" }}>{fmtMoney(+e.amt)}</td>
+                    {!readOnly && <td style={{ ...tdStyle, textAlign: "center", padding: "4px" }}>
+                      <IconBtn danger onClick={() => setPettyCash((p) => ({ ...p, expenses: (p.expenses || []).filter((z) => z.id !== e.id) }))}><IcTrash /></IconBtn>
+                    </td>}
+                  </tr>
+                ))}
+                {expenses.length > 0 && (
+                  <tr style={{ background: B.ice }}>
+                    <td colSpan={readOnly ? 2 : 3} style={{ ...tdStyle, fontWeight: 800, fontSize: 11 }}>Total</td>
+                    <td style={{ ...tdStyle, fontWeight: 800, fontSize: 11, color: B.danger, textAlign: "right" }}>{fmtMoney(totalExp)}</td>
+                    {!readOnly && <td style={tdStyle}></td>}
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </TableWrap>
         </div>
       </div>
 

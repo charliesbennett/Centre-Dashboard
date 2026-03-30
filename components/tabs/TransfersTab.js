@@ -6,7 +6,7 @@ import { StatCard, StatusBadge, Fld, TableWrap, IconBtn, IcWand, IcPlus, IcTrash
 const STATUS_MAP = {
   Pending: { color: B.warning, bg: B.warningBg },
   Booked: { color: B.success, bg: B.successBg },
-  Confirmed: { color: "#0369a1", bg: "#e0f2fe" },
+  Confirmed: { color: B.link, bg: B.cyanBg },
   "Own Transfer": { color: B.textMuted, bg: "#f1f5f9" },
   Cancelled: { color: B.danger, bg: B.dangerBg },
 };
@@ -121,7 +121,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
         <td style={tdStyle}>{t.agent}</td>
         <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>
           {t.group}
-          {!isEd && isIncomplete(t) && <span title="Missing flight number" style={{ marginLeft: 5, fontSize: 9, color: "#d97706", fontWeight: 800 }}>⚠</span>}
+          {!isEd && isIncomplete(t) && <span title="Missing flight number" style={{ marginLeft: 5, fontSize: 9, color: B.warning, fontWeight: 800 }}>⚠</span>}
         </td>
         <td style={{ ...tdStyle, fontWeight: 800, textAlign: "center" }}>{t.pax}</td>
         <td style={tdStyle}>
@@ -130,7 +130,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
               {UKLC_OPTIONS.map((o) => <option key={o}>{o}</option>)}
             </select>
           ) : (
-            <span style={{ background: t.uklc === "No" ? "#f1f5f9" : t.uklc === "TBC" ? "#fef3c7" : "#dcfce7", color: t.uklc === "No" ? "#64748b" : t.uklc === "TBC" ? "#92400e" : "#16a34a", padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{t.uklc || "Yes"}</span>
+            <span style={{ background: t.uklc === "No" ? "#f1f5f9" : t.uklc === "TBC" ? B.warningBg : B.successBg, color: t.uklc === "No" ? B.textMuted : t.uklc === "TBC" ? B.warning : B.success, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{t.uklc || "Yes"}</span>
           )}
         </td>
         {showArr && <>
@@ -173,8 +173,8 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
       <div style={{ padding: "12px 20px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <StatCard label="Transfers" value={transfers.length} accent={B.navy} />
         <StatCard label="Total Pax" value={totalPax} accent={B.red} />
-        <StatCard label="Arrivals" value={arrCount} accent="#16a34a" />
-        <StatCard label="Departures" value={depCount} accent="#dc2626" />
+        <StatCard label="Arrivals" value={arrCount} accent={B.success} />
+        <StatCard label="Departures" value={depCount} accent={B.danger} />
         <StatCard label="Pending" value={pendingCount} accent={B.warning} />
         <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
           {["overview", "arrivals", "departures", "timeline"].map((v) => (
@@ -216,15 +216,15 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                   <th style={thStyle} rowSpan={2}>Group</th>
                   <th style={{ ...thStyle, textAlign: "center" }} rowSpan={2}>Pax</th>
                   <th style={{ ...thStyle, textAlign: "center" }} rowSpan={2}>UKLC</th>
-                  <th style={{ ...thStyle, textAlign: "center", background: "#dcfce7", color: "#16a34a" }} colSpan={5}>{"\u2708\ufe0f"} Arrival</th>
-                  <th style={{ ...thStyle, textAlign: "center", background: "#fee2e2", color: "#dc2626" }} colSpan={5}>{"\ud83d\udeeb"} Departure</th>
+                  <th style={{ ...thStyle, textAlign: "center", background: B.successBg, color: B.success }} colSpan={5}>{"\u2708\ufe0f"} Arrival</th>
+                  <th style={{ ...thStyle, textAlign: "center", background: B.dangerBg, color: B.danger }} colSpan={5}>{"\ud83d\udeeb"} Departure</th>
                   <th style={thStyle} rowSpan={2}>Status</th>
                   <th style={thStyle} rowSpan={2}>Notes</th>
                   <th style={thStyle} rowSpan={2}></th>
                 </tr>
                 <tr>
-                  {["Airport", "Term", "Date", "Flight", "Time"].map((h) => <th key={"a"+h} style={{ ...thStyle, fontSize: 8, background: "#f0fdf4" }}>{h}</th>)}
-                  {["Airport", "Term", "Date", "Flight", "Time"].map((h) => <th key={"d"+h} style={{ ...thStyle, fontSize: 8, background: "#fef2f2" }}>{h}</th>)}
+                  {["Airport", "Term", "Date", "Flight", "Time"].map((h) => <th key={"a"+h} style={{ ...thStyle, fontSize: 8, background: B.successBg }}>{h}</th>)}
+                  {["Airport", "Term", "Date", "Flight", "Time"].map((h) => <th key={"d"+h} style={{ ...thStyle, fontSize: 8, background: B.dangerBg }}>{h}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -245,7 +245,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
               <thead>
                 <tr>
                   {["Agent", "Group", "Pax", "UKLC", "Airport", "Terminal", "Date", "Flight", "Time", "Status", "Notes", ""].map((h) => (
-                    <th key={h} style={{ ...thStyle, background: "#f0fdf4" }}>{h}</th>
+                    <th key={h} style={{ ...thStyle, background: B.successBg }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -259,7 +259,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                         <td style={tdStyle}>{t.agent}</td>
                         <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{t.group}</td>
                         <td style={{ ...tdStyle, fontWeight: 800, textAlign: "center" }}>{t.pax}</td>
-                        <td style={tdStyle}><span style={{ background: "#dcfce7", color: "#16a34a", padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{t.uklc}</span></td>
+                        <td style={tdStyle}><span style={{ background: B.successBg, color: B.success, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{t.uklc}</span></td>
                         <td style={tdStyle}>{isEd ? <select value={t.arrAirport} onChange={(e) => upd(t.id, "arrAirport", e.target.value)} style={edFi}>{AIRPORTS.map((a) => <option key={a}>{a}</option>)}</select> : t.arrAirport}</td>
                         <td style={tdStyle}>{isEd ? <select value={t.arrTerminal||""} onChange={(e) => upd(t.id, "arrTerminal", e.target.value)} style={{...edFi,minWidth:45}}><option value="">—</option>{TERMINALS.map((x) => <option key={x}>{x}</option>)}</select> : t.arrTerminal || "—"}</td>
                         <td style={{ ...tdStyle, fontWeight: 700 }}>{isEd ? <input type="date" value={t.arrDate} onChange={(e) => upd(t.id, "arrDate", e.target.value)} style={edFi} /> : fmtDate(t.arrDate)}</td>
@@ -290,7 +290,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
               <thead>
                 <tr>
                   {["Agent", "Group", "Pax", "UKLC", "Airport", "Terminal", "Date", "Flight", "Time", "Status", "Notes", ""].map((h) => (
-                    <th key={h} style={{ ...thStyle, background: "#fef2f2" }}>{h}</th>
+                    <th key={h} style={{ ...thStyle, background: B.dangerBg }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -304,7 +304,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                         <td style={tdStyle}>{t.agent}</td>
                         <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{t.group}</td>
                         <td style={{ ...tdStyle, fontWeight: 800, textAlign: "center" }}>{t.pax}</td>
-                        <td style={tdStyle}><span style={{ background: "#fee2e2", color: "#dc2626", padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{t.uklc}</span></td>
+                        <td style={tdStyle}><span style={{ background: B.dangerBg, color: B.danger, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{t.uklc}</span></td>
                         <td style={tdStyle}>{isEd ? <select value={t.depAirport} onChange={(e) => upd(t.id, "depAirport", e.target.value)} style={edFi}>{AIRPORTS.map((a) => <option key={a}>{a}</option>)}</select> : t.depAirport}</td>
                         <td style={tdStyle}>{isEd ? <select value={t.depTerminal||""} onChange={(e) => upd(t.id, "depTerminal", e.target.value)} style={{...edFi,minWidth:45}}><option value="">—</option>{TERMINALS.map((x) => <option key={x}>{x}</option>)}</select> : t.depTerminal || "—"}</td>
                         <td style={{ ...tdStyle, fontWeight: 700 }}>{isEd ? <input type="date" value={t.depDate} onChange={(e) => upd(t.id, "depDate", e.target.value)} style={edFi} /> : fmtDate(t.depDate)}</td>
@@ -345,12 +345,12 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                     <div style={{ fontSize: 10, color: B.textMuted }}>{fmtDate(date)}</div>
                   </div>
                   {data.arrivals.length > 0 && (
-                    <span style={{ background: "#dcfce7", color: "#16a34a", padding: "3px 10px", borderRadius: 5, fontSize: 10, fontWeight: 800 }}>
+                    <span style={{ background: B.successBg, color: B.success, padding: "3px 10px", borderRadius: 5, fontSize: 10, fontWeight: 800 }}>
                       {"\u2708\ufe0f"} {data.arrivals.length} arrival{data.arrivals.length > 1 ? "s" : ""} ({totalArr} pax)
                     </span>
                   )}
                   {data.departures.length > 0 && (
-                    <span style={{ background: "#fee2e2", color: "#dc2626", padding: "3px 10px", borderRadius: 5, fontSize: 10, fontWeight: 800 }}>
+                    <span style={{ background: B.dangerBg, color: B.danger, padding: "3px 10px", borderRadius: 5, fontSize: 10, fontWeight: 800 }}>
                       {"\ud83d\udeeb"} {data.departures.length} departure{data.departures.length > 1 ? "s" : ""} ({totalDep} pax)
                     </span>
                   )}
@@ -360,14 +360,14 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                   {/* Arrivals for this day */}
                   {data.arrivals.length > 0 && (
                     <div style={{ marginBottom: data.departures.length > 0 ? 10 : 0 }}>
-                      <div style={{ fontSize: 9, fontWeight: 800, color: "#16a34a", marginBottom: 4, textTransform: "uppercase" }}>Arrivals</div>
+                      <div style={{ fontSize: 9, fontWeight: 800, color: B.success, marginBottom: 4, textTransform: "uppercase" }}>Arrivals</div>
                       {data.arrivals
                         .sort((a, b) => (a.arrTime || "99:99").localeCompare(b.arrTime || "99:99"))
                         .map((t) => (
                         <div key={t.id + "-arr"} style={{ display: "flex", gap: 10, alignItems: "center", padding: "6px 0", borderBottom: "1px solid " + B.borderLight, fontSize: 11 }}>
                           <span style={{ fontWeight: 800, color: B.navy, minWidth: 50 }}>{t.arrTime || "TBC"}</span>
                           <span style={{ fontWeight: 700, color: B.navy, minWidth: 100 }}>{t.group}</span>
-                          <span style={{ background: "#dbeafe", color: "#1e40af", padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{t.pax} pax</span>
+                          <span style={{ background: B.cyanBg, color: B.link, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{t.pax} pax</span>
                           <span style={{ fontSize: 10, color: B.textMuted }}>{t.arrAirport}{t.arrTerminal ? " " + t.arrTerminal : ""}</span>
                           <span style={{ fontFamily: "monospace", fontSize: 10 }}>{t.arrFlight || ""}</span>
                           <span style={{ fontSize: 9, color: B.textMuted }}>{t.agent}</span>
@@ -380,14 +380,14 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                   {/* Departures for this day */}
                   {data.departures.length > 0 && (
                     <div>
-                      <div style={{ fontSize: 9, fontWeight: 800, color: "#dc2626", marginBottom: 4, textTransform: "uppercase" }}>Departures</div>
+                      <div style={{ fontSize: 9, fontWeight: 800, color: B.danger, marginBottom: 4, textTransform: "uppercase" }}>Departures</div>
                       {data.departures
                         .sort((a, b) => (a.depTime || "99:99").localeCompare(b.depTime || "99:99"))
                         .map((t) => (
                         <div key={t.id + "-dep"} style={{ display: "flex", gap: 10, alignItems: "center", padding: "6px 0", borderBottom: "1px solid " + B.borderLight, fontSize: 11 }}>
                           <span style={{ fontWeight: 800, color: B.navy, minWidth: 50 }}>{t.depTime || "TBC"}</span>
                           <span style={{ fontWeight: 700, color: B.navy, minWidth: 100 }}>{t.group}</span>
-                          <span style={{ background: "#dbeafe", color: "#1e40af", padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{t.pax} pax</span>
+                          <span style={{ background: B.cyanBg, color: B.link, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{t.pax} pax</span>
                           <span style={{ fontSize: 10, color: B.textMuted }}>{t.depAirport}{t.depTerminal ? " " + t.depTerminal : ""}</span>
                           <span style={{ fontFamily: "monospace", fontSize: 10 }}>{t.depFlight || ""}</span>
                           <span style={{ fontSize: 9, color: B.textMuted }}>{t.agent}</span>

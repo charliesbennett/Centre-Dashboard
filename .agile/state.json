@@ -4,7 +4,7 @@
     "description": "Brownfield — AI Rota fixes, UX/UI audit, AI Chatbox feature",
     "workflow": "brownfield-fullstack",
     "createdAt": "2026-03-24",
-    "lastSessionDate": "2026-03-26T08:28:14Z"
+    "lastSessionDate": "2026-03-30T09:31:32Z"
   },
   "currentStage": "product",
   "nextStep": "Begin Sprint 1 — start with STORY-A1",
@@ -88,6 +88,14 @@
         "status": "ready",
         "sprint": 3,
         "path": "docs/stories/STORY-C2.md"
+      },
+      {
+        "id": "STORY-B3",
+        "title": "Fix Rooming Excel Import",
+        "epic": "Workstream B",
+        "status": "ready",
+        "sprint": 2,
+        "path": "docs/stories/STORY-B3.md"
       }
     ]
   },

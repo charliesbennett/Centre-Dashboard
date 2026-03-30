@@ -52,7 +52,7 @@ export default function TeamTab({ staff, setStaff, readOnly = false }) {
     <div>
       <div style={{ padding: "12px 20px", display: "flex", gap: 8, flexWrap: "wrap" }}>
         <StatCard label="Total" value={staff.length} accent={B.navy} />
-        <StatCard label="Res" value={staff.filter((s) => s.acc === "Residential").length} accent="#0369a1" />
+        <StatCard label="Res" value={staff.filter((s) => s.acc === "Residential").length} accent={B.link} />
         <StatCard label="Non-res" value={staff.filter((s) => s.acc !== "Residential").length} accent={B.textMuted} />
       </div>
       <div style={{ background: B.white, borderBottom: `1px solid ${B.border}`, padding: "8px 20px", display: "flex", justifyContent: "space-between" }}>
@@ -88,7 +88,7 @@ export default function TeamTab({ staff, setStaff, readOnly = false }) {
               ) : staff.map((x) => (
                 <>
                   <tr key={x.id} style={{ borderBottom: editId === x.id ? "none" : `1px solid ${B.borderLight}`, background: editId === x.id ? B.ice : "transparent" }}>
-                    <td style={tdStyle}><span style={{ background: "#dbeafe", color: "#1e40af", padding: "2px 5px", borderRadius: 3, fontSize: 9, fontWeight: 800 }}>{x.role}</span></td>
+                    <td style={tdStyle}><span style={{ background: B.cyanBg, color: B.link, padding: "2px 5px", borderRadius: 3, fontSize: 9, fontWeight: 800 }}>{x.role}</span></td>
                     <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{x.name}</td>
                     <td style={tdStyle}><span style={{ fontSize: 10, color: x.acc === "Residential" ? B.success : B.textMuted, fontWeight: 600 }}>{x.acc === "Residential" ? "Res" : "Non-res"}</span></td>
                     <td style={tdStyle}>{fmtDate(x.arr)}</td>
@@ -97,9 +97,9 @@ export default function TeamTab({ staff, setStaff, readOnly = false }) {
                     <td style={tdStyle}>
                       {(x.email || x.phone) ? (
                         <span style={{ fontSize: 10, color: B.textMuted }}>
-                          {x.email && <a href={`mailto:${x.email}`} style={{ color: "#0369a1", textDecoration: "none" }}>{x.email}</a>}
+                          {x.email && <a href={`mailto:${x.email}`} style={{ color: B.link, textDecoration: "none" }}>{x.email}</a>}
                           {x.email && x.phone && " · "}
-                          {x.phone && <a href={`tel:${x.phone}`} style={{ color: "#0369a1", textDecoration: "none" }}>{x.phone}</a>}
+                          {x.phone && <a href={`tel:${x.phone}`} style={{ color: B.link, textDecoration: "none" }}>{x.phone}</a>}
                         </span>
                       ) : "—"}
                     </td>

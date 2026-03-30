@@ -1,11 +1,11 @@
 "use client";
 import { useState, useMemo } from "react";
 import { B, uid, fmtDate, dayName, isWeekend, genDates, dayKey, inRange } from "@/lib/constants";
-import { Fld, StatusBadge, TableWrap, IconBtn, IcPlus, IcTrash, IcEdit, IcCheck, IcCopy, inputStyle, thStyle, tdStyle, btnPrimary } from "@/components/ui";
+import { Fld, StatusBadge, TableWrap, IconBtn, IcPlus, IcTrash, IcEdit, IcCheck, IcCopy, inputStyle, thStyle, tdStyle, btnPrimary, btnNavy } from "@/components/ui";
 
 const COACH_STATUS = {
   Pending: { color: B.warning, bg: B.warningBg },
-  Requested: { color: "#0369a1", bg: "#e0f2fe" },
+  Requested: { color: B.link, bg: B.cyanBg },
   Confirmed: { color: B.success, bg: B.successBg },
   Paid: { color: "#5b21b6", bg: "#ede9fe" },
 };
@@ -224,16 +224,16 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
   return (
     <div>
       <div style={{ padding: "12px 20px", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 10, padding: "8px 16px", minWidth: 80 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "#ea580c" }}>{allExcs.length}</div>
+        <div style={{ background: B.warningBg, border: "1px solid #fed7aa", borderRadius: 10, padding: "8px 16px", minWidth: 80 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: B.warning }}>{allExcs.length}</div>
           <div style={{ fontSize: 9, color: "#9a3412", fontWeight: 600 }}>Excursion Days</div>
         </div>
-        <div style={{ background: "#e0f2fe", border: "1px solid #7dd3fc", borderRadius: 10, padding: "8px 16px", minWidth: 80 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "#0369a1" }}>{allExcs.filter((e) => e.type === "Full").length}</div>
+        <div style={{ background: B.cyanBg, border: "1px solid #7dd3fc", borderRadius: 10, padding: "8px 16px", minWidth: 80 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: B.link }}>{allExcs.filter((e) => e.type === "Full").length}</div>
           <div style={{ fontSize: 9, color: "#0c4a6e", fontWeight: 600 }}>Full Day</div>
         </div>
-        <div style={{ background: "#faf5ff", border: "1px solid #d8b4fe", borderRadius: 10, padding: "8px 16px", minWidth: 80 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "#7c3aed" }}>{allExcs.filter((e) => e.type === "Half").length}</div>
+        <div style={{ background: B.purpleBg, border: "1px solid #d8b4fe", borderRadius: 10, padding: "8px 16px", minWidth: 80 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: B.purple }}>{allExcs.filter((e) => e.type === "Half").length}</div>
           <div style={{ fontSize: 9, color: "#5b21b6", fontWeight: 600 }}>Half Day</div>
         </div>
         <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, padding: "8px 16px", minWidth: 80 }}>
@@ -254,7 +254,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
         )}
         <button onClick={autoFromProgramme}
           title={isMinistay ? "Reads exc days from ministay template first, then falls back to scanning the programme grid for Full Exc / Half Exc keywords or custom activity names" : "Scans the programme grid for Full Exc / Half Exc keywords or custom activity names and marks those days as excursion days"}
-          style={{ marginLeft: "auto", padding: "6px 14px", background: B.navy, border: "none", color: B.white, borderRadius: 6, cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit" }}>
+          style={{ ...btnNavy, marginLeft: "auto" }}>
           Auto from Programme
         </button>
         <div style={{ fontSize: 9, color: B.textMuted }}>
@@ -270,18 +270,18 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
         <div style={{ padding: "0 12px 20px" }}>
           {allExcs.map((exc) => (
             <div key={exc.date} style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
-              <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid " + B.borderLight, background: exc.isWeekend ? "#fef2f2" : exc.type === "Full" ? "#fff7ed" : "#f0f9ff" }}>
+              <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid " + B.borderLight, background: exc.isWeekend ? B.dangerBg : exc.type === "Full" ? B.warningBg : B.cyanBg }}>
                 <div style={{ minWidth: 90 }}>
                   <div style={{ fontSize: 13, fontWeight: 800, color: B.navy }}>{dayName(exc.day)}</div>
                   <div style={{ fontSize: 10, color: B.textMuted }}>{fmtDate(exc.date)}</div>
                 </div>
                 <span style={{
                   background: exc.type === "Full" ? "#fed7aa" : "#bae6fd",
-                  color: exc.type === "Full" ? "#ea580c" : "#0369a1",
+                  color: exc.type === "Full" ? B.warning : B.link,
                   padding: "3px 10px", borderRadius: 5, fontSize: 10, fontWeight: 800,
                 }}>{exc.type === "Full" ? "Full Day" : "Half Day"}</span>
-                {exc.isWeekend && <span style={{ background: "#fee2e2", color: "#dc2626", padding: "3px 8px", borderRadius: 5, fontSize: 9, fontWeight: 800 }}>Weekend</span>}
-                <span style={{ background: "#dbeafe", color: "#1e40af", padding: "3px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 }}>{exc.total} pax</span>
+                {exc.isWeekend && <span style={{ background: B.dangerBg, color: B.danger, padding: "3px 8px", borderRadius: 5, fontSize: 9, fontWeight: 800 }}>Weekend</span>}
+                <span style={{ background: B.cyanBg, color: B.link, padding: "3px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 }}>{exc.total} pax</span>
                 <span style={{ fontSize: 9, color: B.textMuted }}>({exc.stuCount} stu + {exc.glCount} GL)</span>
 
                 <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
@@ -385,7 +385,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                       </select>
                     </Fld>
                     <Fld label="Notes"><input value={coachForm.notes} onChange={(e) => setCoachForm((p) => ({ ...p, notes: e.target.value }))} style={{ ...fi, width: 120 }} /></Fld>
-                    <button onClick={() => addCoach(exc.date)} style={{ padding: "5px 14px", background: B.navy, border: "none", color: B.white, borderRadius: 5, cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit", height: 30 }}>Add</button>
+                    <button onClick={() => addCoach(exc.date)} style={{ ...btnNavy, padding: "5px 14px", fontSize: 10 }}>Add</button>
                     <button onClick={() => setShowCoachForm(null)} style={{ padding: "5px 10px", background: "transparent", border: "1px solid " + B.border, color: B.textMuted, borderRadius: 5, cursor: "pointer", fontSize: 10, fontWeight: 600, fontFamily: "inherit", height: 30 }}>Cancel</button>
                   </div>
                 ) : (
