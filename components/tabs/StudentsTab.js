@@ -33,7 +33,50 @@ export function getFlaggedStudents(groups) {
   return results;
 }
 
-export default function StudentsTab({ groups = [], setGroups, progStart, progEnd, readOnly = false }) {
+export function buildStudentRows(groups, roomingAssignments = [], roomingRooms = []) {
+  const rows = [];
+  (groups || []).filter((g) => !g.archived).forEach((g) => {
+    (g.students || []).forEach((s) => {
+      const fullName = [s.firstName, s.surname].filter(Boolean).join(" ").trim();
+      const assignment = roomingAssignments.find(
+        (a) => a.occupantName && a.occupantName.trim().toLowerCase() === fullName.toLowerCase()
+      );
+      const room = assignment
+        ? (roomingRooms.find((r) => r.id === assignment.roomId || r.id === assignment.room_id)?.roomName ||
+           roomingRooms.find((r) => r.id === assignment.roomId || r.id === assignment.room_id)?.name || "")
+        : "";
+      rows.push({
+        "First Name": s.firstName || "",
+        "Surname": s.surname || "",
+        "Group": g.group || g.name || "",
+        "Nationality": g.nat || s.nationality || "",
+        "Age": s.age || "",
+        "Arrival Date": s.arrDate || g.arr || "",
+        "Departure Date": s.depDate || g.dep || "",
+        "Medical": s.medical || "",
+        "Room": room,
+      });
+    });
+  });
+  rows.sort((a, b) => {
+    const gCmp = (a["Group"] || "").toLowerCase().localeCompare((b["Group"] || "").toLowerCase());
+    if (gCmp !== 0) return gCmp;
+    return (a["Surname"] || "").toLowerCase().localeCompare((b["Surname"] || "").toLowerCase());
+  });
+  return rows;
+}
+
+export function exportStudentsXlsx(groups, roomingAssignments, roomingRooms, centreName = "") {
+  const rows = buildStudentRows(groups, roomingAssignments, roomingRooms);
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Students");
+  const safeName = (centreName || "export").replace(/[^a-z0-9]/gi, "-");
+  const date = new Date().toISOString().split("T")[0];
+  XLSX.writeFile(wb, `students-${safeName}-${date}.xlsx`);
+}
+
+export default function StudentsTab({ groups = [], setGroups, progStart, progEnd, readOnly = false, userRole = "", roomingAssignments = [], roomingRooms = [], centreName = "" }) {
   const [showAdd, setShowAdd] = useState(false);
   const [view, setView] = useState("groups");
   const [flagFilter, setFlagFilter] = useState("All");
@@ -432,13 +475,20 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
             </button>
           ))}
         </div>
-        {!readOnly && <div style={{ display: "flex", gap: 6 }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", background: B.navy, border: "none", color: B.white, borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
-            {"\ud83d\udce5"} Import Excel
-            <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleImport} style={{ display: "none" }} />
-          </label>
-          <button onClick={() => setShowAdd(!showAdd)} style={btnPrimary}><IcPlus /> Add Manual</button>
-        </div>}
+        <div style={{ display: "flex", gap: 6 }}>
+          {["centre_manager", "head_office", "course_director"].includes(userRole) && (
+            <button onClick={() => exportStudentsXlsx(groups, roomingAssignments, roomingRooms, centreName)} style={{ padding: "6px 12px", background: B.success, border: "none", color: B.white, borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
+              ↓ Export Excel
+            </button>
+          )}
+          {!readOnly && <>
+            <label style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", background: B.navy, border: "none", color: B.white, borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
+              {"\ud83d\udce5"} Import Excel
+              <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleImport} style={{ display: "none" }} />
+            </label>
+            <button onClick={() => setShowAdd(!showAdd)} style={btnPrimary}><IcPlus /> Add Manual</button>
+          </>}
+        </div>
       </div>
 
       {showAdd && (
