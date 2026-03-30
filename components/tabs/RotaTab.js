@@ -1,8 +1,9 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { B, SESSION_TYPES, genDates, dayKey, dayName, isWeekend, inRange, fmtDate } from "@/lib/constants";
 import { EVE_ENT_NAMES } from "@/lib/rotaRules";
 import { ROLE_RULES, NO_COUNT } from "@/lib/rotaRules";
+import { getFortnights, getTodayFortnight } from "@/lib/fortnights";
 import { StatCard, IcWand, thStyle, tdStyle, btnPrimary } from "@/components/ui";
 
 const SLOTS = ["AM", "PM", "Eve"];
@@ -48,7 +49,20 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
   const grid = rotaGrid;
   const setGrid = setRotaGrid;
 
-  const dates = useMemo(() => (progStart && progEnd) ? genDates(progStart, progEnd) : [], [progStart, progEnd]);
+  const fortnights = useMemo(() => getFortnights(progStart, progEnd), [progStart, progEnd]);
+  const [fortIdx, setFortIdx] = useState(0);
+  useEffect(() => {
+    setFortIdx(getTodayFortnight(fortnights, dayKey(new Date())));
+  }, [fortnights]);
+  const selectedFortnight = fortnights[fortIdx] || { start: progStart, end: progEnd };
+  const dates = useMemo(
+    () => (selectedFortnight.start && selectedFortnight.end) ? genDates(selectedFortnight.start, selectedFortnight.end) : [],
+    [selectedFortnight.start, selectedFortnight.end]
+  );
+  const fortnightStaff = useMemo(() => {
+    if (!selectedFortnight.start || !selectedFortnight.end) return staff;
+    return staff.filter((s) => s.arr <= selectedFortnight.end && s.dep >= selectedFortnight.start);
+  }, [staff, selectedFortnight]);
   const hasRotaData = useMemo(() => Object.values(rotaGrid || {}).some(Boolean), [rotaGrid]);
 
   const groupArrivalDate = useMemo(() => {
@@ -728,6 +742,27 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         <span style={{ fontSize: 8, color: B.textMuted, marginLeft: 6 }}>Click = cycle · Double-click = edit</span>
       </div>
 
+      {/* ── Fortnight selector ───────────────────────────── */}
+      {fortnights.length > 1 && (
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", padding: "6px 16px", borderBottom: `1px solid ${B.border}`, background: B.white, flexShrink: 0 }}>
+          {fortnights.map((fn, i) => (
+            <button
+              key={fn.label}
+              onClick={() => setFortIdx(i)}
+              style={{
+                padding: "4px 12px", borderRadius: 20, fontSize: 10, fontWeight: 700,
+                fontFamily: "inherit", cursor: "pointer",
+                border: `1px solid ${i === fortIdx ? B.navy : B.border}`,
+                background: i === fortIdx ? B.navy : B.white,
+                color: i === fortIdx ? B.white : B.textMuted,
+              }}
+            >
+              {fn.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── Scrollable table ─────────────────────────────── */}
       <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
         <table style={{ borderCollapse: "collapse", fontSize: 10, minWidth: tableMinWidth, background: B.white }}>
@@ -786,9 +821,9 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                 })}
               </tr>
             )}
-            {staff.length === 0 ? (
-              <tr><td colSpan={4 + dates.length * 3} style={{ textAlign: "center", padding: 36, color: B.textLight }}>Add staff in Team tab, then Auto-Generate</td></tr>
-            ) : staff.map((s) => {
+            {fortnightStaff.length === 0 ? (
+              <tr><td colSpan={4 + dates.length * 3} style={{ textAlign: "center", padding: 36, color: B.textLight }}>{staff.length === 0 ? "Add staff in Team tab, then Auto-Generate" : "No staff on site during this fortnight"}</td></tr>
+            ) : fortnightStaff.map((s) => {
               const st = getStats(s.id);
               const limit = getSessionLimit(s.role);
               const over = limit !== Infinity && limit > 0 && st.sess > limit;

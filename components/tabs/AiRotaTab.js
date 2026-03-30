@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { B, fmtDate, genDates, dayKey, dayName } from "@/lib/constants";
 import { btnPrimary, btnNavy, thStyle, tdStyle, TableWrap, IcCheck, IcWand } from "@/components/ui";
+import { getFortnights, getTodayFortnight } from "@/lib/fortnights";
 
 // ── Step definitions ──────────────────────────────────────────────────────
 const STEPS = [
@@ -106,18 +107,22 @@ function Stepper({ currentStep }) {
 }
 
 // ── Step 1: Programme ─────────────────────────────────────────────────────
-function ProgrammeStep({ progStart, progEnd, groups, staff, onNext }) {
-  const hasData = progStart && progEnd && staff?.length > 0;
+function ProgrammeStep({ progStart, progEnd, groups, staff, fortnights, fortIdx, setFortIdx, onNext }) {
+  const selectedFortnight = fortnights[fortIdx] || { start: progStart, end: progEnd };
+  const fortnightStaffCount = staff?.filter((s) =>
+    s.arr <= selectedFortnight.end && s.dep >= selectedFortnight.start
+  ).length ?? 0;
+  const hasData = selectedFortnight.start && selectedFortnight.end && fortnightStaffCount > 0;
   return (
     <div>
       <h3 style={{ fontSize: 15, fontWeight: 700, fontFamily: RW, color: B.navy, marginBottom: 12 }}>Programme Summary</h3>
-      <div style={{ background: B.white, border: `1px solid ${B.border}`, borderLeft: `4px solid ${B.navy}`, borderRadius: 8, padding: "16px 20px", marginBottom: 20 }}>
+      <div style={{ background: B.white, border: `1px solid ${B.border}`, borderLeft: `4px solid ${B.navy}`, borderRadius: 8, padding: "16px 20px", marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
           {[
-            { label: "Programme Start", val: progStart ? fmtDate(progStart) : "—" },
-            { label: "Programme End",   val: progEnd   ? fmtDate(progEnd)   : "—" },
+            { label: "Fortnight Start", val: selectedFortnight.start ? fmtDate(selectedFortnight.start) : "—" },
+            { label: "Fortnight End",   val: selectedFortnight.end   ? fmtDate(selectedFortnight.end)   : "—" },
             { label: "Groups",          val: groups?.length ?? 0 },
-            { label: "Staff",           val: staff?.length  ?? 0 },
+            { label: "Staff on site",   val: fortnightStaffCount },
           ].map(({ label, val }) => (
             <div key={label}>
               <div style={{ fontSize: 9, fontWeight: 800, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: RW }}>{label}</div>
@@ -126,9 +131,28 @@ function ProgrammeStep({ progStart, progEnd, groups, staff, onNext }) {
           ))}
         </div>
       </div>
+      {fortnights.length > 1 && (
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 16 }}>
+          {fortnights.map((fn, i) => (
+            <button
+              key={fn.label}
+              onClick={() => setFortIdx(i)}
+              style={{
+                padding: "4px 12px", borderRadius: 20, fontSize: 10, fontWeight: 700,
+                fontFamily: "inherit", cursor: "pointer",
+                border: `1px solid ${i === fortIdx ? B.navy : B.border}`,
+                background: i === fortIdx ? B.navy : B.white,
+                color: i === fortIdx ? B.white : B.textMuted,
+              }}
+            >
+              {fn.label}
+            </button>
+          ))}
+        </div>
+      )}
       {!hasData && (
         <div style={{ color: B.warning, fontFamily: OS, fontSize: 12, marginBottom: 16, padding: "8px 12px", background: B.warningBg, borderRadius: 6 }}>
-          Set a programme start/end date and add staff before generating a rota.
+          {staff?.length === 0 ? "Set a programme start/end date and add staff before generating a rota." : "No staff on site during this fortnight."}
         </div>
       )}
       <button style={{ ...btnPrimary, opacity: hasData ? 1 : 0.5, cursor: hasData ? "pointer" : "not-allowed" }} disabled={!hasData} onClick={onNext}>
@@ -174,7 +198,7 @@ function GenerateStep({ generating, genStep, onGenerate, onBack }) {
 }
 
 // ── Step 3: Review ────────────────────────────────────────────────────────
-function ReviewStep({ draftRota, staff, progStart, progEnd, onPublish, onStartOver }) {
+function ReviewStep({ draftRota, staff, progStart, progEnd, fortnightLabel, onPublish, onStartOver }) {
   const grid = buildDraftRotaGrid(draftRota, staff);
   const dates = progStart && progEnd ? genDates(progStart, progEnd) : [];
 
@@ -184,6 +208,11 @@ function ReviewStep({ draftRota, staff, progStart, progEnd, onPublish, onStartOv
         <span style={{ background: B.yellow, color: B.navy, fontFamily: RW, fontWeight: 700, fontSize: 11, padding: "5px 14px", borderRadius: 20 }}>
           Draft Rota — not yet published
         </span>
+        {fortnightLabel && (
+          <span style={{ background: B.ice, color: B.navy, fontFamily: RW, fontWeight: 700, fontSize: 11, padding: "5px 14px", borderRadius: 20, border: `1px solid ${B.border}` }}>
+            {fortnightLabel}
+          </span>
+        )}
         {draftRota?.corrections > 0 && (
           <span style={{ fontSize: 11, fontFamily: OS, color: B.textMuted }}>
             {draftRota.corrections} constraint correction{draftRota.corrections !== 1 ? "s" : ""} applied
@@ -260,6 +289,12 @@ export default function AiRotaTab({ staff = [], progStart, progEnd, groups = [],
   const [genError, setGenError] = useState(null);
   const [published, setPublished] = useState(false);
 
+  const fortnights = useMemo(() => getFortnights(progStart, progEnd), [progStart, progEnd]);
+  const [fortIdx, setFortIdx] = useState(0);
+  useEffect(() => {
+    setFortIdx(getTodayFortnight(fortnights, dayKey(new Date())));
+  }, [fortnights]);
+
   const handleGenerate = async () => {
     setGenerating(true);
     setGenError(null);
@@ -268,7 +303,15 @@ export default function AiRotaTab({ staff = [], progStart, progEnd, groups = [],
       const res = await fetch("/api/generate-rota", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ staff, progStart, progEnd, groups, progGrid, centreName }),
+        body: JSON.stringify({
+          staff: staff.filter((s) => {
+            const fn = fortnights[fortIdx] || { start: progStart, end: progEnd };
+            return s.arr <= fn.end && s.dep >= fn.start;
+          }),
+          progStart: (fortnights[fortIdx] || { start: progStart }).start,
+          progEnd: (fortnights[fortIdx] || { end: progEnd }).end,
+          groups, progGrid, centreName,
+        }),
       });
       if (!res.ok) throw new Error(`Server error ${res.status}`);
 
@@ -359,13 +402,13 @@ export default function AiRotaTab({ staff = [], progStart, progEnd, groups = [],
       {!published && (
         <>
           {currentStep === 1 && (
-            <ProgrammeStep progStart={progStart} progEnd={progEnd} groups={groups} staff={staff} onNext={() => setCurrentStep(2)} />
+            <ProgrammeStep progStart={progStart} progEnd={progEnd} groups={groups} staff={staff} fortnights={fortnights} fortIdx={fortIdx} setFortIdx={setFortIdx} onNext={() => setCurrentStep(2)} />
           )}
           {currentStep === 2 && (
             <GenerateStep generating={generating} genStep={genStep} onGenerate={handleGenerate} onBack={() => setCurrentStep(1)} />
           )}
           {currentStep === 3 && (
-            <ReviewStep draftRota={draftRota} staff={staff} progStart={progStart} progEnd={progEnd} onPublish={handlePublish} onStartOver={handleStartOver} />
+            <ReviewStep draftRota={draftRota} staff={staff} progStart={(fortnights[fortIdx] || { start: progStart }).start} progEnd={(fortnights[fortIdx] || { end: progEnd }).end} fortnightLabel={fortnights[fortIdx]?.label} onPublish={handlePublish} onStartOver={handleStartOver} />
           )}
           {genError && (
             <div style={{ marginTop: 12, padding: "8px 12px", background: B.dangerBg, color: B.danger, borderRadius: 6, fontFamily: OS, fontSize: 12 }}>
