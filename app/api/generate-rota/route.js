@@ -27,14 +27,10 @@ const SESSION_TARGET = (role) => {
   return 24; // SAI, AL, EAL, SC, AC, EAC, LAL, LAC, FOOTBALL, DRAMA, DANCE
 };
 
-// Values that do NOT count as sessions (within this scheduler)
-// Note: "Evening Activity" is treated as non-restrictive here so it can always be
-// assigned regardless of session cap. The frontend (rotaRules.js) still counts it
-// in the session total shown to managers.
+// Values that do NOT count as sessions
 const NO_COUNT = new Set([
   "Day Off","Induction","Setup","Office","Airport",
   "pickup","welcome","setup","dinner",
-  "Evening Activity",
 ]);
 
 const TEACHING_ROLES  = ["FTT","5FTT","TAL"];
@@ -502,12 +498,22 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles) {
 
     const eveNeed = Math.max(2, Math.ceil(Math.max(eveningStu, 1) / 20));
 
-    // Eligible: EVE_ELIGIBLE roles, on site, not Day Off, Eve slot empty.
-    // Eve sessions are not restricted by daytime session cap — no hasCapacity check.
+    // Eligible: EVE_ELIGIBLE roles, on site, not Day Off, Eve slot empty, under cap.
+    // Only assign Eve to staff who have fewer than 2 daytime sessions today
+    // (rule: max 2 counted sessions per day across AM+PM+Eve).
+    const hasDaytimeFree = s => {
+      const am = ng[`${s.id}-${ds}-AM`];
+      const pm = ng[`${s.id}-${ds}-PM`];
+      const amCounts = am && !NO_COUNT.has(am);
+      const pmCounts = pm && !NO_COUNT.has(pm);
+      return !(amCounts && pmCounts); // not both slots filled with counted sessions
+    };
     const eligible = staffIndex
       .filter(s => EVE_ELIGIBLE.has(s.role) && onSite(s, ds))
       .filter(s => ng[`${s.id}-${ds}-AM`] !== "Day Off")
-      .filter(s => !ng[`${s.id}-${ds}-Eve`]);
+      .filter(s => !ng[`${s.id}-${ds}-Eve`])
+      .filter(s => hasCapacity(s))
+      .filter(s => hasDaytimeFree(s));
 
     // Sort by fewest evening sessions so far (fairness), then rotate by day index
     const sorted = eligible.slice().sort((a, b) => {
