@@ -119,16 +119,15 @@ export default function RoomingOverviewView({
               <span style={{ fontSize: 9, color: B.textMuted, marginLeft: 4 }}>· empty cell = available bed</span>
             </div>
             <TableWrap>
-              <table style={{ borderCollapse: "collapse", fontSize: 10, minWidth: Math.max(400, dates.length * 110 + 180), width: "100%" }}>
+              <table style={{ borderCollapse: "collapse", fontSize: 10, minWidth: Math.max(400, dates.length * 130 + 170), width: "100%" }}>
                 <thead>
                   <tr>
                     <th style={{ ...thStyle, position: "sticky", left: 0, zIndex: 3, background: "#f8fafc", minWidth: 90, textAlign: "left" }}>House</th>
-                    <th style={{ ...thStyle, position: "sticky", left: 90, zIndex: 3, background: "#f8fafc", minWidth: 60, textAlign: "left" }}>Room</th>
-                    <th style={{ ...thStyle, position: "sticky", left: 150, zIndex: 3, background: "#f8fafc", width: 28, textAlign: "center" }}>#</th>
+                    <th style={{ ...thStyle, position: "sticky", left: 90, zIndex: 3, background: "#f8fafc", minWidth: 70, textAlign: "left" }}>Room</th>
                     {dates.map((d) => {
                       const we = isWeekend(d);
                       return (
-                        <th key={dayKey(d)} style={{ ...thStyle, textAlign: "center", minWidth: 110, background: we ? "#fef2f2" : "#f8fafc" }}>
+                        <th key={dayKey(d)} style={{ ...thStyle, textAlign: "left", minWidth: 130, background: we ? "#fef2f2" : "#f8fafc" }}>
                           <div style={{ fontWeight: 800, fontSize: 8, color: we ? B.red : B.navy }}>{dayName(d)}</div>
                           <div style={{ fontSize: 7, color: B.textMuted }}>{d.getDate()}/{d.getMonth() + 1}</div>
                         </th>
@@ -137,68 +136,96 @@ export default function RoomingOverviewView({
                   </tr>
                 </thead>
                 <tbody>
-                  {bedsGridRows.map((row) => {
-                    if (row.type === "houseDivider") {
-                      const hRooms = roomingRooms.filter((r) => r.houseId === row.house.id);
-                      const hBeds = hRooms.reduce((s, r) => s + (r.capacity || 0), 0);
+                  {(() => {
+                    // Collapse per-slot rows into per-room rows so all occupants appear together
+                    const grouped = [];
+                    let currentRoom = null;
+                    bedsGridRows.forEach((row) => {
+                      if (row.type === "houseDivider") {
+                        grouped.push(row);
+                        currentRoom = null;
+                      } else {
+                        if (currentRoom && currentRoom.room.id === row.room.id) {
+                          currentRoom.slots.push(row);
+                        } else {
+                          currentRoom = { type: "room", house: row.house, room: row.room, slots: [row] };
+                          grouped.push(currentRoom);
+                        }
+                      }
+                    });
+
+                    return grouped.map((row) => {
+                      if (row.type === "houseDivider") {
+                        const hRooms = roomingRooms.filter((r) => r.houseId === row.house.id);
+                        const hBeds = hRooms.reduce((s, r) => s + (r.capacity || 0), 0);
+                        return (
+                          <tr key={"house-" + row.house.id} style={{ background: B.navy }}>
+                            <td colSpan={2 + dates.length} style={{ padding: "5px 10px", color: B.white, fontWeight: 800, fontSize: 11, position: "sticky", left: 0 }}>
+                              {row.house.name}
+                              <span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.6)", marginLeft: 10 }}>
+                                {hRooms.length} room{hRooms.length !== 1 ? "s" : ""} · {hBeds} bed{hBeds !== 1 ? "s" : ""}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      const { house, room, slots } = row;
+                      const houseRoomsForBg = roomingRooms.filter((r) => r.houseId === house.id);
+                      const roomIdxForBg = houseRoomsForBg.findIndex((r) => r.id === room.id);
+                      const rowBg = roomIdxForBg % 2 === 0 ? B.white : "#f8fafc";
+
                       return (
-                        <tr key={"house-" + row.house.id} style={{ background: B.navy }}>
-                          <td colSpan={3 + dates.length} style={{ padding: "5px 10px", color: B.white, fontWeight: 800, fontSize: 11, position: "sticky", left: 0 }}>
-                            {row.house.name}
-                            <span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.6)", marginLeft: 10 }}>
-                              {hRooms.length} room{hRooms.length !== 1 ? "s" : ""} · {hBeds} bed{hBeds !== 1 ? "s" : ""}
-                            </span>
+                        <tr key={room.id} style={{ borderBottom: "1px solid " + B.borderLight }}>
+                          <td style={{ padding: "4px 8px", position: "sticky", left: 0, zIndex: 1, background: rowBg, fontSize: 9, color: B.textMuted, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 90, verticalAlign: "top" }}>
+                            {house.name}
                           </td>
+                          <td style={{ padding: "4px 8px", position: "sticky", left: 90, zIndex: 1, background: rowBg, fontWeight: 700, fontSize: 10, color: B.navy, whiteSpace: "nowrap", verticalAlign: "top" }}>
+                            {room.roomName}
+                            <div style={{ fontSize: 8, fontWeight: 400, color: B.textMuted }}>{slots.length} bed{slots.length !== 1 ? "s" : ""}</div>
+                          </td>
+                          {dates.map((d) => {
+                            const ds = dayKey(d);
+                            // Collect all occupants on site this night
+                            const occupants = slots
+                              .map((s) => {
+                                const gc = s.group ? GROUP_COLORS[activeGroups.indexOf(s.group) % GROUP_COLORS.length] : null;
+                                const onSite = s.group ? inBed(ds, s.group.arr, s.group.dep) : false;
+                                return { onSite, gc, name: s.assignment?.occupantName || s.group?.group || "", group: s.group };
+                              })
+                              .filter((o) => o.onSite);
+
+                            return (
+                              <td key={ds} style={{
+                                padding: "3px 6px",
+                                borderLeft: "1px solid " + B.borderLight,
+                                verticalAlign: "top",
+                                maxWidth: 130,
+                              }}>
+                                {occupants.length === 0 ? (
+                                  <span style={{ color: B.borderLight, fontSize: 8 }}>—</span>
+                                ) : (
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                    {occupants.map((o, oi) => (
+                                      <div key={oi} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: o.gc, flexShrink: 0 }} />
+                                        <span style={{ fontSize: 9, fontWeight: 600, color: B.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                          {o.name}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
                         </tr>
                       );
-                    }
-                    const { house, room, slot, assignment, group } = row;
-                    const gc = group ? GROUP_COLORS[activeGroups.indexOf(group) % GROUP_COLORS.length] : null;
-                    const occupantName = assignment?.occupantName || "";
-                    const houseRoomsForBg = roomingRooms.filter((r) => r.houseId === house.id);
-                    const roomIdxForBg = houseRoomsForBg.findIndex((r) => r.id === room.id);
-                    const rowBg = roomIdxForBg % 2 === 0 ? B.white : "#f8fafc";
-                    return (
-                      <tr key={room.id + "-" + slot} style={{ borderBottom: "1px solid " + B.borderLight }}>
-                        <td style={{ padding: "4px 8px", position: "sticky", left: 0, zIndex: 1, background: rowBg, fontSize: 9, color: B.textMuted, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 90 }}>
-                          {house.name}
-                        </td>
-                        <td style={{ padding: "4px 8px", position: "sticky", left: 90, zIndex: 1, background: rowBg, fontWeight: 700, fontSize: 10, color: B.navy, whiteSpace: "nowrap" }}>
-                          {room.roomName}
-                        </td>
-                        <td style={{ padding: "4px 4px", position: "sticky", left: 150, zIndex: 1, background: rowBg, textAlign: "center", fontSize: 9, color: B.textMuted }}>
-                          {slot + 1}
-                        </td>
-                        {dates.map((d) => {
-                          const ds = dayKey(d);
-                          const onSite = group ? inBed(ds, group.arr, group.dep) : false;
-                          return (
-                            <td key={ds} style={{
-                              padding: "3px 5px",
-                              textAlign: "left",
-                              borderLeft: "1px solid " + B.borderLight,
-                              background: onSite ? gc + "18" : "transparent",
-                              maxWidth: 110,
-                            }}>
-                              {onSite ? (
-                                <div style={{ display: "flex", alignItems: "center", gap: 4, overflow: "hidden" }}>
-                                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: gc, flexShrink: 0 }} />
-                                  <span style={{ fontWeight: 600, fontSize: 9, color: B.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                    {occupantName || group.group.slice(0, 16)}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span style={{ color: B.borderLight, fontSize: 8 }}>—</span>
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
+                    });
+                  })()}
                   {/* Totals footer */}
                   <tr style={{ background: B.navy }}>
-                    <td colSpan={3} style={{ padding: "5px 10px", fontWeight: 800, color: B.white, fontSize: 10, position: "sticky", left: 0, zIndex: 1, background: B.navy }}>OCCUPIED</td>
+                    <td colSpan={2} style={{ padding: "5px 10px", fontWeight: 800, color: B.white, fontSize: 10, position: "sticky", left: 0, zIndex: 1, background: B.navy }}>OCCUPIED</td>
                     {dates.map((d) => {
                       const ds = dayKey(d);
                       const t = bedsGridTotals[ds];
@@ -210,7 +237,7 @@ export default function RoomingOverviewView({
                     })}
                   </tr>
                   <tr style={{ background: "#f0fdf4" }}>
-                    <td colSpan={3} style={{ padding: "5px 10px", fontWeight: 700, color: B.success, fontSize: 9, position: "sticky", left: 0, zIndex: 1, background: "#f0fdf4" }}>AVAILABLE</td>
+                    <td colSpan={2} style={{ padding: "5px 10px", fontWeight: 700, color: B.success, fontSize: 9, position: "sticky", left: 0, zIndex: 1, background: "#f0fdf4" }}>AVAILABLE</td>
                     {dates.map((d) => {
                       const ds = dayKey(d);
                       const t = bedsGridTotals[ds];
