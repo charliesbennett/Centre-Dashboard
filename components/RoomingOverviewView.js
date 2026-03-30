@@ -119,16 +119,16 @@ export default function RoomingOverviewView({
               <span style={{ fontSize: 9, color: B.textMuted, marginLeft: 4 }}>· empty cell = available bed</span>
             </div>
             <TableWrap>
-              <table style={{ borderCollapse: "collapse", fontSize: 10, minWidth: Math.max(400, dates.length * 80 + 220), width: "100%" }}>
+              <table style={{ borderCollapse: "collapse", fontSize: 10, minWidth: Math.max(400, dates.length * 110 + 180), width: "100%" }}>
                 <thead>
                   <tr>
                     <th style={{ ...thStyle, position: "sticky", left: 0, zIndex: 3, background: "#f8fafc", minWidth: 90, textAlign: "left" }}>House</th>
-                    <th style={{ ...thStyle, position: "sticky", left: 90, zIndex: 3, background: "#f8fafc", minWidth: 80, textAlign: "left" }}>Room</th>
-                    <th style={{ ...thStyle, position: "sticky", left: 170, zIndex: 3, background: "#f8fafc", width: 32, textAlign: "center" }}>#</th>
+                    <th style={{ ...thStyle, position: "sticky", left: 90, zIndex: 3, background: "#f8fafc", minWidth: 60, textAlign: "left" }}>Room</th>
+                    <th style={{ ...thStyle, position: "sticky", left: 150, zIndex: 3, background: "#f8fafc", width: 28, textAlign: "center" }}>#</th>
                     {dates.map((d) => {
                       const we = isWeekend(d);
                       return (
-                        <th key={dayKey(d)} style={{ ...thStyle, textAlign: "center", minWidth: 80, background: we ? "#fef2f2" : "#f8fafc" }}>
+                        <th key={dayKey(d)} style={{ ...thStyle, textAlign: "center", minWidth: 110, background: we ? "#fef2f2" : "#f8fafc" }}>
                           <div style={{ fontWeight: 800, fontSize: 8, color: we ? B.red : B.navy }}>{dayName(d)}</div>
                           <div style={{ fontSize: 7, color: B.textMuted }}>{d.getDate()}/{d.getMonth() + 1}</div>
                         </th>
@@ -152,8 +152,9 @@ export default function RoomingOverviewView({
                         </tr>
                       );
                     }
-                    const { house, room, slot, group } = row;
+                    const { house, room, slot, assignment, group } = row;
                     const gc = group ? GROUP_COLORS[activeGroups.indexOf(group) % GROUP_COLORS.length] : null;
+                    const occupantName = assignment?.occupantName || "";
                     const houseRoomsForBg = roomingRooms.filter((r) => r.houseId === house.id);
                     const roomIdxForBg = houseRoomsForBg.findIndex((r) => r.id === room.id);
                     const rowBg = roomIdxForBg % 2 === 0 ? B.white : "#f8fafc";
@@ -165,7 +166,7 @@ export default function RoomingOverviewView({
                         <td style={{ padding: "4px 8px", position: "sticky", left: 90, zIndex: 1, background: rowBg, fontWeight: 700, fontSize: 10, color: B.navy, whiteSpace: "nowrap" }}>
                           {room.roomName}
                         </td>
-                        <td style={{ padding: "4px 4px", position: "sticky", left: 170, zIndex: 1, background: rowBg, textAlign: "center", fontSize: 9, color: B.textMuted }}>
+                        <td style={{ padding: "4px 4px", position: "sticky", left: 150, zIndex: 1, background: rowBg, textAlign: "center", fontSize: 9, color: B.textMuted }}>
                           {slot + 1}
                         </td>
                         {dates.map((d) => {
@@ -173,19 +174,22 @@ export default function RoomingOverviewView({
                           const onSite = group ? inBed(ds, group.arr, group.dep) : false;
                           return (
                             <td key={ds} style={{
-                              padding: "4px 5px",
-                              textAlign: "center",
+                              padding: "3px 5px",
+                              textAlign: "left",
                               borderLeft: "1px solid " + B.borderLight,
-                              background: onSite ? gc + "22" : "transparent",
-                              fontWeight: onSite ? 700 : 400,
-                              color: onSite ? gc : B.borderLight,
-                              fontSize: onSite ? 9 : 8,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              maxWidth: 80,
+                              background: onSite ? gc + "18" : "transparent",
+                              maxWidth: 110,
                             }}>
-                              {onSite ? group.group.slice(0, 14) : "\u2014"}
+                              {onSite ? (
+                                <div style={{ display: "flex", alignItems: "center", gap: 4, overflow: "hidden" }}>
+                                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: gc, flexShrink: 0 }} />
+                                  <span style={{ fontWeight: 600, fontSize: 9, color: B.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                    {occupantName || group.group.slice(0, 16)}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span style={{ color: B.borderLight, fontSize: 8 }}>—</span>
+                              )}
                             </td>
                           );
                         })}
