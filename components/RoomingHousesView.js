@@ -529,39 +529,44 @@ export default function RoomingHousesView({
                                 </div>
                                 {slots.map((slotIdx) => {
                                   const a = getAssignment(room.id, slotIdx);
-                                  const groupColor = a?.groupId ? groupColorMap[a.groupId] : null;
+                                  const otype = a?.occupantType || "student";
+                                  const dotColor = otype === "uklc" ? "#1c3048" : otype === "gl" ? "#16a34a" : (a?.groupId ? groupColorMap[a.groupId] : null);
+                                  const inputBg = dotColor ? dotColor + "12" : "#f8fafc";
+                                  const inputBorder = dotColor ? dotColor + "40" : B.borderLight;
                                   return (
                                     <div key={slotIdx} style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 4 }}>
-                                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: groupColor || B.border, flexShrink: 0 }} />
+                                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: dotColor || B.border, flexShrink: 0 }} />
                                       <input
                                         value={a?.occupantName || ""}
                                         disabled={readOnly}
                                         onChange={(e) => e.target.value
-                                          ? setSlot(room.id, slotIdx, { occupantName: e.target.value, groupId: a?.groupId || "" })
+                                          ? setSlot(room.id, slotIdx, { occupantName: e.target.value, groupId: otype === "uklc" ? "" : (a?.groupId || ""), occupantType: otype })
                                           : clearSlot(room.id, slotIdx)
                                         }
                                         placeholder={"Bed " + (slotIdx + 1)}
-                                        style={{
-                                          background: groupColor ? groupColor + "12" : "#f8fafc",
-                                          border: "1px solid " + (groupColor ? groupColor + "40" : B.borderLight),
-                                          color: B.text, padding: "3px 6px", borderRadius: 4,
-                                          fontSize: 10, fontFamily: "inherit", width: "100%", minWidth: 0,
-                                        }}
+                                        style={{ background: inputBg, border: "1px solid " + inputBorder, color: B.text, padding: "3px 6px", borderRadius: 4, fontSize: 10, fontFamily: "inherit", width: "100%", minWidth: 0 }}
                                       />
-                                      {a?.occupantName && (
-                                        <select value={a?.groupId || ""}
-                                          onChange={(e) => setSlot(room.id, slotIdx, { groupId: e.target.value })}
-                                          title="Assign to group"
-                                          style={{
-                                            background: groupColor ? groupColor + "12" : "#f8fafc",
-                                            border: "1px solid " + (groupColor ? groupColor + "40" : B.borderLight),
-                                            color: groupColor || B.textMuted,
-                                            padding: "3px 2px", borderRadius: 4,
-                                            fontSize: 9, fontFamily: "inherit", cursor: "pointer", width: 36,
-                                          }}>
-                                          <option value="">—</option>
-                                          {activeGroups.map((g) => <option key={g.id} value={g.id}>{g.group.slice(0, 10)}</option>)}
-                                        </select>
+                                      {a?.occupantName && !readOnly && (
+                                        <>
+                                          <select
+                                            value={otype}
+                                            onChange={(e) => setSlot(room.id, slotIdx, { occupantType: e.target.value, groupId: e.target.value === "uklc" ? "" : (a?.groupId || "") })}
+                                            title="Occupant type"
+                                            style={{ background: inputBg, border: "1px solid " + inputBorder, color: dotColor || B.textMuted, padding: "3px 2px", borderRadius: 4, fontSize: 9, fontFamily: "inherit", cursor: "pointer", width: 42 }}>
+                                            <option value="student">Stu</option>
+                                            <option value="gl">GL</option>
+                                            <option value="uklc">UKLC</option>
+                                          </select>
+                                          {otype !== "uklc" && (
+                                            <select value={a?.groupId || ""}
+                                              onChange={(e) => setSlot(room.id, slotIdx, { groupId: e.target.value })}
+                                              title="Assign to group"
+                                              style={{ background: inputBg, border: "1px solid " + inputBorder, color: dotColor || B.textMuted, padding: "3px 2px", borderRadius: 4, fontSize: 9, fontFamily: "inherit", cursor: "pointer", width: 36 }}>
+                                              <option value="">—</option>
+                                              {activeGroups.map((g) => <option key={g.id} value={g.id}>{g.group.slice(0, 10)}</option>)}
+                                            </select>
+                                          )}
+                                        </>
                                       )}
                                     </div>
                                   );
@@ -711,7 +716,8 @@ export default function RoomingHousesView({
                             const presentSlots = slots.map((idx) => {
                               const a = getAssignment(room.id, idx);
                               const g = a?.groupId ? activeGroups.find((x) => x.id === a.groupId) : null;
-                              const present = a?.occupantName && g ? inBed(nightDate, g.arr, g.dep) : false;
+                              const isUklc = a?.occupantType === "uklc";
+                              const present = a?.occupantName ? (isUklc ? true : g ? inBed(nightDate, g.arr, g.dep) : false) : false;
                               const away = a?.occupantName && !present;
                               return { a, g, present, away, idx };
                             });
@@ -737,7 +743,8 @@ export default function RoomingHousesView({
                                 </div>
 
                                 {presentSlots.map(({ a, g, present, away, idx }) => {
-                                  const gc = g ? groupColorMap[g.id] : null;
+                                  const otype = a?.occupantType || "student";
+                                  const gc = otype === "uklc" ? "#1c3048" : otype === "gl" ? "#16a34a" : (g ? groupColorMap[g.id] : null);
                                   return (
                                     <div key={idx} style={{
                                       display: "flex", alignItems: "center", gap: 6, padding: "4px 6px",

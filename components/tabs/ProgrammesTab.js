@@ -236,6 +236,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     if (t.includes("activity")) return { color: "#8b5cf6", bg: "#8b5cf620" };
     if (t.includes("free time") || t.includes("optional")) return { color: B.textMuted, bg: "#f1f5f9" };
     if (t.includes("orientation") || t.includes("welcome")) return { color: "#16a34a", bg: "#16a34a20" };
+    if (t.includes("exc")) return { color: "#ea580c", bg: "#ea580c15" };
     if (t.includes("ee") || t.includes("evening") || t.includes("disco") || t.includes("quiz") || t.includes("movie") || t.includes("trashion") || t.includes("speed dating") || t.includes("paparazzi") && t.length < 20) return { color: "#7c3aed", bg: "#7c3aed15" };
     if (t.includes("sports") || t.includes("games")) return { color: "#0d9488", bg: "#0d948815" };
     return { color: "#8b5cf6", bg: "#8b5cf615" };

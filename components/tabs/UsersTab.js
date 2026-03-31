@@ -8,12 +8,17 @@ const ROLES = [
   { value: "head_office",                label: "Head Office" },
   { value: "centre_manager",             label: "Centre Manager" },
   { value: "course_director",            label: "Course Director" },
+  { value: "director_of_studies",        label: "Director of Studies" },
   { value: "excursion_activity_manager", label: "Excursions & Activity Manager" },
   { value: "safeguarding_welfare",       label: "Safeguarding & Welfare" },
+  { value: "welfare_officer",            label: "Welfare Officer" },
+  { value: "nurse",                      label: "Nurse / First Aider" },
   { value: "teacher",                    label: "Teacher" },
   { value: "activity_leader",            label: "Activity Leader" },
   { value: "sports_activity_instructor", label: "Sports & Activity Instructor" },
   { value: "house_parent",               label: "House Parent" },
+  { value: "group_leader",               label: "Group Leader" },
+  { value: "ministay_coordinator",       label: "Ministay Coordinator" },
 ];
 
 const READ_ONLY_ROLES = ["teacher", "activity_leader", "sports_activity_instructor", "house_parent"];

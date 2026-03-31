@@ -22,9 +22,15 @@ import ChatButton from "@/components/ChatButton";
 
 export default function Dashboard() {
   const auth = useAuth();
-  const [tab, setTab] = useState("home");
-  const [centreId, setCentreId] = useState("");
-  const [centreName, setCentreName] = useState("");
+  const [tab, setTab] = useState(() => {
+    try { return window.localStorage.getItem("uklc_tab") || "home"; } catch { return "home"; }
+  });
+  const [centreId, setCentreId] = useState(() => {
+    try { return window.localStorage.getItem("uklc_centre_id") || ""; } catch { return ""; }
+  });
+  const [centreName, setCentreName] = useState(() => {
+    try { return window.localStorage.getItem("uklc_centre_name") || ""; } catch { return ""; }
+  });
   const [manualStart, setManualStart] = useState("2026-07-04");
   const [manualEnd, setManualEnd] = useState("2026-08-05");
   const [saving, setSaving] = useState(false);
@@ -34,8 +40,11 @@ export default function Dashboard() {
 
   const handleCentreChange = (name) => {
     setCentreName(name);
+    try { window.localStorage.setItem("uklc_centre_name", name); } catch {}
     const c = db.centres.find((x) => x.name === name);
-    setCentreId(c ? c.id : "");
+    const id = c ? c.id : "";
+    setCentreId(id);
+    try { window.localStorage.setItem("uklc_centre_id", id); } catch {}
   };
 
   useEffect(() => {
@@ -47,18 +56,24 @@ export default function Dashboard() {
   useEffect(() => {
     if (auth.isAuthenticated && !auth.isHeadOffice && auth.userCentreId && db.centres.length > 0) {
       const c = db.centres.find((x) => x.id === auth.userCentreId);
-      if (c && centreId !== c.id) { setCentreId(c.id); setCentreName(c.name); }
+      if (c && centreId !== c.id) {
+        setCentreId(c.id); setCentreName(c.name);
+        try { window.localStorage.setItem("uklc_centre_id", c.id); window.localStorage.setItem("uklc_centre_name", c.name); } catch {}
+      }
     }
   }, [auth.isAuthenticated, auth.isHeadOffice, auth.userCentreId, db.centres]);
 
   const ROLE_LABELS = {
     head_office: "Head Office", centre_manager: "Centre Manager",
-    course_director: "Course Director", excursion_activity_manager: "Excursions & Activities",
-    safeguarding_welfare: "Safeguarding & Welfare", teacher: "Teacher",
+    course_director: "Course Director", director_of_studies: "Director of Studies",
+    excursion_activity_manager: "Excursions & Activities",
+    safeguarding_welfare: "Safeguarding & Welfare", welfare_officer: "Welfare Officer",
+    nurse: "Nurse / First Aider", teacher: "Teacher",
     activity_leader: "Activity Leader", sports_activity_instructor: "Sports & Activity Instructor",
-    house_parent: "House Parent",
+    house_parent: "House Parent", group_leader: "Group Leader",
+    ministay_coordinator: "Ministay Coordinator",
   };
-  const READ_ONLY_ROLES = ["teacher", "activity_leader", "sports_activity_instructor", "house_parent"];
+  const READ_ONLY_ROLES = ["teacher", "activity_leader", "sports_activity_instructor", "house_parent", "group_leader", "nurse", "welfare_officer"];
   const isReadOnly = READ_ONLY_ROLES.includes(auth.userRole);
 
   const isMinistay = centreName.toLowerCase().includes("ministay");
@@ -444,7 +459,7 @@ export default function Dashboard() {
           </div>
 
           {/* Logout */}
-          <button onClick={auth.logout} title="Sign out" style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.8)", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
+          <button onClick={() => { auth.logout(); try { window.localStorage.removeItem("uklc_tab"); window.localStorage.removeItem("uklc_centre_id"); window.localStorage.removeItem("uklc_centre_name"); } catch {} }} title="Sign out" style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.8)", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
             <IcLogout /> Sign out
           </button>
         </div>
@@ -462,7 +477,7 @@ export default function Dashboard() {
         {visibleTabs.map((t) => {
           const active = tab === t.id;
           return (
-            <button key={t.id} onClick={() => setTab(t.id)} className="nav-tab" style={{
+            <button key={t.id} onClick={() => { setTab(t.id); try { window.localStorage.setItem("uklc_tab", t.id); } catch {} }} className="nav-tab" style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "0 14px", height: 48, border: "none", cursor: "pointer",
               fontFamily: "'Raleway', sans-serif", fontSize: 11, fontWeight: 700,
