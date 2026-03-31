@@ -65,15 +65,12 @@ export default function Dashboard() {
 
   const ROLE_LABELS = {
     head_office: "Head Office", centre_manager: "Centre Manager",
-    course_director: "Course Director", director_of_studies: "Director of Studies",
-    excursion_activity_manager: "Excursions & Activities",
-    safeguarding_welfare: "Safeguarding & Welfare", welfare_officer: "Welfare Officer",
-    nurse: "Nurse / First Aider", teacher: "Teacher",
-    activity_leader: "Activity Leader", sports_activity_instructor: "Sports & Activity Instructor",
-    house_parent: "House Parent", group_leader: "Group Leader",
-    ministay_coordinator: "Ministay Coordinator",
+    course_director: "Course Director", excursion_activity_manager: "Excursions & Activities",
+    safeguarding_welfare: "Safeguarding & Welfare Coordinator",
+    sports_coordinator: "Sports Coordinator", teacher: "Teacher",
+    activity_leader: "Activity Leader", house_parent: "House Parent",
   };
-  const READ_ONLY_ROLES = ["teacher", "activity_leader", "sports_activity_instructor", "house_parent", "group_leader", "nurse", "welfare_officer"];
+  const READ_ONLY_ROLES = ["teacher", "activity_leader", "sports_coordinator", "house_parent"];
   const isReadOnly = READ_ONLY_ROLES.includes(auth.userRole);
 
   const isMinistay = centreName.toLowerCase().includes("ministay");
