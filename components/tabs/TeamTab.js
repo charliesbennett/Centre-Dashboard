@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import { B, ROLES, uid, fmtDate } from "@/lib/constants";
+import { ROLES, uid, fmtDate } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { Fld, StatCard, TableWrap, IconBtn, IcPlus, IcTrash, IcEdit, inputStyle, thStyle, tdStyle, btnPrimary } from "@/components/ui";
 
 const EMPTY = { name: "", role: "TAL", acc: "Residential", arr: "", dep: "", to: "", email: "", phone: "", dbs: "", dbsExpiry: "", contract: "", notes: "" };
@@ -8,6 +9,7 @@ const CONTRACT_TYPES = ["", "Full-time", "Part-time", "Sessional", "Volunteer"];
 const fi = inputStyle;
 
 function StaffForm({ value, onChange, onSave, onCancel, saveLabel = "Save" }) {
+  const B = useB();
   return (
     <div style={{ background: B.ice, border: `1px solid ${B.border}`, borderRadius: 8, padding: "12px 16px", margin: "4px 0", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
       <Fld label="Name *"><input value={value.name} onChange={(e) => onChange("name", e.target.value)} style={{ ...fi, minWidth: 120 }} /></Fld>
@@ -31,6 +33,7 @@ function StaffForm({ value, onChange, onSave, onCancel, saveLabel = "Save" }) {
 }
 
 export default function TeamTab({ staff, setStaff, readOnly = false }) {
+  const B = useB();
   const [showAdd, setShowAdd] = useState(false);
   const [n, setN] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
@@ -55,13 +58,13 @@ export default function TeamTab({ staff, setStaff, readOnly = false }) {
         <StatCard label="Res" value={staff.filter((s) => s.acc === "Residential").length} accent={B.link} />
         <StatCard label="Non-res" value={staff.filter((s) => s.acc !== "Residential").length} accent={B.textMuted} />
       </div>
-      <div style={{ background: B.white, borderBottom: `1px solid ${B.border}`, padding: "8px 20px", display: "flex", justifyContent: "space-between" }}>
+      <div style={{ background: B.card, borderBottom: `1px solid ${B.border}`, padding: "8px 20px", display: "flex", justifyContent: "space-between" }}>
         <span style={{ fontSize: 10, color: B.success, fontWeight: 600 }}>✓ Staff flow to Rota + Catering</span>
         {!readOnly && <button onClick={() => { setShowAdd(!showAdd); setEditId(null); }} style={btnPrimary}><IcPlus /> Add Staff</button>}
       </div>
 
       {showAdd && (
-        <div style={{ padding: "8px 20px", background: B.white, borderBottom: `1px solid ${B.border}` }}>
+        <div style={{ padding: "8px 20px", background: B.card, borderBottom: `1px solid ${B.border}` }}>
           <StaffForm
             value={n}
             onChange={(k, v) => setN((p) => ({ ...p, [k]: v }))}

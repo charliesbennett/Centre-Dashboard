@@ -1,6 +1,7 @@
 "use client";
 import { useState, useCallback, useRef, useEffect } from "react";
-import { B, uid, dayKey, dayName, isWeekend, fmtDate } from "@/lib/constants";
+import { uid, dayKey, dayName, isWeekend, fmtDate } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { Fld, TableWrap, IconBtn, IcPlus, IcTrash, IcEdit, IcCheck, inputStyle, thStyle, tdStyle, btnPrimary, btnNavy } from "@/components/ui";
 import { supabase } from "@/lib/supabaseClient";
 import RoomingImportModal from "@/components/RoomingImportModal";
@@ -40,6 +41,7 @@ export default function RoomingHousesView({
   onPrintNightly,
   onPrintRoomingList,
 }) {
+  const B = useB();
   const [houseView, setHouseView] = useState("setup");
   const [showImport, setShowImport] = useState(false);
   const [showAddHouse, setShowAddHouse] = useState(false);
@@ -201,7 +203,7 @@ export default function RoomingHousesView({
       {tokenModal && modalGroup && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
           onClick={() => setTokenModal(null)}>
-          <div style={{ background: B.white, borderRadius: 16, width: "100%", maxWidth: 440, boxShadow: "0 20px 60px rgba(0,0,0,0.25)", overflow: "hidden" }}
+          <div style={{ background: B.card, borderRadius: 16, width: "100%", maxWidth: 440, boxShadow: "0 20px 60px rgba(0,0,0,0.25)", overflow: "hidden" }}
             onClick={(e) => e.stopPropagation()}>
             <div style={{ background: B.navy, padding: "14px 18px", display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ flex: 1 }}>
@@ -275,7 +277,7 @@ export default function RoomingHousesView({
       {/* ── SETUP ─────────────────────────────────────── */}
       {houseView === "setup" && (
         <div>
-          <div style={{ background: B.white, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", borderRadius: "10px 10px 0 0", border: "1px solid " + B.border, borderBottom: "1px solid " + B.border }}>
+          <div style={{ background: B.card, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", borderRadius: "10px 10px 0 0", border: "1px solid " + B.border, borderBottom: "1px solid " + B.border }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: B.textMuted }}>
               {roomingHouses.length} house{roomingHouses.length !== 1 ? "s" : ""} · {roomingRooms.length} rooms · {totalBeds} beds total
             </span>
@@ -303,7 +305,7 @@ export default function RoomingHousesView({
           )}
 
           {roomingHouses.length === 0 ? (
-            <div style={{ background: B.white, border: "1px solid " + B.border, borderTop: "none", padding: 40, textAlign: "center", color: B.textLight, borderRadius: "0 0 10px 10px" }}>
+            <div style={{ background: B.card, border: "1px solid " + B.border, borderTop: "none", padding: 40, textAlign: "center", color: B.textLight, borderRadius: "0 0 10px 10px" }}>
               No houses defined — click <strong>Add House</strong> to start
             </div>
           ) : roomingHouses.map((house) => {
@@ -314,7 +316,7 @@ export default function RoomingHousesView({
             const floors = groupByFloor(houseRooms);
 
             return (
-              <div key={house.id} style={{ background: B.white, border: "1px solid " + B.border, borderTop: "none" }}>
+              <div key={house.id} style={{ background: B.card, border: "1px solid " + B.border, borderTop: "none" }}>
                 <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", cursor: "pointer", borderBottom: isExpanded ? "1px solid " + B.border : "none" }}
                   onClick={() => setExpandedHouse(isExpanded ? null : house.id)}>
                   <span style={{ fontSize: 11, color: B.textMuted }}>{isExpanded ? "\u25bc" : "\u25b6"}</span>
@@ -442,7 +444,7 @@ export default function RoomingHousesView({
       {houseView === "assign" && (
         <div>
           {roomingHouses.length === 0 ? (
-            <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, padding: 40, textAlign: "center", color: B.textLight }}>
+            <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, padding: 40, textAlign: "center", color: B.textLight }}>
               Set up houses and rooms first in the <strong>Setup</strong> view
             </div>
           ) : (
@@ -491,7 +493,7 @@ export default function RoomingHousesView({
                 const houseBeds = houseRooms.reduce((s, r) => s + (r.capacity || 0), 0);
 
                 return (
-                  <div key={house.id} style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
+                  <div key={house.id} style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
                     <div style={{ padding: "8px 16px", display: "flex", gap: 8, alignItems: "center", background: B.navy }}>
                       <span style={{ fontWeight: 800, fontSize: 12, color: B.white }}>{house.name}</span>
                       <span style={{ fontSize: 9, color: "rgba(255,255,255,0.6)", background: "rgba(255,255,255,0.1)", padding: "2px 8px", borderRadius: 4 }}>
@@ -519,7 +521,7 @@ export default function RoomingHousesView({
                               <div key={room.id} style={{
                                 border: "1px solid " + (roomFilled >= room.capacity ? "#86efac" : B.border),
                                 borderRadius: 8, padding: "8px 10px", minWidth: 170, flex: "0 0 auto",
-                                background: roomFilled >= room.capacity ? "#f0fdf4" : B.white,
+                                background: roomFilled >= room.capacity ? "#f0fdf4" : B.card,
                               }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                                   <div style={{ fontWeight: 700, fontSize: 11, color: B.navy }}>{room.roomName}</div>
@@ -633,7 +635,7 @@ export default function RoomingHousesView({
       {houseView === "nightly" && (
         <div>
           {roomingHouses.length === 0 ? (
-            <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, padding: 40, textAlign: "center", color: B.textLight }}>
+            <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, padding: 40, textAlign: "center", color: B.textLight }}>
               Set up houses and rooms first in the <strong>Setup</strong> view
             </div>
           ) : (
@@ -690,7 +692,7 @@ export default function RoomingHousesView({
                 const houseBeds = houseRooms.reduce((s, r) => s + (r.capacity || 0), 0);
 
                 return (
-                  <div key={house.id} style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
+                  <div key={house.id} style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
                     <div style={{ padding: "8px 16px", display: "flex", gap: 10, alignItems: "center", background: B.navy }}>
                       <span style={{ fontWeight: 800, fontSize: 12, color: B.white }}>{house.name}</span>
                       <span style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.1)", padding: "2px 8px", borderRadius: 4 }}>
@@ -728,7 +730,7 @@ export default function RoomingHousesView({
                               <div key={room.id} style={{
                                 border: "2px solid " + (presentCount >= room.capacity ? "#86efac" : isEmpty ? B.borderLight : B.border),
                                 borderRadius: 8, padding: "8px 10px", minWidth: 150, flex: "0 0 auto",
-                                background: presentCount >= room.capacity ? "#f0fdf4" : isEmpty ? "#fafafa" : B.white,
+                                background: presentCount >= room.capacity ? "#f0fdf4" : isEmpty ? "#fafafa" : B.card,
                                 opacity: isEmpty && roomingAssignments.filter((a) => a.roomId === room.id && a.occupantName).length === 0 ? 0.5 : 1,
                               }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>

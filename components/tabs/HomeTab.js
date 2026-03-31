@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
-import { B, dayKey, dayName, fmtDate, ACTIVITY_TYPES, SESSION_TYPES, ROLES, calcLessonSplit, uid } from "@/lib/constants";
+import { dayKey, dayName, fmtDate, ACTIVITY_TYPES, SESSION_TYPES, ROLES, calcLessonSplit, uid } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { StatCard, IcPlaneUp, IcPlaneDn, IcCake, IcBus, IcMountain, IcSparkles, IconBtn, IcTrash, btnPrimary, inputStyle } from "@/components/ui";
 
 // ── Helpers ────────────────────────────────────────────────
@@ -55,6 +56,7 @@ const QUOTES = [
 ];
 
 function ActivityBadge({ value }) {
+  const B = useB();
   if (!value) return <span style={{ color: B.textLight, fontSize: 9 }}>—</span>;
   const color = ACTIVITY_TYPES[value] || SESSION_TYPES[value] || B.textMuted;
   return (
@@ -209,6 +211,7 @@ export function openBriefingSheet(data) {
 
 // ──────────────────────────────────────────────────────────
 export default function HomeTab({ groups = [], staff = [], excDays = {}, progGrid = {}, rotaGrid = {}, progStart, progEnd, excursions = [], userRole = "", centreName = "", settings = {}, saveSetting }) {
+  const B = useB();
   const today = useMemo(() => dayKey(new Date()), []);
   const todayDate = useMemo(() => new Date(today), [today]);
   const activeGroups = useMemo(() => groups.filter((g) => !g.archived), [groups]);
@@ -486,7 +489,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
             { key: "arr", label: "Arriving Today", groups: arrivingToday, open: arrOpen, setOpen: setArrOpen, accent: B.success, empty: "No arrivals today" },
             { key: "dep", label: "Departing Today", groups: departingToday, open: depOpen, setOpen: setDepOpen, accent: B.warning, empty: "No departures today" },
           ].map(({ key, label, groups: gs, open, setOpen, accent, empty }) => (
-            <div key={key} style={{ background: B.white, border: `1px solid ${B.border}`, borderRadius: 10, overflow: "hidden" }}>
+            <div key={key} style={{ background: B.card, border: `1px solid ${B.border}`, borderRadius: 10, overflow: "hidden" }}>
               <div
                 onClick={() => setOpen(!open)}
                 style={{ background: B.navy, padding: "8px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", borderRadius: open ? "10px 10px 0 0" : 10 }}
@@ -522,7 +525,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
       <div style={{ padding: "8px 12px 0", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 10 }}>
 
         {/* ── TODAY'S PROGRAMME ────────────────────────── */}
-        <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
           <div style={{ padding: "8px 14px", background: B.navy, backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 10px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 800, fontSize: 11, color: B.white }}>Today&rsquo;s Programme</span>
             <span style={{ fontSize: 9, color: "rgba(255,255,255,0.5)" }}>
@@ -585,7 +588,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
           {/* Arrivals & Departures */}
-          <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden", flex: "0 0 auto" }}>
+          <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden", flex: "0 0 auto" }}>
             <div style={{ padding: "8px 14px", background: "#0f766e", backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 10px)", display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ fontWeight: 800, fontSize: 11, color: B.white }}>Arrivals &amp; Departures</span>
             </div>
@@ -620,7 +623,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
           </div>
 
           {/* Staff on duty */}
-          <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden", flex: 1 }}>
+          <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden", flex: 1 }}>
             <div style={{ padding: "8px 14px", background: "#1e40af", backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 10px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontWeight: 800, fontSize: 11, color: B.white }}>Staff on Duty</span>
               <span style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700 }}>{onSiteStaff.length}</span>
@@ -645,7 +648,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
         </div>
 
         {/* ── BIRTHDAYS ─────────────────────────────────── */}
-        <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
           <div style={{ padding: "8px 14px", background: "#be185d", backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 10px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 800, fontSize: 11, color: B.white, display: "flex", alignItems: "center", gap: 6 }}><IcCake /> Upcoming Birthdays</span>
             <span style={{ fontSize: 9, color: "rgba(255,255,255,0.6)" }}>Next 14 days</span>
@@ -695,7 +698,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
       {/* ── Groups on-site mini-grid ─────────────────────── */}
       {onSiteGroups.length > 0 && (
         <div style={{ padding: "10px 12px 0" }}>
-          <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
             <div style={{ padding: "6px 14px", background: "#f8fafc", borderBottom: "1px solid " + B.border, fontSize: 9, fontWeight: 700, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.5 }}>
               Groups On-Site Tonight &mdash; {onSiteGroups.length} group{onSiteGroups.length !== 1 ? "s" : ""} &middot; {onSiteStudents} students &middot; {onSiteGLs} GLs
             </div>
@@ -722,7 +725,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
       {/* ── 7-day outlook ─────────────────────────────── */}
       {next7Days.length > 0 && (
         <div style={{ padding: "10px 12px 16px" }}>
-          <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
             <div style={{ padding: "6px 14px", background: "#f8fafc", borderBottom: "1px solid " + B.border, fontSize: 9, fontWeight: 700, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.5 }}>
               Coming Up — Next 7 Days
             </div>
@@ -770,7 +773,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
 
       {/* ── Notice Board ──────────────────────────────────── */}
       <div style={{ padding: "10px 12px 24px" }}>
-        <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
           <div style={{ padding: "8px 14px", background: B.navy, backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 10px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 800, fontSize: 11, color: B.white }}>📋 Notice Board</span>
             <span style={{ fontSize: 9, color: "rgba(255,255,255,0.5)" }}>{notices.length} notice{notices.length !== 1 ? "s" : ""}</span>
@@ -822,7 +825,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
               <div style={{ textAlign: "center", color: B.textLight, fontSize: 10 }}>No notices posted yet</div>
             ) : notices.map((n) => (
               <div key={n.id} style={{
-                background: B.white,
+                background: B.card,
                 border: "1px solid " + B.border,
                 borderLeft: "4px solid " + (n.urgency === "Urgent" ? B.red : B.border),
                 borderRadius: 8,

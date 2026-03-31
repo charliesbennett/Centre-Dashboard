@@ -1,21 +1,22 @@
 "use client";
 import { useState, useMemo } from "react";
-import { B, uid, fmtDate, dayName, dayKey } from "@/lib/constants";
+import { uid, fmtDate, dayName, dayKey } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { StatCard, StatusBadge, Fld, TableWrap, IconBtn, IcWand, IcPlus, IcTrash, IcEdit, IcCheck, inputStyle, thStyle, tdStyle, btnPrimary } from "@/components/ui";
-
-const STATUS_MAP = {
-  Pending: { color: B.warning, bg: B.warningBg },
-  Booked: { color: B.success, bg: B.successBg },
-  Confirmed: { color: B.link, bg: B.cyanBg },
-  "Own Transfer": { color: B.textMuted, bg: "#f1f5f9" },
-  Cancelled: { color: B.danger, bg: B.dangerBg },
-};
 
 const AIRPORTS = ["Heathrow", "Gatwick", "Stansted", "Luton", "Manchester", "Birmingham", "Bristol", "Edinburgh", "Glasgow", "Other"];
 const TERMINALS = ["T1", "T2", "T3", "T4", "T5", "North", "South", "N/A"];
 const UKLC_OPTIONS = ["Yes", "No", "Arr Only", "Dep Only", "TBC"];
 
 export default function TransfersTab({ groups = [], transfers = [], setTransfers, readOnly = false }) {
+  const B = useB();
+  const STATUS_MAP = {
+    Pending: { color: B.warning, bg: B.warningBg },
+    Booked: { color: B.success, bg: B.successBg },
+    Confirmed: { color: B.link, bg: B.cyanBg },
+    "Own Transfer": { color: B.textMuted, bg: "#f1f5f9" },
+    Cancelled: { color: B.danger, bg: B.dangerBg },
+  };
   const [view, setView] = useState("overview"); // overview | arrivals | departures | timeline
   const [editId, setEditId] = useState(null);
   const fi = inputStyle;
@@ -188,7 +189,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
       </div>
 
       {/* Sync bar */}
-      <div style={{ background: B.white, borderBottom: "1px solid " + B.border, padding: "8px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ background: B.card, borderBottom: "1px solid " + B.border, padding: "8px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 10, color: B.textMuted }}>{transfers.length} transfers {"\u00b7"} {totalPax} total pax</span>
         <div style={{ display: "flex", gap: 6 }}>
           {!readOnly && transfers.length > 0 && (
@@ -337,7 +338,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
             const totalArr = data.arrivals.reduce((s, t) => s + (t.pax || 0), 0);
             const totalDep = data.departures.reduce((s, t) => s + (t.pax || 0), 0);
             return (
-              <div key={date} style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
+              <div key={date} style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
                 {/* Day header */}
                 <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, background: "#f8fafc", borderBottom: "1px solid " + B.borderLight }}>
                   <div style={{ minWidth: 90 }}>

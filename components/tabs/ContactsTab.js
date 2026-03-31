@@ -1,12 +1,14 @@
 "use client";
 import { useState, useRef } from "react";
-import { B, uid } from "@/lib/constants";
+import { uid } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { Fld, IcPlus, IcX, inputStyle, btnPrimary } from "@/components/ui";
 
 const CATEGORIES = ["Centre / Venue", "Coaches & Transport", "Excursions", "DJ / Entertainment", "Medical / Emergency", "UKLC Head Office", "Other"];
 const CAT_ICONS = { "Centre / Venue": "🏫", "Coaches & Transport": "🚌", Excursions: "🎯", "DJ / Entertainment": "🎵", "Medical / Emergency": "🏥", "UKLC Head Office": "🏢", Other: "📋" };
 
 export default function ContactsTab({ contacts = [], setContacts, readOnly = false }) {
+  const B = useB();
   const [showAdd, setShowAdd] = useState(false);
   const [n, setN] = useState({ name: "", email: "", phone: "", role: "", cat: "Centre / Venue", notes: "" });
   const nameRef = useRef(null);
@@ -21,13 +23,13 @@ export default function ContactsTab({ contacts = [], setContacts, readOnly = fal
 
   return (
     <div>
-      <div style={{ background: B.white, borderBottom: `1px solid ${B.border}`, padding: "8px 20px", display: "flex", justifyContent: "space-between" }}>
+      <div style={{ background: B.card, borderBottom: `1px solid ${B.border}`, padding: "8px 20px", display: "flex", justifyContent: "space-between" }}>
         <span style={{ fontSize: 11, color: B.textMuted }}>{contacts.length} contacts</span>
         {!readOnly && <button onClick={() => setShowAdd(!showAdd)} style={btnPrimary}><IcPlus /> Add Contact</button>}
       </div>
 
       {showAdd && (
-        <div style={{ background: B.white, borderBottom: `1px solid ${B.border}`, padding: "10px 20px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
+        <div style={{ background: B.card, borderBottom: `1px solid ${B.border}`, padding: "10px 20px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
           <Fld label="Name"><input ref={nameRef} value={n.name} onChange={(e) => setN((p) => ({ ...p, name: e.target.value }))} style={fi} /></Fld>
           <Fld label="Email"><input value={n.email} onChange={(e) => setN((p) => ({ ...p, email: e.target.value }))} style={{ ...fi, minWidth: 180 }} /></Fld>
           <Fld label="Phone"><input value={n.phone} onChange={(e) => setN((p) => ({ ...p, phone: e.target.value }))} style={{ ...fi, width: 110 }} /></Fld>
@@ -59,7 +61,7 @@ export default function ContactsTab({ contacts = [], setContacts, readOnly = fal
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 10 }}>
                 {contacts.filter((x) => x.cat === cat).map((x) => (
-                  <div key={x.id} style={{ background: B.white, border: `1px solid ${B.border}`, borderRadius: 10, padding: "14px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", position: "relative" }}>
+                  <div key={x.id} style={{ background: B.card, border: `1px solid ${B.border}`, borderRadius: 10, padding: "14px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", position: "relative" }}>
                     {!readOnly && <button
                       onClick={() => setContacts((p) => p.filter((z) => z.id !== x.id))}
                       title="Delete contact"

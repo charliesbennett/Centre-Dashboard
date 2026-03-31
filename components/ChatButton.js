@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { B } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { IcChat, btnYellow } from "@/components/ui";
 import { buildChatContext } from "@/lib/buildChatContext";
 
@@ -14,6 +14,7 @@ const SUGGESTIONS = [
 ];
 
 export default function ChatButton({ centreId, centreName, centreData }) {
+  const B = useB();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]); // { role: "user"|"assistant", content: string }
   const [input, setInput] = useState("");
@@ -132,7 +133,7 @@ export default function ChatButton({ centreId, centreName, centreData }) {
             right: 24,
             width: "min(420px, calc(100vw - 24px))",
             maxHeight: "calc(100vh - 120px)",
-            background: B.white,
+            background: B.card,
             border: `1px solid ${B.border}`,
             borderRadius: 14,
             boxShadow: "0 8px 40px rgba(28,48,72,0.18)",

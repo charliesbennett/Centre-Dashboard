@@ -1,4 +1,5 @@
 import "./globals.css";
+import { ThemeProvider } from "@/lib/theme";
 
 export const metadata = {
   title: "UKLC Centre Dashboard",
@@ -9,7 +10,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="font-jakarta bg-gray-50 text-uklc-navy min-h-screen">
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

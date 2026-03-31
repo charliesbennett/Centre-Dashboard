@@ -1,11 +1,13 @@
 "use client";
 import { useState, useRef } from "react";
-import { B, uid, fmtMoney, fmtDate, dayKey } from "@/lib/constants";
+import { uid, fmtMoney, fmtDate, dayKey } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { Fld, StatCard, TableWrap, IconBtn, IcPlus, IcTrash, inputStyle, thStyle, tdStyle, btnPrimary, btnNavy } from "@/components/ui";
 
 const TODAY = dayKey(new Date());
 
 export default function PettyCashTab({ pettyCash = {}, setPettyCash, readOnly = false }) {
+  const B = useB();
   const income = pettyCash.income || [];
   const expenses = pettyCash.expenses || [];
   const opening = pettyCash.opening || 0;
@@ -39,14 +41,14 @@ export default function PettyCashTab({ pettyCash = {}, setPettyCash, readOnly = 
         <StatCard label="Balance" value={fmtMoney(balance)} accent={balance >= 0 ? B.success : B.danger} />
       </div>
 
-      <div style={{ background: B.white, borderBottom: `1px solid ${B.border}`, padding: "10px 20px", display: "flex", gap: 10, alignItems: "center" }}>
+      <div style={{ background: B.card, borderBottom: `1px solid ${B.border}`, padding: "10px 20px", display: "flex", gap: 10, alignItems: "center" }}>
         <Fld label="Opening (£)"><input type="number" step="0.01" value={opening} onChange={(e) => setOpening(+e.target.value || 0)} style={{ ...fi, width: 80 }} disabled={readOnly} /></Fld>
         <Fld label="To ROM (£)"><input type="number" step="0.01" value={toRom} onChange={(e) => setToRom(+e.target.value || 0)} style={{ ...fi, width: 80 }} disabled={readOnly} /></Fld>
       </div>
 
       <div style={{ padding: "12px 20px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
         {/* Income */}
-        <div style={{ background: B.white, borderRadius: 10, border: `1px solid ${B.border}`, overflow: "hidden" }}>
+        <div style={{ background: B.card, borderRadius: 10, border: `1px solid ${B.border}`, overflow: "hidden" }}>
           <div style={{ padding: "8px 12px", background: B.successBg, borderBottom: `1px solid ${B.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 800, fontSize: 11, color: B.success }}>Cash In</span>
             {!readOnly && <button onClick={() => setShowAddInc(!showAddInc)} style={{ ...btnNavy, background: B.success, fontSize: 9, padding: "3px 8px", boxShadow: "none" }}>
@@ -112,7 +114,7 @@ export default function PettyCashTab({ pettyCash = {}, setPettyCash, readOnly = 
         </div>
 
         {/* Expenses */}
-        <div style={{ background: B.white, borderRadius: 10, border: `1px solid ${B.border}`, overflow: "hidden" }}>
+        <div style={{ background: B.card, borderRadius: 10, border: `1px solid ${B.border}`, overflow: "hidden" }}>
           <div style={{ padding: "8px 12px", background: B.dangerBg, borderBottom: `1px solid ${B.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 800, fontSize: 11, color: B.danger }}>Cash Out</span>
             {!readOnly && <button onClick={() => setShowAddExp(!showAddExp)} style={{ ...btnNavy, background: B.danger, fontSize: 9, padding: "3px 8px", boxShadow: "none" }}>

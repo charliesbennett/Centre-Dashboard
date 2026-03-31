@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
-import { B, SESSION_TYPES, genDates, dayKey, dayName, isWeekend, inRange, fmtDate } from "@/lib/constants";
+import { SESSION_TYPES, genDates, dayKey, dayName, isWeekend, inRange, fmtDate } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { EVE_ENT_NAMES } from "@/lib/rotaRules";
 import { ROLE_RULES, NO_COUNT } from "@/lib/rotaRules";
 import { getFortnights, getTodayFortnight } from "@/lib/fortnights";
@@ -37,6 +38,7 @@ function isSession(value) {
 }
 
 export default function RotaTab({ staff, progStart, progEnd, excDays, groups, rotaGrid, setRotaGrid, progGrid = {}, centreName = "", readOnly = false }) {
+  const B = useB();
   const [showRatios, setShowRatios] = useState(true);
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState("");
@@ -612,7 +614,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     <div style={{ height: `calc(100vh - ${CHROME}px)`, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
       {/* ── Top controls bar ─────────────────────────────── */}
-      <div style={{ flexShrink: 0, padding: "8px 16px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", borderBottom: `1px solid ${B.border}`, background: B.white }}>
+      <div style={{ flexShrink: 0, padding: "8px 16px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", borderBottom: `1px solid ${B.border}`, background: B.card }}>
         <StatCard label="Staff" value={staff.length} accent={B.navy} />
         <StatCard label="Days" value={dates.length} accent={B.textMuted} />
         <StatCard label="TALs" value={staff.filter((s) => s.role === "TAL").length} accent="#3b82f6" />
@@ -744,7 +746,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
 
       {/* ── Fortnight selector ───────────────────────────── */}
       {fortnights.length > 1 && (
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", padding: "6px 16px", borderBottom: `1px solid ${B.border}`, background: B.white, flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", padding: "6px 16px", borderBottom: `1px solid ${B.border}`, background: B.card, flexShrink: 0 }}>
           {fortnights.map((fn, i) => (
             <button
               key={fn.label}
@@ -765,7 +767,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
 
       {/* ── Scrollable table ─────────────────────────────── */}
       <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
-        <table style={{ borderCollapse: "collapse", fontSize: 10, minWidth: tableMinWidth, background: B.white }}>
+        <table style={{ borderCollapse: "collapse", fontSize: 10, minWidth: tableMinWidth, background: B.card }}>
           <thead>
             <tr>
               <th style={{ ...thStyle, width: 52, position: "sticky", left: 0, zIndex: 3 }}>Role</th>
@@ -830,14 +832,14 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
 
               return (
                 <tr key={s.id} style={{ borderBottom: "1px solid "+B.borderLight }}>
-                  <td style={{ ...tdStyle, position: "sticky", left: 0, background: B.white, zIndex: 1 }}>
+                  <td style={{ ...tdStyle, position: "sticky", left: 0, background: B.card, zIndex: 1 }}>
                     <span style={{ background: "#dbeafe", color: "#1e40af", padding: "3px 7px", borderRadius: 4, fontSize: 10, fontWeight: 800 }}>{s.role}</span>
                   </td>
-                  <td style={{ ...tdStyle, fontWeight: 700, color: B.navy, fontSize: 12, position: "sticky", left: 52, background: B.white, zIndex: 1, whiteSpace: "nowrap" }}>{s.name}</td>
-                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, fontSize: 12, position: "sticky", left: 192, background: B.white, zIndex: 1, color: over ? B.danger : B.navy }}>
+                  <td style={{ ...tdStyle, fontWeight: 700, color: B.navy, fontSize: 12, position: "sticky", left: 52, background: B.card, zIndex: 1, whiteSpace: "nowrap" }}>{s.name}</td>
+                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, fontSize: 12, position: "sticky", left: 192, background: B.card, zIndex: 1, color: over ? B.danger : B.navy }}>
                     {st.sess}{limit !== Infinity && limit > 0 ? `/${limit}` : ""}
                   </td>
-                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700, fontSize: 12, position: "sticky", left: 236, background: B.white, zIndex: 1, color: st.offs > 0 ? "#f59e0b" : B.textLight }}>{st.offs}</td>
+                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700, fontSize: 12, position: "sticky", left: 236, background: B.card, zIndex: 1, color: st.offs > 0 ? "#f59e0b" : B.textLight }}>{st.offs}</td>
                   {dates.map((d) => {
                     const ds = dayKey(d); const on = inRange(ds, s.arr, s.dep);
                     return SLOTS.map((sl) => {

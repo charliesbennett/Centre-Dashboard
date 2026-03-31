@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { B, uid } from "@/lib/constants";
+import { uid } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { Fld, IcPlus, IcEdit, IcTrash, IcX, IcCheck, inputStyle, btnPrimary } from "@/components/ui";
 
 const ROLES = [
@@ -29,6 +30,7 @@ async function hashPassword(pw) {
 const EMPTY_FORM = { name: "", email: "", password: "", role: "centre_manager", centreId: "" };
 
 export default function UsersTab({ centres = [] }) {
+  const B = useB();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -99,13 +101,13 @@ export default function UsersTab({ centres = [] }) {
 
   return (
     <div>
-      <div style={{ background: B.white, borderBottom: `1px solid ${B.border}`, padding: "8px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ background: B.card, borderBottom: `1px solid ${B.border}`, padding: "8px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 11, color: B.textMuted }}>{users.length} users</span>
         <button onClick={() => setShowAdd(!showAdd)} style={btnPrimary}><IcPlus /> Add User</button>
       </div>
 
       {showAdd && (
-        <div style={{ background: B.white, borderBottom: `1px solid ${B.border}`, padding: "10px 20px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
+        <div style={{ background: B.card, borderBottom: `1px solid ${B.border}`, padding: "10px 20px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
           <Fld label="Full Name"><input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} style={{ ...fi, minWidth: 160 }} autoFocus /></Fld>
           <Fld label="Email (@uklc.org)"><input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} style={{ ...fi, minWidth: 200 }} /></Fld>
           <Fld label="Password"><input type="password" value={form.password} onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))} style={{ ...fi, width: 130 }} /></Fld>
@@ -134,7 +136,7 @@ export default function UsersTab({ centres = [] }) {
         ) : users.length === 0 ? (
           <div style={{ textAlign: "center", padding: 40, color: B.textLight }}>No users yet. Add one above.</div>
         ) : (
-          <div style={{ background: B.white, border: `1px solid ${B.border}`, borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ background: B.card, border: `1px solid ${B.border}`, borderRadius: 10, overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: B.ice }}>

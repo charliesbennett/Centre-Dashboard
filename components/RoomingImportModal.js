@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef } from "react";
-import { B, uid } from "@/lib/constants";
+import { uid } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { parseRoomingExcel } from "@/lib/parseRoomingExcel";
 
 const TYPE_COLORS = {
@@ -22,6 +23,7 @@ export default function RoomingImportModal({
   centreId,
   onImport,
 }) {
+  const B = useB();
   const [stage, setStage] = useState("upload"); // upload | preview | done
   const [parsing, setParsing] = useState(false);
   const [parseResult, setParseResult] = useState(null); // { houses, totalRooms, totalBeds, namedBeds }
@@ -153,7 +155,7 @@ export default function RoomingImportModal({
       onClick={onClose}
     >
       <div
-        style={{ background: B.white, borderRadius: 16, width: "100%", maxWidth: 560, maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.3)" }}
+        style={{ background: B.card, borderRadius: 16, width: "100%", maxWidth: 560, maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.3)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

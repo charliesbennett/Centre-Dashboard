@@ -1,16 +1,17 @@
 "use client";
 import { useState, useMemo } from "react";
-import { B, uid, fmtDate, dayName, isWeekend, genDates, dayKey, inRange } from "@/lib/constants";
+import { uid, fmtDate, dayName, isWeekend, genDates, dayKey, inRange } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { Fld, StatusBadge, TableWrap, IconBtn, IcPlus, IcTrash, IcEdit, IcCheck, IcCopy, inputStyle, thStyle, tdStyle, btnPrimary, btnNavy } from "@/components/ui";
 
-const COACH_STATUS = {
-  Pending: { color: B.warning, bg: B.warningBg },
-  Requested: { color: B.link, bg: B.cyanBg },
-  Confirmed: { color: B.success, bg: B.successBg },
-  Paid: { color: "#5b21b6", bg: "#ede9fe" },
-};
-
 export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, progEnd, excursions, setExcursions, centre, progGrid, settings, readOnly = false }) {
+  const B = useB();
+  const COACH_STATUS = {
+    Pending: { color: B.warning, bg: B.warningBg },
+    Requested: { color: B.link, bg: B.cyanBg },
+    Confirmed: { color: B.success, bg: B.successBg },
+    Paid: { color: "#5b21b6", bg: "#ede9fe" },
+  };
   const isMinistay = /mini[\s-]?stay/i.test(centre || "");
   const [showCoachForm, setShowCoachForm] = useState(null);
   const [coachForm, setCoachForm] = useState({ company: "", phone: "", cost: "", pickupTime: "", dropoffTime: "", vehicle: "Coach", notes: "", status: "Pending" });
@@ -236,7 +237,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
           <div style={{ fontSize: 20, fontWeight: 800, color: B.purple }}>{allExcs.filter((e) => e.type === "Half").length}</div>
           <div style={{ fontSize: 9, color: "#5b21b6", fontWeight: 600 }}>Half Day</div>
         </div>
-        <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, padding: "8px 16px", minWidth: 80 }}>
+        <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, padding: "8px 16px", minWidth: 80 }}>
           <div style={{ fontSize: 20, fontWeight: 800, color: B.navy }}>{totalCoaches}</div>
           <div style={{ fontSize: 9, color: B.textMuted, fontWeight: 600 }}>Coaches</div>
         </div>
@@ -247,7 +248,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
           </div>
         )}
         {totalCoachCost > 0 && (
-          <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, padding: "8px 16px", minWidth: 80 }}>
+          <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, padding: "8px 16px", minWidth: 80 }}>
             <div style={{ fontSize: 20, fontWeight: 800, color: B.navy }}>{"\u00a3"}{totalCoachCost.toLocaleString()}</div>
             <div style={{ fontSize: 9, color: B.textMuted, fontWeight: 600 }}>Coach Cost</div>
           </div>
@@ -269,7 +270,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
       ) : (
         <div style={{ padding: "0 12px 20px" }}>
           {allExcs.map((exc) => (
-            <div key={exc.date} style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
+            <div key={exc.date} style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
               <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid " + B.borderLight, background: exc.isWeekend ? B.dangerBg : exc.type === "Full" ? B.warningBg : B.cyanBg }}>
                 <div style={{ minWidth: 90 }}>
                   <div style={{ fontSize: 13, fontWeight: 800, color: B.navy }}>{dayName(exc.day)}</div>

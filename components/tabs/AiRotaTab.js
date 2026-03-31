@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
-import { B, fmtDate, genDates, dayKey, dayName } from "@/lib/constants";
+import { fmtDate, genDates, dayKey, dayName } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { btnPrimary, btnNavy, thStyle, tdStyle, TableWrap, IcCheck, IcWand } from "@/components/ui";
 import { getFortnights, getTodayFortnight } from "@/lib/fortnights";
 
@@ -51,7 +52,7 @@ export function buildDraftRotaGrid(draftRota, staff) {
 }
 
 // ── Cell colour for rota values ───────────────────────────────────────────
-function cellBg(val) {
+function cellBg(val, B) {
   if (!val) return "transparent";
   if (val === "Day Off") return B.ice;
   if (/^(lessons?|testing|english test|int english)$/i.test(val)) return B.pink;
@@ -62,6 +63,7 @@ function cellBg(val) {
 
 // ── Step indicator ────────────────────────────────────────────────────────
 function StepIndicator({ step, currentStep }) {
+  const B = useB();
   const isCompleted = currentStep > step.id;
   const isActive = currentStep === step.id;
   return (
@@ -84,6 +86,7 @@ function StepIndicator({ step, currentStep }) {
 }
 
 function StepConnector({ completed }) {
+  const B = useB();
   return (
     <div style={{
       flex: 1, height: 2, marginTop: 14, marginBottom: 20,
@@ -108,6 +111,7 @@ function Stepper({ currentStep }) {
 
 // ── Step 1: Programme ─────────────────────────────────────────────────────
 function ProgrammeStep({ progStart, progEnd, groups, staff, fortnights, fortIdx, setFortIdx, onNext }) {
+  const B = useB();
   const selectedFortnight = fortnights[fortIdx] || { start: progStart, end: progEnd };
   const fortnightStaffCount = staff?.filter((s) =>
     s.arr <= selectedFortnight.end && s.dep >= selectedFortnight.start
@@ -116,7 +120,7 @@ function ProgrammeStep({ progStart, progEnd, groups, staff, fortnights, fortIdx,
   return (
     <div>
       <h3 style={{ fontSize: 15, fontWeight: 700, fontFamily: RW, color: B.navy, marginBottom: 12 }}>Programme Summary</h3>
-      <div style={{ background: B.white, border: `1px solid ${B.border}`, borderLeft: `4px solid ${B.navy}`, borderRadius: 8, padding: "16px 20px", marginBottom: 16 }}>
+      <div style={{ background: B.card, border: `1px solid ${B.border}`, borderLeft: `4px solid ${B.navy}`, borderRadius: 8, padding: "16px 20px", marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
           {[
             { label: "Fortnight Start", val: selectedFortnight.start ? fmtDate(selectedFortnight.start) : "—" },
@@ -164,6 +168,7 @@ function ProgrammeStep({ progStart, progEnd, groups, staff, fortnights, fortIdx,
 
 // ── Step 2: Generate ──────────────────────────────────────────────────────
 function GenerateStep({ generating, genStep, onGenerate, onBack }) {
+  const B = useB();
   return (
     <div>
       <h3 style={{ fontSize: 15, fontWeight: 700, fontFamily: RW, color: B.navy, marginBottom: 12 }}>Constraint Checklist</h3>
@@ -199,6 +204,7 @@ function GenerateStep({ generating, genStep, onGenerate, onBack }) {
 
 // ── Step 3: Review ────────────────────────────────────────────────────────
 function ReviewStep({ draftRota, staff, progStart, progEnd, fortnightLabel, onPublish, onStartOver }) {
+  const B = useB();
   const grid = buildDraftRotaGrid(draftRota, staff);
   const dates = progStart && progEnd ? genDates(progStart, progEnd) : [];
 
@@ -237,7 +243,7 @@ function ReviewStep({ draftRota, staff, progStart, progEnd, fortnightLabel, onPu
             <tbody>
               {(staff || []).map((s) => (
                 <tr key={s.id}>
-                  <td style={{ ...tdStyle, position: "sticky", left: 0, zIndex: 1, background: B.white, fontWeight: 600, whiteSpace: "nowrap", fontSize: 9, minWidth: 90 }}>
+                  <td style={{ ...tdStyle, position: "sticky", left: 0, zIndex: 1, background: B.card, fontWeight: 600, whiteSpace: "nowrap", fontSize: 9, minWidth: 90 }}>
                     <div>{s.name}</div>
                     <div style={{ fontSize: 8, color: B.textMuted }}>{s.role}</div>
                   </td>
@@ -247,7 +253,7 @@ function ReviewStep({ draftRota, staff, progStart, progEnd, fortnightLabel, onPu
                     return (
                       <td key={dk} style={{ ...tdStyle, padding: "2px 2px", verticalAlign: "top" }}>
                         {["AM", "PM", "Eve"].map((slot) => cell[slot] ? (
-                          <div key={slot} style={{ fontSize: 8, padding: "1px 2px", borderRadius: 3, marginBottom: 1, background: cellBg(cell[slot]), color: B.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 40 }} title={`${slot}: ${cell[slot]}`}>
+                          <div key={slot} style={{ fontSize: 8, padding: "1px 2px", borderRadius: 3, marginBottom: 1, background: cellBg(cell[slot], B), color: B.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 40 }} title={`${slot}: ${cell[slot]}`}>
                             <span style={{ color: B.textMuted, marginRight: 2 }}>{slot[0]}</span>{cell[slot]}
                           </div>
                         ) : null)}
@@ -282,6 +288,7 @@ function ReviewStep({ draftRota, staff, progStart, progEnd, fortnightLabel, onPu
 
 // ── Main component ────────────────────────────────────────────────────────
 export default function AiRotaTab({ staff = [], progStart, progEnd, groups = [], progGrid = {}, setRotaGrid, centreName = "" }) {
+  const B = useB();
   const [currentStep, setCurrentStep] = useState(1);
   const [draftRota, setDraftRota] = useState(null);
   const [generating, setGenerating] = useState(false);

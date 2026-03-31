@@ -1,11 +1,13 @@
 "use client";
 import { useState, useMemo, useRef } from "react";
-import { B, uid, MEALS, MEAL_COLORS, genDates, dayKey, dayName, isWeekend, inRange, fmtDate } from "@/lib/constants";
+import { uid, MEALS, MEAL_COLORS, genDates, dayKey, dayName, isWeekend, inRange, fmtDate } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { StatCard, Fld, TableWrap, IconBtn, IcPlus, IcTrash, inputStyle, thStyle, tdStyle, btnPrimary } from "@/components/ui";
 
 const DIET_TYPES = ["Vegetarian", "Vegan", "Halal", "Kosher", "Gluten-Free", "Dairy-Free", "Nut Allergy", "Egg Allergy", "Fish Allergy", "Other"];
 
 export default function CateringTab({ groups, staff, progStart, progEnd, excDays, cateringData, setCateringData, readOnly = false }) {
+  const B = useB();
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
   const teamSize = staff.length;
   const cd = cateringData || {};
@@ -294,7 +296,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
               <tbody>
                 {MEALS.map((m) => (
                   <tr key={m} style={{ borderBottom: "1px solid " + B.borderLight }}>
-                    <td style={{ padding: "6px 8px", position: "sticky", left: 0, background: B.white, zIndex: 1 }}>
+                    <td style={{ padding: "6px 8px", position: "sticky", left: 0, background: B.card, zIndex: 1 }}>
                       <span style={{ background: MEAL_COLORS[m] + "20", color: MEAL_COLORS[m], padding: "2px 8px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>{m}</span>
                     </td>
                     {dates.map((d) => {
@@ -356,7 +358,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
           ) : (
             <>
               {/* Team row */}
-              <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
+              <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
                 <div style={{ padding: "8px 16px", fontWeight: 800, fontSize: 11, color: "#0369a1", background: "#e0f2fe", borderBottom: "1px solid #bae6fd" }}>
                   {"\ud83d\udc64"} Staff Team ({teamSize} people)
                 </div>
@@ -388,7 +390,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
 
               {/* Each group */}
               {groups.map((g) => (
-                <div key={g.id} style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
+                <div key={g.id} style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
                   <div style={{ padding: "8px 16px", display: "flex", gap: 8, alignItems: "center", background: "#f0f9ff", borderBottom: "1px solid " + B.borderLight }}>
                     <span style={{ fontWeight: 800, fontSize: 11, color: B.navy }}>{g.group}</span>
                     <span style={{ fontSize: 9, color: B.textMuted }}>{g.agent}</span>
@@ -445,13 +447,13 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
             </div>
           )}
 
-          <div style={{ background: B.white, borderBottom: "1px solid " + B.border, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ background: B.card, borderBottom: "1px solid " + B.border, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: B.textMuted }}>{dietary.length} dietary requirements</span>
             {!readOnly && <button onClick={() => setShowDietForm(!showDietForm)} style={btnPrimary}><IcPlus /> Add</button>}
           </div>
 
           {showDietForm && (
-            <div style={{ background: B.white, borderBottom: "1px solid " + B.border, padding: "10px 12px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
+            <div style={{ background: B.card, borderBottom: "1px solid " + B.border, padding: "10px 12px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
               <Fld label="Name"><input value={dietForm.name} onChange={(e) => setDietForm((p) => ({ ...p, name: e.target.value }))} style={{ ...fi, width: 130 }} placeholder="Student name" /></Fld>
               <Fld label="Group">
                 <select value={dietForm.group} onChange={(e) => setDietForm((p) => ({ ...p, group: e.target.value }))} style={{ ...fi, cursor: "pointer", width: 120 }}>
@@ -496,13 +498,13 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
       {/* ── SPECIALS VIEW ──────────────────────────────── */}
       {view === "specials" && (
         <div style={{ padding: "0 12px 16px" }}>
-          <div style={{ background: B.white, borderBottom: "1px solid " + B.border, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ background: B.card, borderBottom: "1px solid " + B.border, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: B.textMuted }}>{specialMeals.length} special meals</span>
             {!readOnly && <button onClick={() => setShowSpecialForm(!showSpecialForm)} style={btnPrimary}><IcPlus /> Add Special Meal</button>}
           </div>
 
           {showSpecialForm && (
-            <div style={{ background: B.white, borderBottom: "1px solid " + B.border, padding: "10px 12px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
+            <div style={{ background: B.card, borderBottom: "1px solid " + B.border, padding: "10px 12px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
               <Fld label="Date"><input type="date" value={specialForm.date} onChange={(e) => setSpecialForm((p) => ({ ...p, date: e.target.value }))} style={fi} /></Fld>
               <Fld label="Meal">
                 <select value={specialForm.meal} onChange={(e) => setSpecialForm((p) => ({ ...p, meal: e.target.value }))} style={{ ...fi, cursor: "pointer", width: 90 }}>
@@ -541,7 +543,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
       {/* ── OFFSITE MEALS VIEW ─────────────────────────── */}
       {view === "offsite" && (
         <div style={{ padding: "0 12px 16px" }}>
-          <div style={{ background: B.white, borderBottom: "1px solid " + B.border, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ background: B.card, borderBottom: "1px solid " + B.border, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <span style={{ fontSize: 11, fontWeight: 700, color: B.textMuted }}>{offsiteMeals.length} offsite meal{offsiteMeals.length !== 1 ? "s" : ""} logged</span>
               <div style={{ fontSize: 9, color: B.textMuted, marginTop: 2 }}>Each entry reduces the catering total for that meal. The main grid shows a blue "−n offsite" indicator on affected cells.</div>

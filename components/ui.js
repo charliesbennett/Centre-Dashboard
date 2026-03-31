@@ -1,10 +1,12 @@
 "use client";
-import { B } from "@/lib/constants";
+import { B as STATIC_B } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 
 const RW = "'Raleway', sans-serif";
 
 // ── Field label wrapper ───────────────────────────────────────────────────
 export function Fld({ label, children }) {
+  const B = useB();
   return (
     <div>
       <label style={{ display: "block", fontSize: 9, fontWeight: 800, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 3, fontFamily: RW }}>
@@ -17,21 +19,23 @@ export function Fld({ label, children }) {
 
 // ── Stat card ─────────────────────────────────────────────────────────────
 export function StatCard({ label, value, accent }) {
+  const B = useB();
   return (
     <div style={{
-      background: B.white, borderRadius: 10, padding: "12px 16px", minWidth: 80,
+      background: B.card, borderRadius: 10, padding: "12px 16px", minWidth: 80,
       border: `1px solid ${B.border}`,
       borderLeft: `4px solid ${accent || B.navy}`,
       boxShadow: "0 2px 10px rgba(28,48,72,0.07)",
     }}>
       <div style={{ fontSize: 9, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.8, fontWeight: 700, fontFamily: RW }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: B.navy, marginTop: 3, fontFamily: RW, letterSpacing: -0.5, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: B.text, marginTop: 3, fontFamily: RW, letterSpacing: -0.5, lineHeight: 1 }}>{value}</div>
     </div>
   );
 }
 
 // ── Status badge ──────────────────────────────────────────────────────────
 export function StatusBadge({ status, map }) {
+  const B = useB();
   const st = (map || {})[status] || { color: B.warning, bg: B.warningBg };
   return (
     <span style={{ background: st.bg, color: st.color, padding: "3px 9px", borderRadius: 20, fontSize: 9, fontWeight: 700, fontFamily: RW, letterSpacing: 0.3, whiteSpace: "nowrap" }}>
@@ -42,6 +46,7 @@ export function StatusBadge({ status, map }) {
 
 // ── Icon button ───────────────────────────────────────────────────────────
 export function IconBtn({ children, onClick, danger, title }) {
+  const B = useB();
   return (
     <button onClick={onClick} title={title} className="btn-ghost" style={{
       background: "none", border: "none",
@@ -56,9 +61,10 @@ export function IconBtn({ children, onClick, danger, title }) {
 
 // ── Table wrapper ─────────────────────────────────────────────────────────
 export function TableWrap({ children }) {
+  const B = useB();
   return (
     <div style={{
-      background: B.white, borderRadius: 12,
+      background: B.card, borderRadius: 12,
       border: `1px solid ${B.border}`,
       overflowX: "auto",
       boxShadow: "0 2px 12px rgba(28,48,72,0.07)",
@@ -68,9 +74,9 @@ export function TableWrap({ children }) {
   );
 }
 
-// ── Shared style objects ──────────────────────────────────────────────────
+// ── Shared style objects (static — brand colours, fine in both modes) ──────
 export const inputStyle = {
-  background: B.white, border: `1px solid ${B.border}`, color: B.text,
+  background: STATIC_B.card, border: `1px solid ${STATIC_B.border}`, color: STATIC_B.text,
   padding: "7px 10px", borderRadius: 7, fontSize: 12,
   fontFamily: "'Open Sans', sans-serif", minWidth: 90,
 };
@@ -78,7 +84,7 @@ export const inputStyle = {
 export const thStyle = {
   padding: "9px 10px", fontSize: 10, fontWeight: 700,
   textTransform: "uppercase", letterSpacing: 0.6,
-  color: B.white, background: B.navy,
+  color: "#ffffff", background: STATIC_B.navy,
   whiteSpace: "nowrap", textAlign: "left",
   fontFamily: RW, borderBottom: "none",
   backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 10px)",
@@ -86,25 +92,25 @@ export const thStyle = {
 
 export const tdStyle = {
   padding: "7px 10px", verticalAlign: "middle", fontSize: 12,
-  borderBottom: `1px solid ${B.borderLight}`,
+  borderBottom: `1px solid ${STATIC_B.borderLight}`,
 };
 
 export const btnPrimary = {
   display: "inline-flex", alignItems: "center", gap: 6,
-  padding: "8px 16px", background: B.red, border: "none",
-  color: B.white, borderRadius: 8, cursor: "pointer",
+  padding: "8px 16px", background: STATIC_B.red, border: "none",
+  color: "#ffffff", borderRadius: 8, cursor: "pointer",
   fontSize: 12, fontWeight: 700, fontFamily: RW, letterSpacing: 0.2,
   boxShadow: "0 2px 8px rgba(236,39,59,0.25)",
   whiteSpace: "nowrap",
 };
 
 export const btnNavy = {
-  ...btnPrimary, background: B.navy,
+  ...btnPrimary, background: STATIC_B.navy,
   boxShadow: "0 2px 8px rgba(28,48,72,0.2)",
 };
 
 export const btnYellow = {
-  ...btnPrimary, background: "#f6c90e", color: B.navy,
+  ...btnPrimary, background: "#f6c90e", color: STATIC_B.navy,
   boxShadow: "0 2px 8px rgba(246,201,14,0.3)",
 };
 

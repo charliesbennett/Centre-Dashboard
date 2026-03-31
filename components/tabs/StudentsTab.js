@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useMemo } from "react";
-import { B, MEALS, PROGRAMMES, uid, fmtDate, dayKey, dayName, isWeekend, genDates, calcLessonSplit } from "@/lib/constants";
+import { MEALS, PROGRAMMES, uid, fmtDate, dayKey, dayName, isWeekend, genDates, calcLessonSplit } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { Fld, StatCard, TableWrap, IconBtn, IcPlus, IcTrash, IcSearch, inputStyle, thStyle, tdStyle, btnPrimary } from "@/components/ui";
 import * as XLSX from "xlsx";
 
@@ -77,6 +78,7 @@ export function exportStudentsXlsx(groups, roomingAssignments, roomingRooms, cen
 }
 
 export default function StudentsTab({ groups = [], setGroups, progStart, progEnd, readOnly = false, userRole = "", roomingAssignments = [], roomingRooms = [], centreName = "" }) {
+  const B = useB();
   const [showAdd, setShowAdd] = useState(false);
   const [view, setView] = useState("groups");
   const [flagFilter, setFlagFilter] = useState("All");
@@ -412,7 +414,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
 
       {/* ── Lesson split ────────────────────────────────── */}
       {lessonDates.length > 0 && activeGroups.length > 0 && (
-        <div style={{ borderTop: "1px solid " + B.border, borderBottom: "1px solid " + B.border, background: B.white }}>
+        <div style={{ borderTop: "1px solid " + B.border, borderBottom: "1px solid " + B.border, background: B.card }}>
           <div style={{ padding: "6px 20px 4px", fontSize: 10, fontWeight: 800, color: B.navy }}>📚 AM / PM Lesson Split</div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ borderCollapse: "collapse", fontSize: 10, width: "100%" }}>
@@ -457,7 +459,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
         </div>
       )}
 
-      <div style={{ background: B.white, borderBottom: "1px solid " + B.border, padding: "8px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+      <div style={{ background: B.card, borderBottom: "1px solid " + B.border, padding: "8px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, border: "1px solid " + B.border, borderRadius: 6, padding: "4px 10px" }}>
             <IcSearch />
@@ -492,7 +494,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
       </div>
 
       {showAdd && (
-        <div style={{ background: B.white, borderBottom: "1px solid " + B.border, padding: "10px 20px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
+        <div style={{ background: B.card, borderBottom: "1px solid " + B.border, padding: "10px 20px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
           <Fld label="Agent"><input value={n.agent} onChange={(e) => setN((p) => ({ ...p, agent: e.target.value }))} style={inputStyle} /></Fld>
           <Fld label="Group"><input value={n.group} onChange={(e) => setN((p) => ({ ...p, group: e.target.value }))} style={inputStyle} /></Fld>
           <Fld label="Nat"><input value={n.nat} onChange={(e) => setN((p) => ({ ...p, nat: e.target.value }))} style={{ ...inputStyle, width: 60 }} /></Fld>
@@ -609,7 +611,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
                           <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Wk1 Lessons:</span> {x.lessonSlot || "AM"} <span style={{ color: B.textLight }}>(Wk2 auto-flips to {x.lessonSlot === "AM" ? "PM" : "AM"})</span></div>
                         </div>
                         <div style={{ overflowX: "auto", maxWidth: "calc(100vw - 60px)" }}>
-                        <table style={{ minWidth: 900, borderCollapse: "collapse", fontSize: 10, background: B.white, borderRadius: 6 }}>
+                        <table style={{ minWidth: 900, borderCollapse: "collapse", fontSize: 10, background: B.card, borderRadius: 6 }}>
                           <thead><tr style={{ background: "#f1f5f9" }}>{["#", "Name", "DOB", "Age", "Sex", "Nat", "Accomm", "Arr", "Dep", "Specialism", "Medical", "Swimming"].map((h) => <th key={h} style={{ ...thStyle, fontSize: 8, padding: "4px 5px" }}>{h}</th>)}</tr></thead>
                           <tbody>
                             {(x.students || []).map((s, i) => (

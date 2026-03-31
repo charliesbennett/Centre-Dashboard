@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { B, CENTRES, TABS } from "@/lib/constants";
+import { CENTRES, TABS } from "@/lib/constants";
+import { useTheme } from "@/lib/theme";
 import { IcHome, IcGradCap, IcCalGrid, IcClipboard, IcFork, IcPlane, IcUsersTab, IcMapPin, IcKey, IcCoins, IcPhone, IcBuilding, IcUserCog, IcLogout } from "@/components/ui";
 import { useAuth } from "@/lib/useAuth";
 import LoginPage from "@/components/LoginPage";
@@ -21,6 +22,7 @@ import HomeTab from "@/components/tabs/HomeTab";
 import ChatButton from "@/components/ChatButton";
 
 export default function Dashboard() {
+  const { B, isDark, toggle } = useTheme();
   const auth = useAuth();
   const [tab, setTab] = useState(() => {
     try { return window.localStorage.getItem("uklc_tab") || "home"; } catch { return "home"; }
@@ -455,6 +457,11 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Dark mode toggle */}
+          <button onClick={toggle} title={isDark ? "Switch to light mode" : "Switch to dark mode"} style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.8)", borderRadius: 8, padding: "8px 10px", cursor: "pointer", fontSize: 15 }}>
+            {isDark ? "☀️" : "🌙"}
+          </button>
+
           {/* Logout */}
           <button onClick={() => { auth.logout(); try { window.localStorage.removeItem("uklc_tab"); window.localStorage.removeItem("uklc_centre_id"); window.localStorage.removeItem("uklc_centre_name"); } catch {} }} title="Sign out" style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.8)", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
             <IcLogout /> Sign out
@@ -467,7 +474,7 @@ export default function Dashboard() {
 
       {/* ── Nav tabs ────────────────────────────────────────────────────── */}
       <nav style={{
-        background: B.white, borderBottom: `1px solid ${B.border}`,
+        background: B.card, borderBottom: `1px solid ${B.border}`,
         padding: "0 12px", display: "flex", overflowX: "auto", gap: 0,
         boxShadow: "0 2px 12px rgba(28,48,72,0.08)", flexShrink: 0,
       }}>

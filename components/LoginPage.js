@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
-import { B } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 
 export default function LoginPage({ onLogin, error: authError }) {
+  const B = useB();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);

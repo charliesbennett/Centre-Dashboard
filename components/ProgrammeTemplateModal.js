@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { B } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { parseProgrammeExcel } from "@/lib/parseProgrammeExcel";
 
 // Ministay: Day 1-7 relative to arrival
@@ -89,6 +89,7 @@ function summerWeeksToJson(weeks) {
 }
 
 export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, mode = "ministay" }) {
+  const B = useB();
   const isSummer = mode === "summer";
   const DAYS = isSummer ? SUMMER_DAYS : MINISTAY_DAYS;
   // Summer: array of week day-maps; ministay: single day-map
@@ -217,13 +218,13 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, m
 
         {/* Right: template editor */}
         <div style={{ width:"45%", background:B.bg, display:"flex", flexDirection:"column", minHeight:0 }}>
-          <div style={{ padding:"8px 14px", background:B.white, borderBottom:"1px solid "+B.border, flexShrink:0 }}>
+          <div style={{ padding:"8px 14px", background:B.card, borderBottom:"1px solid "+B.border, flexShrink:0 }}>
             <div style={{ fontSize:10, fontWeight:700, color:B.navy }}>{isSummer ? "Programme Template" : "Weekly Programme Template"}</div>
             <div style={{ fontSize:9, color:B.textMuted, marginTop:1 }}>{isSummer ? "Each week has its own Mon–Sun pattern. Arrival/departure days are set automatically." : "Relative to arrival — Day 1 = arrival, Day 7 = departure (6 nights). Auto-populate adjusts for any start day."}</div>
           </div>
           {/* Week tabs (summer only) */}
           {isSummer && (
-            <div style={{ padding:"6px 12px", background:B.white, borderBottom:"1px solid "+B.border, display:"flex", gap:4, alignItems:"center", flexShrink:0 }}>
+            <div style={{ padding:"6px 12px", background:B.card, borderBottom:"1px solid "+B.border, display:"flex", gap:4, alignItems:"center", flexShrink:0 }}>
               {weeks.map((_, i) => (
                 <button key={i} onClick={() => setActiveWeek(i)} style={{ padding:"3px 12px", borderRadius:4, fontSize:10, fontWeight:700, fontFamily:"inherit", cursor:"pointer", border: activeWeek===i ? "2px solid "+B.navy : "1px solid "+B.border, background: activeWeek===i ? B.navy : B.white, color: activeWeek===i ? B.white : B.navy }}>Week {i+1}</button>
               ))}
@@ -262,7 +263,7 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, m
               // Read from correct source: summer uses weeks[activeWeek], ministay uses template
               const dayData = isSummer ? (weeks[activeWeek]?.[day] || {}) : (template[day] || {});
               return (
-                <div key={day} style={{ marginBottom:5, background:B.white, borderRadius:6, border:"1px solid "+(isFirst?"#bfdbfe":isLast||isWeekend?"#fecaca":B.border), overflow:"hidden" }}>
+                <div key={day} style={{ marginBottom:5, background:B.card, borderRadius:6, border:"1px solid "+(isFirst?"#bfdbfe":isLast||isWeekend?"#fecaca":B.border), overflow:"hidden" }}>
                   <div style={{ padding:"5px 10px", background:bg, borderBottom:"1px solid "+border, display:"flex", alignItems:"center", gap:8 }}>
                     <span style={{ fontWeight:800, fontSize:10, color:accent, flex:1 }}>{label}</span>
                     <select value={dayData.exc || ""} onChange={(e) => update(day, "exc", e.target.value)}

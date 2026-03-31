@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useMemo } from "react";
-import { B } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { parseMasterExcel } from "@/lib/parseMasterExcel";
 
 // Fuzzy group-name match: 0–1 score based on word overlap + agent bonus
@@ -37,6 +37,7 @@ const inputStyle = { padding: "5px 8px", border: "1px solid #dce4ec", borderRadi
 const labelStyle = { fontSize: 9, fontWeight: 800, color: "#5c7084", textTransform: "uppercase", letterSpacing: 0.3, display: "block", marginBottom: 2 };
 
 export default function MasterImportModal({ groups: dashGroups = [], onClose, onImport }) {
+  const B = useB();
   const [stage, setStage] = useState("upload"); // upload | match | done
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

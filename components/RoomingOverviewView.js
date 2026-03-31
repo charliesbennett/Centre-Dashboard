@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import { B, dayKey, dayName, isWeekend, fmtDate } from "@/lib/constants";
+import { dayKey, dayName, isWeekend, fmtDate } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { TableWrap, btnNavy, thStyle, tdStyle } from "@/components/ui";
 
 const GROUP_COLORS = [
@@ -32,6 +33,7 @@ export default function RoomingOverviewView({
   onPrintBedsGrid,
   onPrintOverview,
 }) {
+  const B = useB();
   const [overviewSub, setOverviewSub] = useState("beds");
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState("");
@@ -103,7 +105,7 @@ export default function RoomingOverviewView({
       {/* ── BEDS GRID (Excel-style heads on beds) ─────── */}
       {overviewSub === "beds" && (
         bedsGridRows.length === 0 ? (
-          <div style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 10, padding: 40, textAlign: "center", color: B.textLight }}>
+          <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, padding: 40, textAlign: "center", color: B.textLight }}>
             Set up houses and rooms in the <strong>Houses</strong> tab first
           </div>
         ) : (

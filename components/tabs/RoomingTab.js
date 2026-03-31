@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
-import { B, uid, genDates, dayKey, dayName, fmtDate } from "@/lib/constants";
+import { uid, genDates, dayKey, dayName, fmtDate } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { StatCard, btnNavy } from "@/components/ui";
 import RoomingOverviewView from "@/components/RoomingOverviewView";
 import RoomingHousesView from "@/components/RoomingHousesView";
@@ -28,6 +29,7 @@ export default function RoomingTab({
   roomingOverrides = {}, setRoomingOverrides,
   centreId = "", readOnly = false,
 }) {
+  const B = useB();
   const [view, setView] = useState("overview");
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
   const activeGroups = groups.filter((g) => !g.archived);

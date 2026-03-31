@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
-import { B, ACTIVITY_TYPES, LONDON_CENTRES, genDates, dayKey, dayName, isWeekend, inRange, fmtDate } from "@/lib/constants";
+import { ACTIVITY_TYPES, LONDON_CENTRES, genDates, dayKey, dayName, isWeekend, inRange, fmtDate } from "@/lib/constants";
+import { useB } from "@/lib/theme";
 import { Fld, TableWrap, IcWand, thStyle, tdStyle, btnPrimary, inputStyle } from "@/components/ui";
 import { getProgrammesForCentre } from "@/lib/programmeData";
 import ProgrammeTemplateModal from "@/components/ProgrammeTemplateModal";
@@ -17,6 +18,7 @@ function getGroupLessonSlot(g, ds) {
 }
 
 export default function ProgrammesTab({ groups, progStart, progEnd, centre, excDays, setExcDays, progGrid, setProgGrid, settings, saveSetting, readOnly = false }) {
+  const B = useB();
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
   const isLondon = LONDON_CENTRES.includes(centre);
   const isMinistay = /mini[\s-]?stay/i.test(centre || "");
