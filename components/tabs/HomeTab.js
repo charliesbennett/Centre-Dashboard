@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { dayKey, dayName, fmtDate, ACTIVITY_TYPES, SESSION_TYPES, ROLES, calcLessonSplit, uid } from "@/lib/constants";
 import { useB } from "@/lib/theme";
-import { StatCard, IcPlaneUp, IcPlaneDn, IcCake, IcBus, IcMountain, IcSparkles, IconBtn, IcTrash, btnPrimary, inputStyle } from "@/components/ui";
+import { StatCard, IcPlaneUp, IcPlaneDn, IcCake, IcBus, IcMountain, IcSparkles, IcBook, IcGradCap, IcUserCog, IcUsersTab, IcStar, IconBtn, IcTrash, btnPrimary, inputStyle } from "@/components/ui";
 
 // ── Helpers ────────────────────────────────────────────────
 function inBed(dateStr, arrDate, depDate) {
@@ -441,45 +441,27 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
 
       {/* ── Print Briefing button (HO / CM only) ─────────── */}
       {["head_office", "centre_manager"].includes(userRole) && (
-        <div style={{ padding: "10px 20px 0", display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ padding: "14px 20px 0", display: "flex", justifyContent: "flex-end" }}>
           <button
             onClick={() => openBriefingSheet(assembleBriefingData({ centreName, today, groups, staff, excursions, rotaGrid }))}
-            style={{ background: B.navy, color: B.white, border: "none", borderRadius: 6, padding: "7px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+            style={{ background: B.navy, color: B.white, border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontFamily: "'Raleway', sans-serif", boxShadow: "0 2px 8px rgba(28,48,72,0.2)" }}
           >
             🖨 Print Briefing
           </button>
         </div>
       )}
 
-      {/* ── Stat row ─────────────────────────────────────── */}
-      <div style={{ padding: "12px 20px 4px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-        <StatCard label="On-Site Today" value={totalOnSite} accent={B.navy} />
-        <StatCard label="Students" value={onSiteStudents} accent={B.red} />
-        <StatCard label="Group Leaders" value={onSiteGLs} accent="#7c3aed" />
-        <StatCard label="UKLC Staff" value={onSiteStaff.length} accent="#0891b2" />
-        {(amToday > 0 || pmToday > 0) && (
-          <>
-            <StatCard label="AM Lessons" value={amToday} accent="#1e40af" />
-            <StatCard label="PM Lessons" value={pmToday} accent="#166534" />
-          </>
-        )}
-        {arrivingToday.length > 0 && (
-          <StatCard label="Arriving" value={arrivingToday.length + (arrivingToday.length === 1 ? " group" : " groups")} accent={B.success} />
-        )}
-        {departingToday.length > 0 && (
-          <StatCard label="Departing" value={departingToday.length + (departingToday.length === 1 ? " group" : " groups")} accent={B.warning} />
-        )}
-        {excToday && (
-          <div style={{ marginLeft: 4, background: excToday === "Full" ? "#fff7ed" : B.yellow + "30", border: "2px solid " + (excToday === "Full" ? "#fb923c" : B.yellow), borderRadius: 8, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ color: excToday === "Full" ? "#ea580c" : "#92400e" }}>{excToday === "Full" ? <IcBus /> : <IcMountain />}</span>
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, color: excToday === "Full" ? "#c2410c" : "#92400e", textTransform: "uppercase", letterSpacing: 0.5 }}>Excursion Today</div>
-              <div style={{ fontSize: 13, fontWeight: 800, color: excToday === "Full" ? "#ea580c" : "#d97706" }}>
-                {excToday === "Full" ? "Full Day" : "Half Day"}
-              </div>
-            </div>
-          </div>
-        )}
+      {/* ── Stat grid ─────────────────────────────────────── */}
+      <div style={{ padding: "14px 20px 8px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))", gap: 12 }}>
+        <StatCard hero label="On-Site Today" value={totalOnSite} color={B.navy} icon={<IcUsersTab />} sub={`${onSiteGroups.length} group${onSiteGroups.length !== 1 ? "s" : ""}`} />
+        <StatCard label="Students" value={onSiteStudents} color={B.red} icon={<IcGradCap />} />
+        <StatCard label="Group Leaders" value={onSiteGLs} color="#7c3aed" icon={<IcStar />} />
+        <StatCard label="UKLC Staff" value={onSiteStaff.length} color="#0891b2" icon={<IcUserCog />} />
+        {amToday > 0 && <StatCard label="AM Lessons" value={amToday} color="#1e40af" icon={<IcBook />} />}
+        {pmToday > 0 && <StatCard label="PM Lessons" value={pmToday} color="#166534" icon={<IcBook />} />}
+        {arrivingToday.length > 0 && <StatCard label="Arriving" value={arrivingToday.length} color={B.success} icon={<IcPlaneUp />} sub={arrivingToday.length === 1 ? "group" : "groups"} />}
+        {departingToday.length > 0 && <StatCard label="Departing" value={departingToday.length} color={B.warning} icon={<IcPlaneDn />} sub={departingToday.length === 1 ? "group" : "groups"} />}
+        {excToday && <StatCard label="Excursion Today" value={excToday === "Full" ? "Full Day" : "Half Day"} color="#ea580c" icon={<IcBus />} />}
       </div>
 
       {/* ── Arrivals & departures panels ─────────────────── */}
@@ -526,9 +508,12 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
 
         {/* ── TODAY'S PROGRAMME ────────────────────────── */}
         <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
-          <div style={{ padding: "8px 14px", background: B.navy, backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 10px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontWeight: 800, fontSize: 11, color: B.white }}>Today&rsquo;s Programme</span>
-            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.5)" }}>
+          <div style={{ padding: "12px 16px", borderBottom: `1px solid ${B.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 3, height: 16, borderRadius: 2, background: "#3b82f6", flexShrink: 0 }} />
+              <span style={{ fontWeight: 700, fontSize: 12, color: B.text, fontFamily: "'Raleway', sans-serif" }}>Today&rsquo;s Programme</span>
+            </div>
+            <span style={{ fontSize: 10, color: B.textMuted }}>
               {dayName(todayDate)}, {todayDate.getDate()}/{todayDate.getMonth() + 1}
             </span>
           </div>
@@ -550,7 +535,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                 <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
                   <div style={{ width: 7, height: 7, borderRadius: "50%", background: GROUP_COLORS[i % GROUP_COLORS.length], flexShrink: 0 }} />
                   <span style={{ fontWeight: 700, fontSize: 10, color: B.navy }}>{g.group}</span>
-                  <span style={{ fontSize: 8, color: B.textLight, background: "#f1f5f9", padding: "1px 5px", borderRadius: 3 }}>
+                  <span style={{ fontSize: 8, color: B.textLight, background: B.ice, padding: "1px 5px", borderRadius: 3 }}>
                     {(g.stu || 0) + (g.gl || 0)} pax
                   </span>
                   {today !== g.arr && today !== g.dep && (
@@ -574,7 +559,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
           </div>
 
           {/* Evening */}
-          <div style={{ borderTop: "1px solid " + B.border, padding: "7px 14px", background: "#f8fafc", display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ borderTop: "1px solid " + B.border, padding: "7px 14px", background: B.bg, display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 9, fontWeight: 700, color: B.textMuted }}>EVENING</span>
             {eveActivity ? (
               <ActivityBadge value={eveActivity} />
@@ -589,8 +574,9 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
 
           {/* Arrivals & Departures */}
           <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden", flex: "0 0 auto" }}>
-            <div style={{ padding: "8px 14px", background: "#0f766e", backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 10px)", display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontWeight: 800, fontSize: 11, color: B.white }}>Arrivals &amp; Departures</span>
+            <div style={{ padding: "12px 16px", borderBottom: `1px solid ${B.border}`, display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 3, height: 16, borderRadius: 2, background: "#0f766e", flexShrink: 0 }} />
+              <span style={{ fontWeight: 700, fontSize: 12, color: B.text, fontFamily: "'Raleway', sans-serif" }}>Arrivals &amp; Departures</span>
             </div>
             <div style={{ padding: "6px 0" }}>
               {arrivingToday.length === 0 && departingToday.length === 0 ? (
@@ -624,9 +610,12 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
 
           {/* Staff on duty */}
           <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden", flex: 1 }}>
-            <div style={{ padding: "8px 14px", background: "#1e40af", backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 10px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontWeight: 800, fontSize: 11, color: B.white }}>Staff on Duty</span>
-              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700 }}>{onSiteStaff.length}</span>
+            <div style={{ padding: "12px 16px", borderBottom: `1px solid ${B.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 3, height: 16, borderRadius: 2, background: "#1e40af", flexShrink: 0 }} />
+                <span style={{ fontWeight: 700, fontSize: 12, color: B.text, fontFamily: "'Raleway', sans-serif" }}>Staff on Duty</span>
+              </div>
+              <span style={{ fontSize: 10, fontWeight: 700, color: B.textMuted }}>{onSiteStaff.length}</span>
             </div>
             <div style={{ padding: "8px 14px" }}>
               {onSiteStaff.length === 0 ? (
@@ -636,9 +625,9 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                   {[...onSiteStaff]
                     .sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role))
                     .map((s) => (
-                      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 4, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 5, padding: "3px 7px" }}>
-                        <span style={{ fontSize: 9, fontWeight: 800, color: "#0369a1" }}>{s.role}</span>
-                        <span style={{ fontSize: 9, color: B.navy, fontWeight: 600 }}>{s.name.split(" ")[0]}</span>
+                      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 4, background: B.cyanBg, border: `1px solid ${B.cyan}40`, borderRadius: 5, padding: "3px 7px" }}>
+                        <span style={{ fontSize: 9, fontWeight: 800, color: B.cyan }}>{s.role}</span>
+                        <span style={{ fontSize: 9, color: B.text, fontWeight: 600 }}>{s.name.split(" ")[0]}</span>
                       </div>
                     ))}
                 </div>
@@ -649,9 +638,12 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
 
         {/* ── BIRTHDAYS ─────────────────────────────────── */}
         <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
-          <div style={{ padding: "8px 14px", background: "#be185d", backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 10px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontWeight: 800, fontSize: 11, color: B.white, display: "flex", alignItems: "center", gap: 6 }}><IcCake /> Upcoming Birthdays</span>
-            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.6)" }}>Next 14 days</span>
+          <div style={{ padding: "12px 16px", borderBottom: `1px solid ${B.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 3, height: 16, borderRadius: 2, background: "#be185d", flexShrink: 0 }} />
+              <span style={{ fontWeight: 700, fontSize: 12, color: B.text, fontFamily: "'Raleway', sans-serif", display: "flex", alignItems: "center", gap: 6 }}><IcCake /> Upcoming Birthdays</span>
+            </div>
+            <span style={{ fontSize: 9, color: B.textMuted }}>Next 14 days</span>
           </div>
           <div style={{ padding: "4px 0", maxHeight: 280, overflowY: "auto" }}>
             {upcomingBirthdays.length === 0 ? (
@@ -699,8 +691,10 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
       {onSiteGroups.length > 0 && (
         <div style={{ padding: "10px 12px 0" }}>
           <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
-            <div style={{ padding: "6px 14px", background: "#f8fafc", borderBottom: "1px solid " + B.border, fontSize: 9, fontWeight: 700, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.5 }}>
-              Groups On-Site Tonight &mdash; {onSiteGroups.length} group{onSiteGroups.length !== 1 ? "s" : ""} &middot; {onSiteStudents} students &middot; {onSiteGLs} GLs
+            <div style={{ padding: "10px 16px", borderBottom: "1px solid " + B.border, display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 3, height: 14, borderRadius: 2, background: B.navy, flexShrink: 0 }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: B.text, fontFamily: "'Raleway', sans-serif" }}>Groups On-Site Tonight</span>
+              <span style={{ fontSize: 9, color: B.textMuted, marginLeft: 2 }}>{onSiteGroups.length} group{onSiteGroups.length !== 1 ? "s" : ""} &middot; {onSiteStudents} students &middot; {onSiteGLs} GLs</span>
             </div>
             <div style={{ padding: "8px 14px", display: "flex", flexWrap: "wrap", gap: 6 }}>
               {onSiteGroups.map((g, i) => (
@@ -713,7 +707,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                   <div style={{ width: 7, height: 7, borderRadius: "50%", background: GROUP_COLORS[i % GROUP_COLORS.length] }} />
                   <span style={{ fontWeight: 700, fontSize: 10, color: B.navy }}>{g.group}</span>
                   <span style={{ fontSize: 9, color: B.textMuted }}>{(g.stu || 0) + (g.gl || 0)} pax</span>
-                  <span style={{ fontSize: 8, color: B.textLight, background: "#f1f5f9", padding: "1px 4px", borderRadius: 3 }}>{g.nat}</span>
+                  <span style={{ fontSize: 8, color: B.textLight, background: B.ice, padding: "1px 4px", borderRadius: 3 }}>{g.nat}</span>
                   <span style={{ fontSize: 8, color: B.textLight }}>until {fmtDate(g.dep)}</span>
                 </div>
               ))}
@@ -726,13 +720,14 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
       {next7Days.length > 0 && (
         <div style={{ padding: "10px 12px 16px" }}>
           <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
-            <div style={{ padding: "6px 14px", background: "#f8fafc", borderBottom: "1px solid " + B.border, fontSize: 9, fontWeight: 700, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.5 }}>
-              Coming Up — Next 7 Days
+            <div style={{ padding: "10px 16px", borderBottom: "1px solid " + B.border, display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 3, height: 14, borderRadius: 2, background: B.navy, flexShrink: 0 }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: B.text, fontFamily: "'Raleway', sans-serif" }}>Coming Up — Next 7 Days</span>
             </div>
             <div style={{ display: "flex", overflowX: "auto", padding: "8px 10px", gap: 8 }}>
               {next7Days.map(({ date, d, arrivals, departures, excursion, bdays }) => (
                 <div key={date} style={{
-                  flexShrink: 0, width: 160, background: "#f8fafc", border: "1px solid " + B.border,
+                  flexShrink: 0, width: 160, background: B.bg, border: "1px solid " + B.border,
                   borderRadius: 8, padding: "8px 10px", fontSize: 10,
                 }}>
                   <div style={{ fontWeight: 800, color: B.navy, marginBottom: 6 }}>
@@ -774,14 +769,17 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
       {/* ── Notice Board ──────────────────────────────────── */}
       <div style={{ padding: "10px 12px 24px" }}>
         <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
-          <div style={{ padding: "8px 14px", background: B.navy, backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 10px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontWeight: 800, fontSize: 11, color: B.white }}>📋 Notice Board</span>
-            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.5)" }}>{notices.length} notice{notices.length !== 1 ? "s" : ""}</span>
+          <div style={{ padding: "12px 16px", borderBottom: `1px solid ${B.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 3, height: 16, borderRadius: 2, background: B.navy, flexShrink: 0 }} />
+              <span style={{ fontWeight: 700, fontSize: 12, color: B.text, fontFamily: "'Raleway', sans-serif" }}>📋 Notice Board</span>
+            </div>
+            <span style={{ fontSize: 9, color: B.textMuted }}>{notices.length} notice{notices.length !== 1 ? "s" : ""}</span>
           </div>
 
           {/* Add form — authorised roles only */}
           {canManageNotices && (
-            <form onSubmit={handleAddNotice} style={{ padding: "12px 14px", borderBottom: "1px solid " + B.border, background: "#f8fafc" }}>
+            <form onSubmit={handleAddNotice} style={{ padding: "12px 14px", borderBottom: "1px solid " + B.border, background: B.bg }}>
               <div style={{ marginBottom: 8 }}>
                 <input
                   value={nTitle}

@@ -18,17 +18,48 @@ export function Fld({ label, children }) {
 }
 
 // ── Stat card ─────────────────────────────────────────────────────────────
-export function StatCard({ label, value, accent }) {
+export function StatCard({ label, value, icon, color, hero, sub, accent }) {
   const B = useB();
+  const col = color || accent || B.navy;
+
+  if (hero) {
+    return (
+      <div style={{
+        background: `linear-gradient(135deg, ${col} 0%, ${col}cc 100%)`,
+        borderRadius: 14, padding: "18px 20px",
+        boxShadow: `0 4px 20px ${col}40`,
+        position: "relative", overflow: "hidden", minWidth: 130,
+      }}>
+        <div aria-hidden="true" style={{ position: "absolute", right: -14, top: -14, width: 74, height: 74, borderRadius: "50%", background: "rgba(255,255,255,0.07)", pointerEvents: "none" }} />
+        <div aria-hidden="true" style={{ position: "absolute", right: 14, top: 14, width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.05)", pointerEvents: "none" }} />
+        {icon && <div style={{ color: "rgba(255,255,255,0.65)", marginBottom: 10, display: "flex" }}>{icon}</div>}
+        <div style={{ fontSize: 9, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 700, fontFamily: RW }}>{label}</div>
+        <div style={{ fontSize: 30, fontWeight: 800, color: "#fff", marginTop: 4, fontFamily: RW, lineHeight: 1, letterSpacing: -0.5 }}>{value}</div>
+        {sub && <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 6 }}>{sub}</div>}
+      </div>
+    );
+  }
+
   return (
     <div style={{
-      background: B.card, borderRadius: 10, padding: "12px 16px", minWidth: 80,
+      background: B.card, borderRadius: 14, padding: "16px 18px",
       border: `1px solid ${B.border}`,
-      borderLeft: `4px solid ${accent || B.navy}`,
-      boxShadow: "0 2px 10px rgba(28,48,72,0.07)",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(28,48,72,0.06)",
+      minWidth: 110,
     }}>
+      {icon && (
+        <div style={{
+          width: 36, height: 36, borderRadius: 10,
+          background: col + "18",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          marginBottom: 10, color: col,
+        }}>
+          {icon}
+        </div>
+      )}
       <div style={{ fontSize: 9, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.8, fontWeight: 700, fontFamily: RW }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: B.text, marginTop: 3, fontFamily: RW, letterSpacing: -0.5, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 28, fontWeight: 800, color: B.text, marginTop: 4, fontFamily: RW, letterSpacing: -0.5, lineHeight: 1 }}>{value}</div>
+      {sub && <div style={{ fontSize: 10, color: B.textMuted, marginTop: 5 }}>{sub}</div>}
     </div>
   );
 }
@@ -156,5 +187,6 @@ export function IcMountain()  { return <Ic d="M8 3l4 8 5-5 5 15H2L8 3z" />; }
 export function IcBuilding()  { return <Ic d="M3 21h18M3 10h18M3 7l9-4 9 4M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3" />; }
 export function IcStar()      { return <Ic d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />; }
 export function IcSparkles()  { return <Ic d="M5 3l1.5 1.5M5 21l1.5-1.5M19 3l-1.5 1.5M19 21l-1.5-1.5M12 2v2M12 20v2M2 12h2M20 12h2M8.5 8.5l7 7M15.5 8.5l-7 7" sw={1.5} />; }
+export function IcBook()      { return <Ic d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z" />; }
 export function IcUserCog()  { return <Ic s={15} d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM19 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM19 8v1M19 13v1M16.6 9.5l-.87.5M21.4 11l-.87.5M16.6 12.5l-.87-.5M21.4 9l-.87-.5" />; }
 export function IcLogout()   { return <Ic s={15} d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />; }
