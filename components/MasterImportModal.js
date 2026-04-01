@@ -33,11 +33,11 @@ function autoMatch(excelGroups, dashGroups) {
   });
 }
 
-const inputStyle = { padding: "5px 8px", border: "1px solid #dce4ec", borderRadius: 5, fontSize: 11, fontFamily: "inherit", background: "#fff", color: "#1c3048" };
 const labelStyle = { fontSize: 9, fontWeight: 800, color: "#5c7084", textTransform: "uppercase", letterSpacing: 0.3, display: "block", marginBottom: 2 };
 
 export default function MasterImportModal({ groups: dashGroups = [], onClose, onImport }) {
   const B = useB();
+  const inputStyle = { padding: "5px 8px", border: "1px solid #dce4ec", borderRadius: 5, fontSize: 11, fontFamily: "inherit", background: B.card, color: B.text };
   const [stage, setStage] = useState("upload"); // upload | match | done
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -81,7 +81,7 @@ export default function MasterImportModal({ groups: dashGroups = [], onClose, on
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: stage === "match" ? 760 : 480, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", overflow: "hidden" }}>
+      <div style={{ background: B.card, borderRadius: 14, width: "100%", maxWidth: stage === "match" ? 760 : 480, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", overflow: "hidden" }}>
 
         {/* Header */}
         <div style={{ background: B.navy, padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
@@ -106,7 +106,7 @@ export default function MasterImportModal({ groups: dashGroups = [], onClose, on
               onDrop={(e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); }}
             >
               <div style={{ fontSize: 32, marginBottom: 8 }}>📊</div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: B.navy }}>Drop Master Excel here</div>
+              <div style={{ fontWeight: 700, fontSize: 13, color: B.text }}>Drop Master Excel here</div>
               <div style={{ fontSize: 11, color: B.textMuted, marginTop: 4 }}>or click to browse — must contain a <strong>Programmes</strong> sheet</div>
               <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={(e) => handleFile(e.target.files[0])} />
             </div>
@@ -144,7 +144,7 @@ export default function MasterImportModal({ groups: dashGroups = [], onClose, on
                   <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px", gap: 8, padding: "8px 20px", borderBottom: "1px solid " + B.borderLight, alignItems: "center" }}>
                     {/* Excel group */}
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 11, color: B.navy }}>{eg.group}</div>
+                      <div style={{ fontWeight: 700, fontSize: 11, color: B.text }}>{eg.group}</div>
                       <div style={{ fontSize: 9, color: B.textMuted }}>{eg.agent} · {eg.nat} · {eg.stu}stu {eg.gl}GL</div>
                       <div style={{ fontSize: 9, color: B.textMuted }}>{eg.arr} → {eg.dep}</div>
                     </div>
@@ -173,7 +173,7 @@ export default function MasterImportModal({ groups: dashGroups = [], onClose, on
             </div>
 
             {/* Footer */}
-            <div style={{ padding: "12px 20px", borderTop: "1px solid " + B.border, display: "flex", gap: 8, flexShrink: 0, background: "#fff" }}>
+            <div style={{ padding: "12px 20px", borderTop: "1px solid " + B.border, display: "flex", gap: 8, flexShrink: 0, background: B.card }}>
               <button onClick={handleConfirm} disabled={importCount === 0} style={{ flex: 1, padding: "10px", background: importCount > 0 ? B.navy : "#94a3b8", border: "none", color: "#fff", borderRadius: 8, cursor: importCount > 0 ? "pointer" : "not-allowed", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>
                 Import {importCount} Group{importCount !== 1 ? "s" : ""}
               </button>
@@ -186,7 +186,7 @@ export default function MasterImportModal({ groups: dashGroups = [], onClose, on
         {stage === "done" && (
           <div style={{ padding: 32, textAlign: "center" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: B.navy, marginBottom: 6 }}>Programme imported</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: B.text, marginBottom: 6 }}>Programme imported</div>
             <div style={{ fontSize: 12, color: B.textMuted, marginBottom: 20 }}>
               {importCount} group{importCount !== 1 ? "s" : ""} populated from Master Excel.
               {updateMeta && " Student counts and dates updated."}

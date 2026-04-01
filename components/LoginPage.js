@@ -20,7 +20,7 @@ export default function LoginPage({ onLogin, error: authError }) {
   const fieldStyle = {
     width: "100%", padding: "14px 18px", fontSize: 15, borderRadius: 24,
     border: "1.5px solid #c8d0da", background: "#eef2f7", fontFamily: "inherit",
-    outline: "none", boxSizing: "border-box", color: "#334155",
+    outline: "none", boxSizing: "border-box", color: B.text,
   };
 
   return (
@@ -36,7 +36,7 @@ export default function LoginPage({ onLogin, error: authError }) {
       <img src="/diagonal_stripes.svg" alt="" style={{ position: "absolute", bottom: 0, right: -200, width: 520 }} />
 
       <div style={{
-        background: "#fff", borderRadius: 20, padding: "44px 40px 36px", width: 400,
+        background: B.card, borderRadius: 20, padding: "44px 40px 36px", width: 400,
         boxShadow: "0 25px 60px rgba(0,0,0,0.3)", position: "relative", zIndex: 1,
       }}>
         {/* UKLC Logo */}
@@ -44,20 +44,20 @@ export default function LoginPage({ onLogin, error: authError }) {
           <img src="/logo-new.png" alt="UKLC" style={{ height: 70 }} />
         </div>
 
-        <h1 style={{ textAlign: "center", fontSize: 22, fontWeight: 800, color: "#1a1a2e", margin: "0 0 4px" }}>Centre Dashboard</h1>
+        <h1 style={{ textAlign: "center", fontSize: 22, fontWeight: 800, color: B.text, margin: "0 0 4px" }}>Centre Dashboard</h1>
         <p style={{ textAlign: "center", fontSize: 13, color: "#7a8599", margin: "0 0 28px" }}>Sign in with your UKLC Account</p>
 
         {err && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "10px 16px", marginBottom: 18, fontSize: 13, color: "#dc2626", fontWeight: 600 }}>{err}</div>}
 
         {/* Email */}
         <div style={{ marginBottom: 20 }}>
-          <label style={{ display: "block", fontSize: 15, fontWeight: 700, color: "#1a1a2e", marginBottom: 8 }}>Email</label>
+          <label style={{ display: "block", fontSize: 15, fontWeight: 700, color: B.text, marginBottom: 8 }}>Email</label>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder="yourname@uklc.org" autoFocus style={fieldStyle} />
         </div>
 
         {/* Password */}
         <div style={{ marginBottom: 28 }}>
-          <label style={{ display: "block", fontSize: 15, fontWeight: 700, color: "#1a1a2e", marginBottom: 8 }}>Password</label>
+          <label style={{ display: "block", fontSize: 15, fontWeight: 700, color: B.text, marginBottom: 8 }}>Password</label>
           <div style={{ position: "relative" }}>
             <input type={showPw ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder="Enter your password" style={{ ...fieldStyle, paddingRight: 60 }} />
             <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#64748b", fontFamily: "inherit", fontWeight: 600 }}>{showPw ? "Hide" : "Show"}</button>

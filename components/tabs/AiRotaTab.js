@@ -119,7 +119,7 @@ function ProgrammeStep({ progStart, progEnd, groups, staff, fortnights, fortIdx,
   const hasData = selectedFortnight.start && selectedFortnight.end && fortnightStaffCount > 0;
   return (
     <div>
-      <h3 style={{ fontSize: 15, fontWeight: 700, fontFamily: RW, color: B.navy, marginBottom: 12 }}>Programme Summary</h3>
+      <h3 style={{ fontSize: 15, fontWeight: 700, fontFamily: RW, color: B.text, marginBottom: 12 }}>Programme Summary</h3>
       <div style={{ background: B.card, border: `1px solid ${B.border}`, borderLeft: `4px solid ${B.navy}`, borderRadius: 8, padding: "16px 20px", marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
           {[
@@ -130,7 +130,7 @@ function ProgrammeStep({ progStart, progEnd, groups, staff, fortnights, fortIdx,
           ].map(({ label, val }) => (
             <div key={label}>
               <div style={{ fontSize: 9, fontWeight: 800, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: RW }}>{label}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, fontFamily: RW, color: B.navy, marginTop: 2 }}>{val}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, fontFamily: RW, color: B.text, marginTop: 2 }}>{val}</div>
             </div>
           ))}
         </div>
@@ -171,7 +171,7 @@ function GenerateStep({ generating, genStep, onGenerate, onBack }) {
   const B = useB();
   return (
     <div>
-      <h3 style={{ fontSize: 15, fontWeight: 700, fontFamily: RW, color: B.navy, marginBottom: 12 }}>Constraint Checklist</h3>
+      <h3 style={{ fontSize: 15, fontWeight: 700, fontFamily: RW, color: B.text, marginBottom: 12 }}>Constraint Checklist</h3>
       <div style={{ marginBottom: 20 }}>
         {CONSTRAINTS.map((c) => (
           <div key={c.id} data-testid={`constraint-${c.id}`} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderBottom: `1px solid ${B.borderLight}` }}>
@@ -211,11 +211,11 @@ function ReviewStep({ draftRota, staff, progStart, progEnd, fortnightLabel, onPu
   return (
     <div>
       <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <span style={{ background: B.yellow, color: B.navy, fontFamily: RW, fontWeight: 700, fontSize: 11, padding: "5px 14px", borderRadius: 20 }}>
+        <span style={{ background: B.yellow, color: B.text, fontFamily: RW, fontWeight: 700, fontSize: 11, padding: "5px 14px", borderRadius: 20 }}>
           Draft Rota — not yet published
         </span>
         {fortnightLabel && (
-          <span style={{ background: B.ice, color: B.navy, fontFamily: RW, fontWeight: 700, fontSize: 11, padding: "5px 14px", borderRadius: 20, border: `1px solid ${B.border}` }}>
+          <span style={{ background: B.ice, color: B.text, fontFamily: RW, fontWeight: 700, fontSize: 11, padding: "5px 14px", borderRadius: 20, border: `1px solid ${B.border}` }}>
             {fortnightLabel}
           </span>
         )}

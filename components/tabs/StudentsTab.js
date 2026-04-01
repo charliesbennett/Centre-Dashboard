@@ -318,7 +318,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
       {/* ── Import preview modal ─────────────────────────── */}
       {importPreview && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+          <div style={{ background: B.card, borderRadius: 14, width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}>
             <div style={{ background: B.navy, padding: "14px 18px" }}>
               <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>Confirm Import</div>
               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>Review before adding to dashboard</div>
@@ -326,7 +326,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
             <div style={{ padding: "18px 20px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "6px 14px", fontSize: 12 }}>
                 <span style={{ color: B.textMuted, fontWeight: 600 }}>Group</span>
-                <span style={{ fontWeight: 800, color: B.navy }}>{importPreview.newGroup.group}</span>
+                <span style={{ fontWeight: 800, color: B.text }}>{importPreview.newGroup.group}</span>
                 <span style={{ color: B.textMuted, fontWeight: 600 }}>Agent</span>
                 <span>{importPreview.newGroup.agent || "—"}</span>
                 <span style={{ color: B.textMuted, fontWeight: 600 }}>Students</span>
@@ -366,7 +366,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
         const set = (k, v) => setEditDraft((p) => ({ ...p, [k]: v }));
         return (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-            <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+            <div style={{ background: B.card, borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}>
               <div style={{ background: B.navy, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>Edit Group</div>
@@ -415,7 +415,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
       {/* ── Lesson split ────────────────────────────────── */}
       {lessonDates.length > 0 && activeGroups.length > 0 && (
         <div style={{ borderTop: "1px solid " + B.border, borderBottom: "1px solid " + B.border, background: B.card }}>
-          <div style={{ padding: "6px 20px 4px", fontSize: 10, fontWeight: 800, color: B.navy }}>📚 AM / PM Lesson Split</div>
+          <div style={{ padding: "6px 20px 4px", fontSize: 10, fontWeight: 800, color: B.text }}>📚 AM / PM Lesson Split</div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ borderCollapse: "collapse", fontSize: 10, width: "100%" }}>
               <thead>
@@ -544,7 +544,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
                     <tr key={i} style={{ borderBottom: "1px solid " + B.borderLight }}>
                       <td style={tdStyle}>{f.firstName}</td>
                       <td style={{ ...tdStyle, fontWeight: 700 }}>{f.surname}</td>
-                      <td style={{ ...tdStyle, color: B.navy, fontWeight: 600 }}>{f.groupName}</td>
+                      <td style={{ ...tdStyle, color: B.text, fontWeight: 600 }}>{f.groupName}</td>
                       <td style={tdStyle}>
                         <span style={{ background: BADGE[f.flagType]?.bg, color: BADGE[f.flagType]?.color, padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700 }}>{f.flagType}</span>
                       </td>
@@ -571,11 +571,11 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
                   <tr key={x.id} style={{ borderBottom: expanded === x.id ? "none" : "1px solid " + B.borderLight, cursor: "pointer", opacity: x.archived ? 0.5 : 1 }} onClick={() => setExpanded(expanded === x.id ? null : x.id)}>
                     <td style={{ ...tdStyle, fontSize: 9, color: B.textMuted }}>{expanded === x.id ? "\u25bc" : "\u25b6"}</td>
                     <td style={tdStyle}>{x.agent}</td>
-                    <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{x.group}</td>
+                    <td style={{ ...tdStyle, fontWeight: 700, color: B.text }}>{x.group}</td>
                     <td style={tdStyle}><span style={{ background: B.pink, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700, color: B.red }}>{x.nat}</span></td>
                     <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700 }}>{x.stu}</td>
                     <td style={{ ...tdStyle, textAlign: "center" }}>{x.gl}</td>
-                    <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, color: B.navy }}>{(x.stu || 0) + (x.gl || 0)}</td>
+                    <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, color: B.text }}>{(x.stu || 0) + (x.gl || 0)}</td>
                     <td style={tdStyle} onClick={(e) => { e.stopPropagation(); toggleLessonSlot(x.id); }}>
                       <span style={{
                         background: x.lessonSlot === "AM" ? "#dbeafe" : "#fae8ff",
@@ -588,7 +588,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
                     <td style={tdStyle}>{fmtDate(x.dep)}</td>
                     <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
                       <div style={{ display: "flex", gap: 2 }}>
-                        {!readOnly && <button onClick={(e) => openEdit(x, e)} title="Edit group" style={{ background: "none", border: "none", cursor: "pointer", padding: 3, fontSize: 12, color: B.navy, borderRadius: 4 }}>✏️</button>}
+                        {!readOnly && <button onClick={(e) => openEdit(x, e)} title="Edit group" style={{ background: "none", border: "none", cursor: "pointer", padding: 3, fontSize: 12, color: B.text, borderRadius: 4 }}>✏️</button>}
                         {!readOnly && <button onClick={() => toggleArchive(x.id)} title={x.archived ? "Unarchive" : "Archive"} style={{
                           background: "none", border: "none", cursor: "pointer", padding: 3, fontSize: 12,
                           color: x.archived ? "#f59e0b" : B.textMuted, borderRadius: 4,

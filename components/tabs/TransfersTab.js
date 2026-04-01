@@ -120,7 +120,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
     return (
       <tr key={t.id} style={{ borderBottom: "1px solid " + B.borderLight, background: isEd ? "#f0f4ff" : "transparent" }}>
         <td style={tdStyle}>{t.agent}</td>
-        <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>
+        <td style={{ ...tdStyle, fontWeight: 700, color: B.text }}>
           {t.group}
           {!isEd && isIncomplete(t) && <span title="Missing flight number" style={{ marginLeft: 5, fontSize: 9, color: B.warning, fontWeight: 800 }}>⚠</span>}
         </td>
@@ -182,7 +182,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
             <button key={v} onClick={() => setView(v)} style={{
               padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer",
               border: "1px solid " + (view === v ? B.navy : B.border),
-              background: view === v ? B.navy : B.white, color: view === v ? B.white : B.textMuted,
+              background: view === v ? B.navy : B.card, color: view === v ? B.white : B.textMuted,
             }}>{v === "overview" ? "\ud83d\udccb Overview" : v === "arrivals" ? "\u2708\ufe0f Arrivals" : v === "departures" ? "\ud83d\udeeb Departures" : "\ud83d\udcc5 Timeline"}</button>
           ))}
         </div>
@@ -193,11 +193,11 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
         <span style={{ fontSize: 10, color: B.textMuted }}>{transfers.length} transfers {"\u00b7"} {totalPax} total pax</span>
         <div style={{ display: "flex", gap: 6 }}>
           {!readOnly && transfers.length > 0 && (
-            <button onClick={syncUpdate} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: "1px solid " + B.border, background: B.white, color: B.textMuted }}>
+            <button onClick={syncUpdate} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: "1px solid " + B.border, background: B.card, color: B.textMuted }}>
               {"\ud83d\udd04"} Update from Groups
             </button>
           )}
-          {!readOnly && <button onClick={addManual} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: "1px solid " + B.border, background: B.white, color: B.navy, display: "flex", alignItems: "center", gap: 4 }}>
+          {!readOnly && <button onClick={addManual} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: "1px solid " + B.border, background: B.card, color: B.text, display: "flex", alignItems: "center", gap: 4 }}>
             <IcPlus /> Add Transfer
           </button>}
           {!readOnly && <button onClick={sync} style={{ ...btnPrimary, background: B.navy }}>
@@ -258,7 +258,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                     return (
                       <tr key={t.id} style={{ borderBottom: "1px solid " + B.borderLight, background: isEd ? "#f0f4ff" : "transparent" }}>
                         <td style={tdStyle}>{t.agent}</td>
-                        <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{t.group}</td>
+                        <td style={{ ...tdStyle, fontWeight: 700, color: B.text }}>{t.group}</td>
                         <td style={{ ...tdStyle, fontWeight: 800, textAlign: "center" }}>{t.pax}</td>
                         <td style={tdStyle}><span style={{ background: B.successBg, color: B.success, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{t.uklc}</span></td>
                         <td style={tdStyle}>{isEd ? <select value={t.arrAirport} onChange={(e) => upd(t.id, "arrAirport", e.target.value)} style={edFi}>{AIRPORTS.map((a) => <option key={a}>{a}</option>)}</select> : t.arrAirport}</td>
@@ -303,7 +303,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                     return (
                       <tr key={t.id} style={{ borderBottom: "1px solid " + B.borderLight, background: isEd ? "#f0f4ff" : "transparent" }}>
                         <td style={tdStyle}>{t.agent}</td>
-                        <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{t.group}</td>
+                        <td style={{ ...tdStyle, fontWeight: 700, color: B.text }}>{t.group}</td>
                         <td style={{ ...tdStyle, fontWeight: 800, textAlign: "center" }}>{t.pax}</td>
                         <td style={tdStyle}><span style={{ background: B.dangerBg, color: B.danger, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{t.uklc}</span></td>
                         <td style={tdStyle}>{isEd ? <select value={t.depAirport} onChange={(e) => upd(t.id, "depAirport", e.target.value)} style={edFi}>{AIRPORTS.map((a) => <option key={a}>{a}</option>)}</select> : t.depAirport}</td>
@@ -342,7 +342,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                 {/* Day header */}
                 <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, background: "#f8fafc", borderBottom: "1px solid " + B.borderLight }}>
                   <div style={{ minWidth: 90 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: B.navy }}>{dayName(d)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: B.text }}>{dayName(d)}</div>
                     <div style={{ fontSize: 10, color: B.textMuted }}>{fmtDate(date)}</div>
                   </div>
                   {data.arrivals.length > 0 && (
@@ -366,8 +366,8 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                         .sort((a, b) => (a.arrTime || "99:99").localeCompare(b.arrTime || "99:99"))
                         .map((t) => (
                         <div key={t.id + "-arr"} style={{ display: "flex", gap: 10, alignItems: "center", padding: "6px 0", borderBottom: "1px solid " + B.borderLight, fontSize: 11 }}>
-                          <span style={{ fontWeight: 800, color: B.navy, minWidth: 50 }}>{t.arrTime || "TBC"}</span>
-                          <span style={{ fontWeight: 700, color: B.navy, minWidth: 100 }}>{t.group}</span>
+                          <span style={{ fontWeight: 800, color: B.text, minWidth: 50 }}>{t.arrTime || "TBC"}</span>
+                          <span style={{ fontWeight: 700, color: B.text, minWidth: 100 }}>{t.group}</span>
                           <span style={{ background: B.cyanBg, color: B.link, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{t.pax} pax</span>
                           <span style={{ fontSize: 10, color: B.textMuted }}>{t.arrAirport}{t.arrTerminal ? " " + t.arrTerminal : ""}</span>
                           <span style={{ fontFamily: "monospace", fontSize: 10 }}>{t.arrFlight || ""}</span>
@@ -386,8 +386,8 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                         .sort((a, b) => (a.depTime || "99:99").localeCompare(b.depTime || "99:99"))
                         .map((t) => (
                         <div key={t.id + "-dep"} style={{ display: "flex", gap: 10, alignItems: "center", padding: "6px 0", borderBottom: "1px solid " + B.borderLight, fontSize: 11 }}>
-                          <span style={{ fontWeight: 800, color: B.navy, minWidth: 50 }}>{t.depTime || "TBC"}</span>
-                          <span style={{ fontWeight: 700, color: B.navy, minWidth: 100 }}>{t.group}</span>
+                          <span style={{ fontWeight: 800, color: B.text, minWidth: 50 }}>{t.depTime || "TBC"}</span>
+                          <span style={{ fontWeight: 700, color: B.text, minWidth: 100 }}>{t.group}</span>
                           <span style={{ background: B.cyanBg, color: B.link, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{t.pax} pax</span>
                           <span style={{ fontSize: 10, color: B.textMuted }}>{t.depAirport}{t.depTerminal ? " " + t.depTerminal : ""}</span>
                           <span style={{ fontFamily: "monospace", fontSize: 10 }}>{t.depFlight || ""}</span>

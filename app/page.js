@@ -332,10 +332,10 @@ export default function Dashboard() {
   const renderTab = () => {
     if (!centreId) return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 14 }}>
-        <div style={{ width: 72, height: 72, borderRadius: 18, background: B.ice, border: `2px solid ${B.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: B.navy }}>
+        <div style={{ width: 72, height: 72, borderRadius: 18, background: B.ice, border: `2px solid ${B.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: B.text }}>
           <IcBuilding />
         </div>
-        <div style={{ fontSize: 17, fontWeight: 800, color: B.navy, fontFamily: "'Raleway', sans-serif" }}>Select a centre to get started</div>
+        <div style={{ fontSize: 17, fontWeight: 800, color: B.text, fontFamily: "'Raleway', sans-serif" }}>Select a centre to get started</div>
         <div style={{ fontSize: 12, color: B.textMuted }}>Choose a centre from the dropdown in the top bar</div>
       </div>
     );
@@ -488,7 +488,7 @@ export default function Dashboard() {
               whiteSpace: "nowrap", transition: "all 0.12s",
               borderBottom: active ? `3px solid ${B.red}` : "3px solid transparent",
               background: active ? "rgba(28,48,72,0.05)" : "transparent",
-              color: active ? B.navy : B.textMuted,
+              color: active ? B.text : B.textMuted,
               borderRadius: "4px 4px 0 0",
             }}>
               <span style={{ color: active ? B.red : B.textLight, display: "flex", alignItems: "center" }}>

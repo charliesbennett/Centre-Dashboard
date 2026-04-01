@@ -75,7 +75,7 @@ export default function RoomingOverviewView({
             padding: "4px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700,
             fontFamily: "inherit", cursor: "pointer",
             border: "1px solid " + (overviewSub === sv.id ? B.navy : B.border),
-            background: overviewSub === sv.id ? B.navy : B.white,
+            background: overviewSub === sv.id ? B.navy : B.card,
             color: overviewSub === sv.id ? B.white : B.textMuted,
           }}>{sv.label}</button>
         ))}
@@ -175,14 +175,14 @@ export default function RoomingOverviewView({
                       const { house, room, slots } = row;
                       const houseRoomsForBg = roomingRooms.filter((r) => r.houseId === house.id);
                       const roomIdxForBg = houseRoomsForBg.findIndex((r) => r.id === room.id);
-                      const rowBg = roomIdxForBg % 2 === 0 ? B.white : "#f8fafc";
+                      const rowBg = roomIdxForBg % 2 === 0 ? B.card : B.bg;
 
                       return (
                         <tr key={room.id} style={{ borderBottom: "1px solid " + B.borderLight }}>
                           <td style={{ padding: "4px 8px", position: "sticky", left: 0, zIndex: 1, background: rowBg, fontSize: 9, color: B.textMuted, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 90, verticalAlign: "top" }}>
                             {house.name}
                           </td>
-                          <td style={{ padding: "4px 8px", position: "sticky", left: 90, zIndex: 1, background: rowBg, fontWeight: 700, fontSize: 10, color: B.navy, whiteSpace: "nowrap", verticalAlign: "top" }}>
+                          <td style={{ padding: "4px 8px", position: "sticky", left: 90, zIndex: 1, background: rowBg, fontWeight: 700, fontSize: 10, color: B.text, whiteSpace: "nowrap", verticalAlign: "top" }}>
                             {room.roomName}
                             <div style={{ fontSize: 8, fontWeight: 400, color: B.textMuted }}>{slots.length} bed{slots.length !== 1 ? "s" : ""}</div>
                           </td>
@@ -211,7 +211,7 @@ export default function RoomingOverviewView({
                                     {occupants.map((o, oi) => (
                                       <div key={oi} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: o.gc, flexShrink: 0 }} />
-                                        <span style={{ fontSize: 9, fontWeight: 600, color: B.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                        <span style={{ fontSize: 9, fontWeight: 600, color: B.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                           {o.name}
                                         </span>
                                       </div>
@@ -296,8 +296,8 @@ export default function RoomingOverviewView({
                   </tr>
                 ) : activeGroups.map((g, gi) => (
                   <tr key={g.id} style={{ borderBottom: "1px solid " + B.borderLight }}>
-                    <td style={{ padding: "5px 8px", position: "sticky", left: 0, background: B.white, zIndex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: 10, color: B.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 150 }}>{g.group}</div>
+                    <td style={{ padding: "5px 8px", position: "sticky", left: 0, background: B.card, zIndex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 10, color: B.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 150 }}>{g.group}</div>
                       <div style={{ fontSize: 8, color: B.textMuted }}>{(g.stu || 0) + (g.gl || 0)} pax · {fmtDate(g.arr)} {"\u2192"} {fmtDate(g.dep)}</div>
                     </td>
                     {dates.map((d) => {

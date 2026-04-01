@@ -619,14 +619,14 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         <StatCard label="Days" value={dates.length} accent={B.textMuted} />
         <StatCard label="TALs" value={staff.filter((s) => s.role === "TAL").length} accent="#3b82f6" />
         <StatCard label="FTTs" value={staff.filter((s) => s.role === "FTT").length} accent="#0891b2" />
-        {groupArrivalDate && <span style={{ fontSize: 9, color: B.textMuted }}>Students arrive: <strong style={{ color: B.navy }}>{fmtDate(groupArrivalDate)}</strong></span>}
+        {groupArrivalDate && <span style={{ fontSize: 9, color: B.textMuted }}>Students arrive: <strong style={{ color: B.text }}>{fmtDate(groupArrivalDate)}</strong></span>}
         {teacherAdequacy && teacherAdequacy.shortfall > 0 && (
           <span style={{ fontSize: 9, background: B.warningBg, color: B.warning, border: `1px solid #fcd34d`, borderRadius: 5, padding: "3px 8px", fontWeight: 700 }}>
             ⚠️ Need {teacherAdequacy.peakNeeded} teachers/slot (peak) — {teacherAdequacy.typicalAvail} typically available — add {teacherAdequacy.shortfall} more TAL/FTT
           </span>
         )}
         <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
-          <button onClick={() => setShowRatios(!showRatios)} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: "1px solid "+(showRatios ? B.navy : B.border), background: showRatios ? B.navy : B.white, color: showRatios ? B.white : B.textMuted, display: "flex", alignItems: "center", gap: 4 }}>
+          <button onClick={() => setShowRatios(!showRatios)} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: "1px solid "+(showRatios ? B.navy : B.border), background: showRatios ? B.navy : B.card, color: showRatios ? B.white : B.textMuted, display: "flex", alignItems: "center", gap: 4 }}>
             Ratios {ratioAlerts.length > 0 && <span style={{ background: B.danger, color: B.white, borderRadius: 8, padding: "1px 5px", fontSize: 8 }}>{ratioAlerts.length}</span>}
           </button>
           {!readOnly && <button onClick={() => {
@@ -755,7 +755,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                 padding: "4px 12px", borderRadius: 20, fontSize: 10, fontWeight: 700,
                 fontFamily: "inherit", cursor: "pointer",
                 border: `1px solid ${i === fortIdx ? B.navy : B.border}`,
-                background: i === fortIdx ? B.navy : B.white,
+                background: i === fortIdx ? B.navy : B.card,
                 color: i === fortIdx ? B.white : B.textMuted,
               }}
             >
@@ -803,7 +803,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
             {hasRotaData && groups && groups.length > 0 && (
               <tr style={{ borderBottom: "2px solid "+B.border, background: "#f0fdf4" }}>
                 <td style={{ ...tdStyle, position: "sticky", left: 0, zIndex: 1, background: "#f0fdf4", fontSize: 9, fontWeight: 800, color: B.success }}>Ratio</td>
-                <td style={{ ...tdStyle, position: "sticky", left: 52, zIndex: 1, background: "#f0fdf4", fontSize: 10, fontWeight: 700, color: B.navy }}>Staff+GL / Need</td>
+                <td style={{ ...tdStyle, position: "sticky", left: 52, zIndex: 1, background: "#f0fdf4", fontSize: 10, fontWeight: 700, color: B.text }}>Staff+GL / Need</td>
                 <td style={{ ...tdStyle, position: "sticky", left: 192, zIndex: 1, background: "#f0fdf4" }}></td>
                 <td style={{ ...tdStyle, position: "sticky", left: 236, zIndex: 1, background: "#f0fdf4" }}></td>
                 {dates.map((d) => {
@@ -835,8 +835,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                   <td style={{ ...tdStyle, position: "sticky", left: 0, background: B.card, zIndex: 1 }}>
                     <span style={{ background: "#dbeafe", color: "#1e40af", padding: "3px 7px", borderRadius: 4, fontSize: 10, fontWeight: 800 }}>{s.role}</span>
                   </td>
-                  <td style={{ ...tdStyle, fontWeight: 700, color: B.navy, fontSize: 12, position: "sticky", left: 52, background: B.card, zIndex: 1, whiteSpace: "nowrap" }}>{s.name}</td>
-                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, fontSize: 12, position: "sticky", left: 192, background: B.card, zIndex: 1, color: over ? B.danger : B.navy }}>
+                  <td style={{ ...tdStyle, fontWeight: 700, color: B.text, fontSize: 12, position: "sticky", left: 52, background: B.card, zIndex: 1, whiteSpace: "nowrap" }}>{s.name}</td>
+                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, fontSize: 12, position: "sticky", left: 192, background: B.card, zIndex: 1, color: over ? B.danger : B.text }}>
                     {st.sess}{limit !== Infinity && limit > 0 ? `/${limit}` : ""}
                   </td>
                   <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700, fontSize: 12, position: "sticky", left: 236, background: B.card, zIndex: 1, color: st.offs > 0 ? "#f59e0b" : B.textLight }}>{st.offs}</td>

@@ -273,7 +273,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     )}
     <div style={{background:B.white,borderBottom:"1px solid "+B.border,padding:"10px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}>
       <div style={{display:"flex",gap:8,alignItems:"center"}}>
-        <span style={{fontSize:11,fontWeight:700,color:B.navy}}>{dates.length} days {"\u00b7"} {groups.length} groups</span>
+        <span style={{fontSize:11,fontWeight:700,color:B.text}}>{dates.length} days {"\u00b7"} {groups.length} groups</span>
         {isLondon && <span style={{background:"#e0f2fe",color:"#0369a1",padding:"2px 8px",borderRadius:4,fontSize:9,fontWeight:700}}>London</span>}
         {isMinistay && <span style={{background:"#fef3c7",color:"#92400e",padding:"2px 8px",borderRadius:4,fontSize:9,fontWeight:700}}>Ministay</span>}
       </div>
@@ -338,7 +338,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           {groups.length===0?<tr><td colSpan={100} style={{textAlign:"center",padding:36,color:B.textLight}}>Import groups in Students tab</td></tr>:
           groups.map(g=><tr key={g.id} style={{borderBottom:"1px solid "+B.borderLight}}>
             <td style={{...tdStyle,fontWeight:600,fontSize:9,position:"sticky",left:0,background:B.white,zIndex:1}}>{g.agent}</td>
-            <td style={{...tdStyle,fontWeight:700,color:B.navy,fontSize:10,position:"sticky",left:100,background:B.white,zIndex:1}}>{g.group}</td>
+            <td style={{...tdStyle,fontWeight:700,color:B.text,fontSize:10,position:"sticky",left:100,background:B.white,zIndex:1}}>{g.group}</td>
             <td style={{...tdStyle,fontWeight:800,textAlign:"center",fontSize:10}}>{(g.stu||0)+(g.gl||0)}</td>
             <td style={{...tdStyle,textAlign:"center"}}><span style={{background:g.lessonSlot==="PM"?"#fae8ff":"#dbeafe",color:g.lessonSlot==="PM"?"#9333ea":"#1e40af",padding:"2px 6px",borderRadius:3,fontSize:8,fontWeight:800}}>{g.lessonSlot||"AM"}</span></td>
             {dates.map(d=>slots.map(sl=>{const s=dayKey(d),key=g.id+"-"+s+"-"+sl,val=grid[key],on=inRange(s,g.arr,g.dep),cls=classify(val),isEd=editingCell===key,isQP=quickPickCell===key;
@@ -350,7 +350,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
                   {(sl==="EVE"?QUICK_EVE:QUICK_AM_PM).map(opt=><div key={opt} onClick={(e)=>{e.stopPropagation();quickPick(key,opt);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:classify(opt).color,whiteSpace:"nowrap"}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{opt}</div>)}
                   <div style={{borderTop:"1px solid "+B.border,marginTop:2,paddingTop:2}}>
                     <div onClick={(e)=>{e.stopPropagation();quickPick(key,undefined);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:B.textMuted}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u2717"} Clear</div>
-                    <div onClick={(e)=>{e.stopPropagation();setQuickPickCell(null);startEdit(key,val);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:B.navy}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u270f\ufe0f"} Custom text...</div>
+                    <div onClick={(e)=>{e.stopPropagation();setQuickPickCell(null);startEdit(key,val);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:B.text}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u270f\ufe0f"} Custom text...</div>
                   </div>
                 </div>}
               </td>;}))}
@@ -396,11 +396,11 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       </div>
       {selGroup && <div style={{padding:"0 8px 16px",overflowX:"auto"}}>
         <div style={{padding:"8px 12px",display:"flex",gap:16,fontSize:10,color:B.textMuted,flexWrap:"wrap",alignItems:"center"}}>
-          <span><strong style={{color:B.navy}}>Agent:</strong> {selGroup.agent}</span>
-          <span><strong style={{color:B.navy}}>Pax:</strong> {(selGroup.stu||0)+(selGroup.gl||0)}</span>
-          <span><strong style={{color:B.navy}}>Wk1 Lessons:</strong> {selGroup.lessonSlot||"AM"}</span>
-          <span><strong style={{color:B.navy}}>Arr:</strong> {fmtDate(selGroup.arr)}</span>
-          <span><strong style={{color:B.navy}}>Dep:</strong> {fmtDate(selGroup.dep)}</span>
+          <span><strong style={{color:B.text}}>Agent:</strong> {selGroup.agent}</span>
+          <span><strong style={{color:B.text}}>Pax:</strong> {(selGroup.stu||0)+(selGroup.gl||0)}</span>
+          <span><strong style={{color:B.text}}>Wk1 Lessons:</strong> {selGroup.lessonSlot||"AM"}</span>
+          <span><strong style={{color:B.text}}>Arr:</strong> {fmtDate(selGroup.arr)}</span>
+          <span><strong style={{color:B.text}}>Dep:</strong> {fmtDate(selGroup.dep)}</span>
         </div>
         {/* Per-group template toolbar */}
         {!readOnly && <div style={{padding:"6px 12px 8px",background:"#f8fafc",borderBottom:"1px solid "+B.border,display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
@@ -428,7 +428,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
                   {(sl==="EVE"?QUICK_EVE:QUICK_AM_PM).map(opt=><div key={opt} onClick={(e)=>{e.stopPropagation();quickPick(key,opt);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:classify(opt).color,whiteSpace:"nowrap"}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{opt}</div>)}
                   <div style={{borderTop:"1px solid "+B.border,marginTop:2,paddingTop:2}}>
                     <div onClick={(e)=>{e.stopPropagation();quickPick(key,undefined);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:B.textMuted}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u2717"} Clear</div>
-                    <div onClick={(e)=>{e.stopPropagation();setQuickPickCell(null);startEdit(key,val);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:B.navy}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u270f\ufe0f"} Custom text...</div>
+                    <div onClick={(e)=>{e.stopPropagation();setQuickPickCell(null);startEdit(key,val);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:B.text}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u270f\ufe0f"} Custom text...</div>
                   </div>
                 </div>}
               </td>;})}
@@ -456,7 +456,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           }} style={{...btnPrimary,background:B.navy,fontSize:10}}><IcWand/> Apply to All Groups</button>}
         </div>
         {activeTemplate.weeks.map(wk=><div key={wk.week} style={{marginBottom:12}}>
-          <div style={{padding:"6px 8px",fontWeight:800,fontSize:11,color:B.navy}}>Week {wk.week}</div>
+          <div style={{padding:"6px 8px",fontWeight:800,fontSize:11,color:B.text}}>Week {wk.week}</div>
           <TableWrap><table style={{minWidth:1200,width:"100%",borderCollapse:"collapse",fontSize:10}}>
             <thead><tr><th style={{...thStyle,width:30}}></th>
               {wk.days.map((d,i)=><th key={i} style={{...thStyle,textAlign:"center",minWidth:100}}><div style={{fontWeight:800,fontSize:10,color:(d.day==="Saturday"||d.day==="Sunday")?B.red:B.navy}}>{d.day}</div></th>)}

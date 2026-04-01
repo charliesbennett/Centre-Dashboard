@@ -92,7 +92,7 @@ export default function TeamTab({ staff, setStaff, readOnly = false }) {
                 <>
                   <tr key={x.id} style={{ borderBottom: editId === x.id ? "none" : `1px solid ${B.borderLight}`, background: editId === x.id ? B.ice : "transparent" }}>
                     <td style={tdStyle}><span style={{ background: B.cyanBg, color: B.link, padding: "2px 5px", borderRadius: 3, fontSize: 9, fontWeight: 800 }}>{x.role}</span></td>
-                    <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{x.name}</td>
+                    <td style={{ ...tdStyle, fontWeight: 700, color: B.text }}>{x.name}</td>
                     <td style={tdStyle}><span style={{ fontSize: 10, color: x.acc === "Residential" ? B.success : B.textMuted, fontWeight: 600 }}>{x.acc === "Residential" ? "Res" : "Non-res"}</span></td>
                     <td style={tdStyle}>{fmtDate(x.arr)}</td>
                     <td style={tdStyle}>{fmtDate(x.dep)}</td>

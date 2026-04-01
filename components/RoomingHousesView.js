@@ -238,7 +238,7 @@ export default function RoomingHousesView({
               <div style={{ display: "flex", gap: 8 }}>
                 <button
                   onClick={() => { window.open(modalUrl, "_blank"); }}
-                  style={{ flex: 1, padding: "8px 14px", background: B.bg, border: "1px solid " + B.border, color: B.navy, borderRadius: 7, fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  style={{ flex: 1, padding: "8px 14px", background: B.bg, border: "1px solid " + B.border, color: B.text, borderRadius: 7, fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                   Preview Form
                 </button>
                 <button
@@ -327,7 +327,7 @@ export default function RoomingHousesView({
                       onClick={(e) => e.stopPropagation()}
                       autoFocus style={{ ...inputStyle, fontSize: 13, fontWeight: 700, width: 200 }} />
                   ) : (
-                    <span style={{ fontWeight: 800, fontSize: 12, color: B.navy }}>{house.name}</span>
+                    <span style={{ fontWeight: 800, fontSize: 12, color: B.text }}>{house.name}</span>
                   )}
                   <span style={{ fontSize: 9, color: B.textMuted, background: B.bg, padding: "2px 6px", borderRadius: 4 }}>
                     {houseRooms.length} rooms · {houseBeds} beds
@@ -385,7 +385,7 @@ export default function RoomingHousesView({
                                   </div>
                                 ) : (
                                   <>
-                                    <div style={{ fontWeight: 700, fontSize: 11, color: B.navy }}>{room.roomName}</div>
+                                    <div style={{ fontWeight: 700, fontSize: 11, color: B.text }}>{room.roomName}</div>
                                     <div style={{ fontSize: 9, color: occupancy >= room.capacity ? B.success : B.textMuted }}>
                                       {occupancy}/{room.capacity} beds
                                     </div>
@@ -524,7 +524,7 @@ export default function RoomingHousesView({
                                 background: roomFilled >= room.capacity ? "#f0fdf4" : B.card,
                               }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                                  <div style={{ fontWeight: 700, fontSize: 11, color: B.navy }}>{room.roomName}</div>
+                                  <div style={{ fontWeight: 700, fontSize: 11, color: B.text }}>{room.roomName}</div>
                                   <span style={{ fontSize: 9, fontWeight: 700, color: roomFilled >= room.capacity ? B.success : B.textMuted }}>
                                     {roomFilled}/{room.capacity}
                                   </span>
@@ -597,7 +597,7 @@ export default function RoomingHousesView({
                       const pct = houseBeds ? Math.round((houseOccupied / houseBeds) * 100) : 0;
                       return (
                         <tr key={house.id} style={{ borderBottom: "1px solid " + B.borderLight }}>
-                          <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{house.name}</td>
+                          <td style={{ ...tdStyle, fontWeight: 700, color: B.text }}>{house.name}</td>
                           <td style={{ ...tdStyle, textAlign: "center" }}>{houseRooms.length}</td>
                           <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700 }}>{houseBeds}</td>
                           <td style={{ ...tdStyle, textAlign: "center", color: B.success, fontWeight: 700 }}>{houseOccupied}</td>
@@ -614,7 +614,7 @@ export default function RoomingHousesView({
                       );
                     })}
                     <tr style={{ background: "#f8fafc", borderTop: "2px solid " + B.border }}>
-                      <td style={{ ...tdStyle, fontWeight: 800, color: B.navy }}>TOTAL</td>
+                      <td style={{ ...tdStyle, fontWeight: 800, color: B.text }}>TOTAL</td>
                       <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{roomingRooms.length}</td>
                       <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{totalBeds}</td>
                       <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, color: B.success }}>{occupiedBeds}</td>
@@ -644,10 +644,10 @@ export default function RoomingHousesView({
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 4px 12px", flexWrap: "wrap" }}>
                 <button onClick={() => setNightDate((d) => shiftDate(d || progStart, -1))}
                   disabled={nightDate <= progStart}
-                  style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 5, padding: "4px 10px", cursor: nightDate <= progStart ? "default" : "pointer", fontSize: 13, color: nightDate <= progStart ? B.textLight : B.navy, fontFamily: "inherit" }}>
+                  style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 5, padding: "4px 10px", cursor: nightDate <= progStart ? "default" : "pointer", fontSize: 13, color: nightDate <= progStart ? B.textLight : B.text, fontFamily: "inherit" }}>
                   ←
                 </button>
-                <div style={{ fontWeight: 800, fontSize: 13, color: B.navy, minWidth: 120, textAlign: "center" }}>
+                <div style={{ fontWeight: 800, fontSize: 13, color: B.text, minWidth: 120, textAlign: "center" }}>
                   {nightDate ? fmtDate(nightDate) : "—"}
                   <div style={{ fontSize: 9, fontWeight: 600, color: B.textMuted }}>
                     {nightDate ? new Date(nightDate).toLocaleDateString("en-GB", { weekday: "long" }) : ""}
@@ -655,7 +655,7 @@ export default function RoomingHousesView({
                 </div>
                 <button onClick={() => setNightDate((d) => shiftDate(d || progStart, 1))}
                   disabled={nightDate >= progEnd}
-                  style={{ background: B.white, border: "1px solid " + B.border, borderRadius: 5, padding: "4px 10px", cursor: nightDate >= progEnd ? "default" : "pointer", fontSize: 13, color: nightDate >= progEnd ? B.textLight : B.navy, fontFamily: "inherit" }}>
+                  style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 5, padding: "4px 10px", cursor: nightDate >= progEnd ? "default" : "pointer", fontSize: 13, color: nightDate >= progEnd ? B.textLight : B.text, fontFamily: "inherit" }}>
                   →
                 </button>
                 <input type="date" value={nightDate} min={progStart} max={progEnd}
@@ -734,7 +734,7 @@ export default function RoomingHousesView({
                                 opacity: isEmpty && roomingAssignments.filter((a) => a.roomId === room.id && a.occupantName).length === 0 ? 0.5 : 1,
                               }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                                  <div style={{ fontWeight: 800, fontSize: 11, color: B.navy }}>{room.roomName}</div>
+                                  <div style={{ fontWeight: 800, fontSize: 11, color: B.text }}>{room.roomName}</div>
                                   <span style={{
                                     fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
                                     background: presentCount >= room.capacity ? "#dcfce7" : presentCount > 0 ? B.cyanBg : "#f1f5f9",
@@ -765,7 +765,7 @@ export default function RoomingHousesView({
                                             <div style={{
                                               fontSize: 10,
                                               fontWeight: present ? 700 : 400,
-                                              color: present ? B.navy : B.textLight,
+                                              color: present ? B.text : B.textLight,
                                               textDecoration: away ? "line-through" : "none",
                                               whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                                             }}>

@@ -170,7 +170,7 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, m
         {/* Left: spreadsheet preview */}
         <div style={{ width:"55%", display:"flex", flexDirection:"column", borderRight:"2px solid #2a3f52" }}>
           <div style={{ padding:"8px 14px", background:"#162534", borderBottom:"1px solid #2a3f52", display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
-            <label style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"6px 14px", background:B.white, borderRadius:5, cursor:parsing?"not-allowed":"pointer", fontSize:10, fontWeight:700, color:B.navy, opacity:parsing?0.6:1 }}>
+            <label style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"6px 14px", background:B.white, borderRadius:5, cursor:parsing?"not-allowed":"pointer", fontSize:10, fontWeight:700, color:B.text, opacity:parsing?0.6:1 }}>
               {parsing ? "⏳ Extracting…" : "📊 Upload Sample Programme Excel"}
               <input type="file" accept=".xlsx,.xls" onChange={handleUpload} disabled={parsing} style={{ display:"none" }} />
             </label>
@@ -219,7 +219,7 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, m
         {/* Right: template editor */}
         <div style={{ width:"45%", background:B.bg, display:"flex", flexDirection:"column", minHeight:0 }}>
           <div style={{ padding:"8px 14px", background:B.card, borderBottom:"1px solid "+B.border, flexShrink:0 }}>
-            <div style={{ fontSize:10, fontWeight:700, color:B.navy }}>{isSummer ? "Programme Template" : "Weekly Programme Template"}</div>
+            <div style={{ fontSize:10, fontWeight:700, color:B.text }}>{isSummer ? "Programme Template" : "Weekly Programme Template"}</div>
             <div style={{ fontSize:9, color:B.textMuted, marginTop:1 }}>{isSummer ? "Each week has its own Mon–Sun pattern. Arrival/departure days are set automatically." : "Relative to arrival — Day 1 = arrival, Day 7 = departure (6 nights). Auto-populate adjusts for any start day."}</div>
           </div>
           {/* Week tabs (summer only) */}

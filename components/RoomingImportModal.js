@@ -188,12 +188,12 @@ export default function RoomingImportModal({
                 {parsing ? (
                   <>
                     <div style={{ fontSize: 32, marginBottom: 8 }}>⏳</div>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: B.navy }}>Parsing spreadsheet…</div>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: B.text }}>Parsing spreadsheet…</div>
                   </>
                 ) : (
                   <>
                     <div style={{ fontSize: 32, marginBottom: 10 }}>📊</div>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: B.navy, marginBottom: 4 }}>Upload Rooming List Excel</div>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: B.text, marginBottom: 4 }}>Upload Rooming List Excel</div>
                     <div style={{ fontSize: 11, color: B.textMuted }}>
                       Drag & drop or click to select<br />
                       <span style={{ fontSize: 10, color: B.textLight }}>Supports .xlsx, .xlsm, .xls</span>
@@ -224,7 +224,7 @@ export default function RoomingImportModal({
               {/* Summary bar */}
               <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
                 {[
-                  { label: "Houses", value: parseResult.houses.length, color: B.navy },
+                  { label: "Houses", value: parseResult.houses.length, color: B.text },
                   { label: "Rooms", value: parseResult.totalRooms, color: "#7c3aed" },
                   { label: "Beds", value: parseResult.totalBeds, color: "#0891b2" },
                   { label: "Names", value: parseResult.namedBeds, color: parseResult.namedBeds ? "#16a34a" : B.textLight },
@@ -277,7 +277,7 @@ export default function RoomingImportModal({
                                   borderRadius: 6, padding: "5px 8px", minWidth: 100, background: existingRoomEntry ? "#fffbeb" : "#f0fdf4",
                                 }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
-                                    <span style={{ fontWeight: 700, fontSize: 10, color: B.navy }}>{r.roomName}</span>
+                                    <span style={{ fontWeight: 700, fontSize: 10, color: B.text }}>{r.roomName}</span>
                                     <span style={{ fontSize: 8, color: B.textMuted }}>{r.beds.length} bed{r.beds.length !== 1 ? "s" : ""}</span>
                                     {existingRoomEntry ? (
                                       <span style={{ fontSize: 7, padding: "1px 4px", borderRadius: 3, background: "#fef3c7", color: "#b45309", fontWeight: 700 }}>exists</span>
@@ -316,9 +316,9 @@ export default function RoomingImportModal({
               {/* Group selector (only shown if there are names) */}
               {parseResult.namedBeds > 0 && (
                 <div style={{ marginTop: 12 }}>
-                  <label style={{ fontSize: 10, fontWeight: 700, color: B.navy, display: "block", marginBottom: 4 }}>Assign named occupants to group:</label>
+                  <label style={{ fontSize: 10, fontWeight: 700, color: B.text, display: "block", marginBottom: 4 }}>Assign named occupants to group:</label>
                   <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)}
-                    style={{ padding: "7px 10px", border: "1px solid " + B.border, borderRadius: 7, fontSize: 11, fontFamily: "inherit", width: "100%", color: B.navy, background: B.white }}>
+                    style={{ padding: "7px 10px", border: "1px solid " + B.border, borderRadius: 7, fontSize: 11, fontFamily: "inherit", width: "100%", color: B.text, background: B.card }}>
                     <option value="">— Don't assign to a group</option>
                     {activeGroups.map((g) => <option key={g.id} value={g.id}>{g.group}</option>)}
                   </select>
@@ -358,7 +358,7 @@ export default function RoomingImportModal({
             </button>
           ) : stage === "preview" ? (
             <>
-              <button onClick={onClose} style={{ padding: "8px 16px", background: B.white, border: "1px solid " + B.border, color: B.textMuted, borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              <button onClick={onClose} style={{ padding: "8px 16px", background: B.card, border: "1px solid " + B.border, color: B.textMuted, borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                 Cancel
               </button>
               <button onClick={handleImport} disabled={importing || (diff.newHousesCount === 0 && diff.newRoomsCount === 0 && parseResult?.namedBeds === 0)}
@@ -371,7 +371,7 @@ export default function RoomingImportModal({
               </button>
             </>
           ) : (
-            <button onClick={onClose} style={{ padding: "8px 16px", background: B.white, border: "1px solid " + B.border, color: B.textMuted, borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            <button onClick={onClose} style={{ padding: "8px 16px", background: B.card, border: "1px solid " + B.border, color: B.textMuted, borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               Cancel
             </button>
           )}

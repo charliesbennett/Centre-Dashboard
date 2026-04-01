@@ -185,7 +185,7 @@ export default function ChatButton({ centreId, centreName, centreData }) {
                       style={{
                         background: B.ice, border: `1px solid ${B.border}`,
                         borderRadius: 20, padding: "5px 12px",
-                        fontSize: 11, color: B.navy, fontWeight: 600,
+                        fontSize: 11, color: B.text, fontWeight: 600,
                         cursor: "pointer", fontFamily: "inherit",
                         transition: "background 0.12s",
                       }}
@@ -258,7 +258,7 @@ export default function ChatButton({ centreId, centreName, centreData }) {
                 padding: "8px 12px",
                 fontSize: 12,
                 fontFamily: "inherit",
-                background: B.white,
+                background: B.card,
                 color: B.text,
                 outline: "none",
               }}

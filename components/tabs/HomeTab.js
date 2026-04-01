@@ -490,7 +490,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                   ) : gs.map((g, i) => (
                     <div key={g.id} style={{ padding: "6px 14px", display: "flex", alignItems: "center", gap: 10, borderBottom: i < gs.length - 1 ? `1px solid ${B.borderLight}` : "none" }}>
                       <span style={{ width: 8, height: 8, borderRadius: "50%", background: GROUP_COLORS[i % GROUP_COLORS.length], flexShrink: 0 }} />
-                      <span style={{ fontWeight: 700, color: B.navy, fontSize: 12, flex: 1 }}>{g.group}</span>
+                      <span style={{ fontWeight: 700, color: B.text, fontSize: 12, flex: 1 }}>{g.group}</span>
                       <span style={{ fontSize: 10, color: B.textMuted, background: B.ice, border: `1px solid ${B.border}`, borderRadius: 4, padding: "2px 8px" }}>
                         {g.stu || 0} students{g.gl ? `, ${g.gl} GLs` : ""}
                       </span>
@@ -534,7 +534,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
               <div key={g.id} style={{ padding: "6px 14px", borderBottom: i < todayProg.length - 1 ? "1px solid " + B.borderLight : "none" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
                   <div style={{ width: 7, height: 7, borderRadius: "50%", background: GROUP_COLORS[i % GROUP_COLORS.length], flexShrink: 0 }} />
-                  <span style={{ fontWeight: 700, fontSize: 10, color: B.navy }}>{g.group}</span>
+                  <span style={{ fontWeight: 700, fontSize: 10, color: B.text }}>{g.group}</span>
                   <span style={{ fontSize: 8, color: B.textLight, background: B.ice, padding: "1px 5px", borderRadius: 3 }}>
                     {(g.stu || 0) + (g.gl || 0)} pax
                   </span>
@@ -587,7 +587,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                     <div key={g.id} style={{ padding: "6px 14px", display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid " + B.borderLight }}>
                       <span style={{ color: B.success }}><IcPlaneUp /></span>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: 10, color: B.navy }}>{g.group}</div>
+                        <div style={{ fontWeight: 700, fontSize: 10, color: B.text }}>{g.group}</div>
                         <div style={{ fontSize: 9, color: B.success, fontWeight: 600 }}>Arriving — {(g.stu || 0) + (g.gl || 0)} pax</div>
                         {g.arrFlight && <div style={{ fontSize: 8, color: B.textMuted }}>{g.arrAirport} · {g.arrFlight}{g.arrTime ? " at " + g.arrTime : ""}</div>}
                       </div>
@@ -597,7 +597,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                     <div key={g.id} style={{ padding: "6px 14px", display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid " + B.borderLight }}>
                       <span style={{ color: B.warning }}><IcPlaneDn /></span>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: 10, color: B.navy }}>{g.group}</div>
+                        <div style={{ fontWeight: 700, fontSize: 10, color: B.text }}>{g.group}</div>
                         <div style={{ fontSize: 9, color: B.warning, fontWeight: 600 }}>Departing — {(g.stu || 0) + (g.gl || 0)} pax</div>
                         {g.depFlight && <div style={{ fontSize: 8, color: B.textMuted }}>{g.depAirport} · {g.depFlight}{g.depTime ? " at " + g.depTime : ""}</div>}
                       </div>
@@ -663,7 +663,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                     <div style={{ width: 7, height: 7, borderRadius: "50%", background: b.color, flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "baseline", gap: 5, flexWrap: "wrap" }}>
-                        <span style={{ fontWeight: 700, fontSize: 10, color: B.navy }}>{b.name}</span>
+                        <span style={{ fontWeight: 700, fontSize: 10, color: B.text }}>{b.name}</span>
                         {b.age && <span style={{ fontSize: 8, color: B.textMuted }}>turns {b.age}</span>}
                         {b.isGL && <span style={{ fontSize: 8, color: "#7c3aed", fontWeight: 700 }}>GL</span>}
                       </div>
@@ -705,7 +705,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                   borderRadius: 6, padding: "5px 10px",
                 }}>
                   <div style={{ width: 7, height: 7, borderRadius: "50%", background: GROUP_COLORS[i % GROUP_COLORS.length] }} />
-                  <span style={{ fontWeight: 700, fontSize: 10, color: B.navy }}>{g.group}</span>
+                  <span style={{ fontWeight: 700, fontSize: 10, color: B.text }}>{g.group}</span>
                   <span style={{ fontSize: 9, color: B.textMuted }}>{(g.stu || 0) + (g.gl || 0)} pax</span>
                   <span style={{ fontSize: 8, color: B.textLight, background: B.ice, padding: "1px 4px", borderRadius: 3 }}>{g.nat}</span>
                   <span style={{ fontSize: 8, color: B.textLight }}>until {fmtDate(g.dep)}</span>
@@ -730,7 +730,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                   flexShrink: 0, width: 160, background: B.bg, border: "1px solid " + B.border,
                   borderRadius: 8, padding: "8px 10px", fontSize: 10,
                 }}>
-                  <div style={{ fontWeight: 800, color: B.navy, marginBottom: 6 }}>
+                  <div style={{ fontWeight: 800, color: B.text, marginBottom: 6 }}>
                     {dayName(d)} <span style={{ color: B.textMuted, fontWeight: 400 }}>{d.getDate()}/{d.getMonth() + 1}</span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -836,7 +836,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                       {n.urgency === "Urgent" && (
                         <span style={{ fontSize: 9, fontWeight: 800, color: B.red, background: B.red + "18", padding: "1px 6px", borderRadius: 4, textTransform: "uppercase" }}>Urgent</span>
                       )}
-                      <span style={{ fontWeight: 700, fontSize: 12, color: B.navy }}>{n.title}</span>
+                      <span style={{ fontWeight: 700, fontSize: 12, color: B.text }}>{n.title}</span>
                     </div>
                     <div style={{ fontSize: 11, color: B.text, lineHeight: 1.5, marginBottom: 4 }}>{n.body}</div>
                     <div style={{ fontSize: 9, color: B.textMuted }}>

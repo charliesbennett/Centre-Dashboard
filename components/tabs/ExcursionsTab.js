@@ -238,7 +238,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
           <div style={{ fontSize: 9, color: "#5b21b6", fontWeight: 600 }}>Half Day</div>
         </div>
         <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, padding: "8px 16px", minWidth: 80 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: B.navy }}>{totalCoaches}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: B.text }}>{totalCoaches}</div>
           <div style={{ fontSize: 9, color: B.textMuted, fontWeight: 600 }}>Coaches</div>
         </div>
         {totalCoaches > 0 && (
@@ -249,7 +249,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
         )}
         {totalCoachCost > 0 && (
           <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, padding: "8px 16px", minWidth: 80 }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: B.navy }}>{"\u00a3"}{totalCoachCost.toLocaleString()}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: B.text }}>{"\u00a3"}{totalCoachCost.toLocaleString()}</div>
             <div style={{ fontSize: 9, color: B.textMuted, fontWeight: 600 }}>Coach Cost</div>
           </div>
         )}
@@ -273,7 +273,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
             <div key={exc.date} style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
               <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid " + B.borderLight, background: exc.isWeekend ? B.dangerBg : exc.type === "Full" ? B.warningBg : B.cyanBg }}>
                 <div style={{ minWidth: 90 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: B.navy }}>{dayName(exc.day)}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: B.text }}>{dayName(exc.day)}</div>
                   <div style={{ fontSize: 10, color: B.textMuted }}>{fmtDate(exc.date)}</div>
                 </div>
                 <span style={{
@@ -294,7 +294,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                       style={{ ...fi, width: 180, fontSize: 11 }} placeholder="e.g. London Eye" />
                   ) : (
                     <span onClick={() => { if (!readOnly) { setEditingDest(exc.date); setDestValue(exc.destination); } }}
-                      style={{ fontSize: 11, fontWeight: 700, color: exc.destination ? B.navy : B.textLight, cursor: readOnly ? "default" : "pointer", padding: "3px 8px", borderRadius: 4, border: "1px dashed " + (exc.destination ? "transparent" : B.border), minWidth: 120 }}>
+                      style={{ fontSize: 11, fontWeight: 700, color: exc.destination ? B.text : B.textLight, cursor: readOnly ? "default" : "pointer", padding: "3px 8px", borderRadius: 4, border: "1px dashed " + (exc.destination ? "transparent" : B.border), minWidth: 120 }}>
                       {exc.destination || (readOnly ? "—" : "Click to set...")}
                     </span>
                   )}
@@ -310,7 +310,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                     style={{ ...fi, fontSize: 10, flex: 1 }} placeholder="Any notes..." />
                 ) : (
                   <span onClick={() => { if (!readOnly) { setEditingNotes(exc.date); setNotesValue(exc.notes || ""); } }}
-                    style={{ fontSize: 10, color: exc.notes ? B.navy : B.textLight, cursor: readOnly ? "default" : "pointer", flex: 1, padding: "2px 6px", borderRadius: 4, border: "1px dashed " + (exc.notes ? "transparent" : B.border) }}>
+                    style={{ fontSize: 10, color: exc.notes ? B.text : B.textLight, cursor: readOnly ? "default" : "pointer", flex: 1, padding: "2px 6px", borderRadius: 4, border: "1px dashed " + (exc.notes ? "transparent" : B.border) }}>
                     {exc.notes || (readOnly ? "—" : "Click to add notes...")}
                   </span>
                 )}
@@ -331,7 +331,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                         const ecFi = { ...fi, fontSize: 9, padding: "2px 4px" };
                         return (
                           <tr key={c.id} style={{ borderBottom: "1px solid " + B.borderLight, background: isEd ? "#f0f4ff" : "transparent" }}>
-                            <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{isEd ? <input value={editCoachForm.company || ""} onChange={(e) => setEditCoachForm((p) => ({ ...p, company: e.target.value }))} style={{ ...ecFi, width: 120 }} /> : c.company}</td>
+                            <td style={{ ...tdStyle, fontWeight: 700, color: B.text }}>{isEd ? <input value={editCoachForm.company || ""} onChange={(e) => setEditCoachForm((p) => ({ ...p, company: e.target.value }))} style={{ ...ecFi, width: 120 }} /> : c.company}</td>
                             <td style={tdStyle}>{isEd ? (
                               <select value={editCoachForm.vehicle || "Coach"} onChange={(e) => setEditCoachForm((p) => ({ ...p, vehicle: e.target.value }))} style={{ ...ecFi, cursor: "pointer", width: 80 }}>
                                 {["Coach", "Minibus", "Double Decker", "Train", "Other"].map((v) => <option key={v}>{v}</option>)}

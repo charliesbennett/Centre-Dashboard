@@ -392,7 +392,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
               {groups.map((g) => (
                 <div key={g.id} style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
                   <div style={{ padding: "8px 16px", display: "flex", gap: 8, alignItems: "center", background: "#f0f9ff", borderBottom: "1px solid " + B.borderLight }}>
-                    <span style={{ fontWeight: 800, fontSize: 11, color: B.navy }}>{g.group}</span>
+                    <span style={{ fontWeight: 800, fontSize: 11, color: B.text }}>{g.group}</span>
                     <span style={{ fontSize: 9, color: B.textMuted }}>{g.agent}</span>
                     <span style={{ background: "#dbeafe", color: "#1e40af", padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{(g.stu||0)+(g.gl||0)} pax</span>
                     <span style={{ fontSize: 9, color: B.textMuted }}>{fmtDate(g.arr)} {"\u2192"} {fmtDate(g.dep)}</span>
@@ -480,7 +480,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
                   <tr><td colSpan={5} style={{ textAlign: "center", padding: 36, color: B.textLight }}>No dietary requirements recorded</td></tr>
                 ) : dietary.map((d) => (
                   <tr key={d.id} style={{ borderBottom: "1px solid " + B.borderLight }}>
-                    <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{d.name}</td>
+                    <td style={{ ...tdStyle, fontWeight: 700, color: B.text }}>{d.name}</td>
                     <td style={tdStyle}>{d.group || "\u2014"}</td>
                     <td style={tdStyle}>
                       <span style={{ background: "#fee2e2", color: "#dc2626", padding: "2px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800 }}>{d.type}</span>
@@ -525,7 +525,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
                   <tr><td colSpan={5} style={{ textAlign: "center", padding: 36, color: B.textLight }}>No special meals — add birthday cakes, BBQ nights, themed dinners, etc.</td></tr>
                 ) : specialMeals.sort((a, b) => (a.date || "").localeCompare(b.date || "")).map((s) => (
                   <tr key={s.id} style={{ borderBottom: "1px solid " + B.borderLight }}>
-                    <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{fmtDate(s.date)}</td>
+                    <td style={{ ...tdStyle, fontWeight: 700, color: B.text }}>{fmtDate(s.date)}</td>
                     <td style={tdStyle}>
                       <span style={{ background: s.meal === "BBQ" ? "#fed7aa" : s.meal === "Party" ? "#e9d5ff" : "#dbeafe", color: s.meal === "BBQ" ? "#ea580c" : s.meal === "Party" ? "#7c3aed" : "#1e40af", padding: "2px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800 }}>{s.meal}</span>
                     </td>
@@ -603,7 +603,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
                   </td></tr>
                 ) : offsiteMeals.sort((a, b) => (a.date || "").localeCompare(b.date || "")).map((o) => (
                   <tr key={o.id} style={{ borderBottom: "1px solid " + B.borderLight }}>
-                    <td style={{ ...tdStyle, fontWeight: 700, color: B.navy }}>{fmtDate(o.date)}</td>
+                    <td style={{ ...tdStyle, fontWeight: 700, color: B.text }}>{fmtDate(o.date)}</td>
                     <td style={{ ...tdStyle, fontWeight: 600 }}>{o.groupName || o.groupId}</td>
                     <td style={tdStyle}>
                       <span style={{ background: MEAL_COLORS[o.meal] + "20", color: MEAL_COLORS[o.meal], padding: "2px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800 }}>{o.meal}</span>

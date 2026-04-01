@@ -54,7 +54,7 @@ export default function ContactsTab({ contacts = [], setContacts, readOnly = fal
             <div key={cat} style={{ marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
                 <span style={{ fontSize: 16 }}>{CAT_ICONS[cat]}</span>
-                <span style={{ fontWeight: 800, fontSize: 13, color: B.navy }}>{cat}</span>
+                <span style={{ fontWeight: 800, fontSize: 13, color: B.text }}>{cat}</span>
                 <span style={{ background: B.ice, padding: "2px 8px", borderRadius: 10, fontSize: 10, fontWeight: 700, color: B.textMuted }}>
                   {contacts.filter((x) => x.cat === cat).length}
                 </span>
@@ -72,7 +72,7 @@ export default function ContactsTab({ contacts = [], setContacts, readOnly = fal
                     >
                       <IcX />
                     </button>}
-                    <div style={{ fontWeight: 800, fontSize: 14, color: B.navy, paddingRight: 24 }}>{x.name || "Unnamed"}</div>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: B.text, paddingRight: 24 }}>{x.name || "Unnamed"}</div>
                     {x.role && <div style={{ fontSize: 11, color: B.textMuted, marginTop: 2 }}>{x.role}</div>}
                     <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
                       {x.email && <div style={{ fontSize: 12 }}>✉️ <a href={`mailto:${x.email}`} style={{ color: B.link, textDecoration: "none" }}>{x.email}</a></div>}

@@ -149,7 +149,7 @@ export default function UsersTab({ centres = [] }) {
                 {users.map((u) => (
                   <>
                     <tr key={u.id} style={{ borderBottom: `1px solid ${B.borderLight}` }}>
-                      <td style={{ padding: "10px 14px", fontSize: 13, fontWeight: 700, color: B.navy }}>{u.full_name}</td>
+                      <td style={{ padding: "10px 14px", fontSize: 13, fontWeight: 700, color: B.text }}>{u.full_name}</td>
                       <td style={{ padding: "10px 14px", fontSize: 12, color: B.textMuted }}>{u.email}</td>
                       <td style={{ padding: "10px 14px", fontSize: 11 }}>
                         <span style={{ background: READ_ONLY_ROLES.includes(u.role) ? B.warningBg : B.ice, color: READ_ONLY_ROLES.includes(u.role) ? B.warning : B.navy, padding: "2px 8px", borderRadius: 10, fontWeight: 700, fontSize: 10 }}>
