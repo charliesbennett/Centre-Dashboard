@@ -230,18 +230,18 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   const classify = (text) => {
     if (!text) return { color: B.textLight, bg: "transparent" };
     const t = text.toLowerCase();
-    if (t.includes("arrival")) return { color: "#16a34a", bg: "#dcfce7" };
-    if (t.includes("depart")) return { color: B.danger, bg: B.dangerBg };
-    if (t.includes("english test")) return { color: "#0891b2", bg: "#0891b220" };
-    if (t.includes("lesson")) return { color: "#3b82f6", bg: "#3b82f620" };
-    if (t.includes("multi-activity") || t.includes("chosen programme")) return { color: "#8b5cf6", bg: "#8b5cf620" };
-    if (t.includes("activity")) return { color: "#8b5cf6", bg: "#8b5cf620" };
-    if (t.includes("free time") || t.includes("optional")) return { color: B.textMuted, bg: "#f1f5f9" };
-    if (t.includes("orientation") || t.includes("welcome")) return { color: "#16a34a", bg: "#16a34a20" };
-    if (t.includes("exc")) return { color: "#ea580c", bg: "#ea580c15" };
-    if (t.includes("ee") || t.includes("evening") || t.includes("disco") || t.includes("quiz") || t.includes("movie") || t.includes("trashion") || t.includes("speed dating") || t.includes("paparazzi") && t.length < 20) return { color: "#7c3aed", bg: "#7c3aed15" };
-    if (t.includes("sports") || t.includes("games")) return { color: "#0d9488", bg: "#0d948815" };
-    return { color: "#8b5cf6", bg: "#8b5cf615" };
+    if (t.includes("arrival")) return { color: B.success, bg: B.ice };
+    if (t.includes("depart")) return { color: B.danger, bg: B.pink };
+    if (t.includes("english test")) return { color: B.cyan, bg: B.ice };
+    if (t.includes("lesson")) return { color: B.link, bg: B.ice };
+    if (t.includes("multi-activity") || t.includes("chosen programme")) return { color: B.purple, bg: B.ice };
+    if (t.includes("activity")) return { color: B.purple, bg: B.ice };
+    if (t.includes("free time") || t.includes("optional")) return { color: B.textMuted, bg: B.bg };
+    if (t.includes("orientation") || t.includes("welcome")) return { color: B.success, bg: B.ice };
+    if (t.includes("exc")) return { color: B.red, bg: B.pink };
+    if (t.includes("ee") || t.includes("evening") || t.includes("disco") || t.includes("quiz") || t.includes("movie") || t.includes("trashion") || t.includes("speed dating") || (t.includes("paparazzi") && t.length < 20)) return { color: B.purple, bg: B.ice };
+    if (t.includes("sports") || t.includes("games")) return { color: B.success, bg: B.ice };
+    return { color: B.link, bg: B.ice };
   };
 
   const selGroup = groups.find(g => g.id === selectedGroupId);
@@ -274,13 +274,13 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     <div style={{background:B.white,borderBottom:"1px solid "+B.border,padding:"10px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}>
       <div style={{display:"flex",gap:8,alignItems:"center"}}>
         <span style={{fontSize:11,fontWeight:700,color:B.text}}>{dates.length} days {"\u00b7"} {groups.length} groups</span>
-        {isLondon && <span style={{background:"#e0f2fe",color:"#0369a1",padding:"2px 8px",borderRadius:4,fontSize:9,fontWeight:700}}>London</span>}
-        {isMinistay && <span style={{background:"#fef3c7",color:"#92400e",padding:"2px 8px",borderRadius:4,fontSize:9,fontWeight:700}}>Ministay</span>}
+        {isLondon && <span style={{background:B.cyanBg,color:B.cyan,padding:"2px 8px",borderRadius:4,fontSize:9,fontWeight:700}}>London</span>}
+        {isMinistay && <span style={{background:B.warningBg,color:B.warning,padding:"2px 8px",borderRadius:4,fontSize:9,fontWeight:700}}>Ministay</span>}
       </div>
       <div style={{display:"flex",gap:4}}>
         {["all","group","template"].map(m=><button key={m} onClick={()=>setViewMode(m)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+(viewMode===m?B.navy:B.border),background:viewMode===m?B.navy:B.white,color:viewMode===m?B.white:B.textMuted}}>
           {m==="all"?"\ud83d\udc65 All Groups":m==="group"?"\ud83d\udc64 By Group":"\ud83d\udcc4 Templates"}</button>)}
-        {!readOnly && <button onClick={()=>setShowTemplateModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+B.border,background:(isMinistay?settings?.ministay_template:settings?.programme_template)?"#dcfce7":B.white,color:(isMinistay?settings?.ministay_template:settings?.programme_template)?B.success:B.textMuted,marginLeft:4}}>
+        {!readOnly && <button onClick={()=>setShowTemplateModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+B.border,background:(isMinistay?settings?.ministay_template:settings?.programme_template)?B.successBg:B.card,color:(isMinistay?settings?.ministay_template:settings?.programme_template)?B.success:B.textMuted,marginLeft:4}}>
           {"\ud83d\udcc4"} {(isMinistay ? settings?.ministay_template : settings?.programme_template) ? "Edit Template" : "Set Up Template"}</button>}
         {!readOnly && <button onClick={() => setShowMasterModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid #0369a1",background:"#0369a1",color:"#fff",marginLeft:4}}>
           📊 Import Master</button>}
@@ -294,8 +294,8 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
 
     {/* Lesson slot summary + custom template status */}
     {groups.length > 0 && !isMinistay && (
-      <div style={{padding:"6px 20px",background:"#f0f9ff",borderBottom:"1px solid "+B.border,fontSize:10,display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
-        <span style={{fontWeight:700,color:"#0369a1"}}>{"\ud83d\udcda"} Lesson slots:</span>
+      <div style={{padding:"6px 20px",background:B.cyanBg,borderBottom:"1px solid "+B.border,fontSize:10,display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
+        <span style={{fontWeight:700,color:B.cyan}}>{"\ud83d\udcda"} Lesson slots:</span>
         {groups.map(g => <span key={g.id}><strong>{g.group}</strong>: Wk1 {g.lessonSlot || "AM"} / Wk2 {(g.lessonSlot||"AM")==="AM"?"PM":"AM"}</span>)}
         <span style={{color:"#64748b"}}>{"\u00b7"} Toggle in Students tab</span>
         {settings?.programme_template
@@ -304,8 +304,8 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       </div>
     )}
     {groups.length > 0 && isMinistay && (
-      <div style={{padding:"6px 20px",background:"#fffbeb",borderBottom:"1px solid "+B.border,fontSize:10,display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
-        <span style={{fontWeight:700,color:"#92400e"}}>{"\ud83d\udcc5"} Ministay programme:</span>
+      <div style={{padding:"6px 20px",background:B.warningBg,borderBottom:"1px solid "+B.border,fontSize:10,display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
+        <span style={{fontWeight:700,color:B.warning}}>{"\ud83d\udcc5"} Ministay programme:</span>
         {settings?.ministay_template
           ? <span style={{color:"#16a34a",fontWeight:600}}>{"\u2713"} Template saved {"\u00b7"} Click Auto-Populate to apply</span>
           : <span style={{color:"#92400e"}}>No template yet {"\u00b7"} Click <strong>Set Up Template</strong> to define the weekly programme, then Auto-Populate</span>}
@@ -316,19 +316,19 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       <TableWrap><table style={{minWidth:1200,width:"100%",borderCollapse:"collapse",fontSize:10}}>
         <thead>
           <tr>
-            <th style={{...thStyle,width:100,position:"sticky",left:0,zIndex:2,background:"#f8fafc"}}>Agent</th>
-            <th style={{...thStyle,width:90,position:"sticky",left:100,zIndex:2,background:"#f8fafc"}}>Group</th>
+            <th style={{...thStyle,width:100,position:"sticky",left:0,zIndex:2,background:B.bg}}>Agent</th>
+            <th style={{...thStyle,width:90,position:"sticky",left:100,zIndex:2,background:B.bg}}>Group</th>
             <th style={{...thStyle,width:30,textAlign:"center"}}>Pax</th>
             <th style={{...thStyle,width:30,textAlign:"center",fontSize:8}}>Wk1</th>
-            {dates.map(d=>{const s=dayKey(d),exc=excDays[s],we=isWeekend(d);return<th key={s} colSpan={slots.length} onClick={()=>toggleExc(s)} style={{...thStyle,textAlign:"center",borderLeft:"2px solid "+B.border,padding:"3px 2px",minWidth:192,cursor:"pointer",background:exc?"#fff7ed":we?"#fef2f2":"#f8fafc"}}>
+            {dates.map(d=>{const s=dayKey(d),exc=excDays[s],we=isWeekend(d);return<th key={s} colSpan={slots.length} onClick={()=>toggleExc(s)} style={{...thStyle,textAlign:"center",borderLeft:"2px solid "+B.border,padding:"3px 2px",minWidth:192,cursor:"pointer",background:exc?B.pink:we?B.dangerBg:B.ice}}>
               <div style={{fontSize:7,color:B.textMuted}}>{fmtDate(d)}</div>
-              <div style={{fontWeight:800,fontSize:9,color:we?B.red:B.navy}}>{dayName(d)}</div>
-              {exc&&<div style={{fontSize:6,color:"#ea580c",fontWeight:800}}>{exc==="Full"?"FD EXC":"HD EXC"}</div>}
+              <div style={{fontWeight:800,fontSize:9,color:we?B.red:B.text}}>{dayName(d)}</div>
+              {exc&&<div style={{fontSize:6,color:B.red,fontWeight:800}}>{exc==="Full"?"FD EXC":"HD EXC"}</div>}
             </th>;})}
           </tr>
           <tr>
-            <th style={{...thStyle,position:"sticky",left:0,zIndex:2,background:"#f8fafc"}}></th>
-            <th style={{...thStyle,position:"sticky",left:100,zIndex:2,background:"#f8fafc"}}></th>
+            <th style={{...thStyle,position:"sticky",left:0,zIndex:2,background:B.bg}}></th>
+            <th style={{...thStyle,position:"sticky",left:100,zIndex:2,background:B.bg}}></th>
             <th style={thStyle}></th>
             <th style={thStyle}></th>
             {dates.map(d=>slots.map(sl=><th key={dayKey(d)+"-"+sl} style={{...thStyle,textAlign:"center",fontSize:8,padding:"3px 1px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,minWidth:isMinistay?64:64}}>{sl}</th>))}
@@ -337,20 +337,20 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         <tbody>
           {groups.length===0?<tr><td colSpan={100} style={{textAlign:"center",padding:36,color:B.textLight}}>Import groups in Students tab</td></tr>:
           groups.map(g=><tr key={g.id} style={{borderBottom:"1px solid "+B.borderLight}}>
-            <td style={{...tdStyle,fontWeight:600,fontSize:9,position:"sticky",left:0,background:B.white,zIndex:1}}>{g.agent}</td>
-            <td style={{...tdStyle,fontWeight:700,color:B.text,fontSize:10,position:"sticky",left:100,background:B.white,zIndex:1}}>{g.group}</td>
+            <td style={{...tdStyle,fontWeight:600,fontSize:9,position:"sticky",left:0,background:B.card,zIndex:1}}>{g.agent}</td>
+            <td style={{...tdStyle,fontWeight:700,color:B.text,fontSize:10,position:"sticky",left:100,background:B.card,zIndex:1}}>{g.group}</td>
             <td style={{...tdStyle,fontWeight:800,textAlign:"center",fontSize:10}}>{(g.stu||0)+(g.gl||0)}</td>
-            <td style={{...tdStyle,textAlign:"center"}}><span style={{background:g.lessonSlot==="PM"?"#fae8ff":"#dbeafe",color:g.lessonSlot==="PM"?"#9333ea":"#1e40af",padding:"2px 6px",borderRadius:3,fontSize:8,fontWeight:800}}>{g.lessonSlot||"AM"}</span></td>
+            <td style={{...tdStyle,textAlign:"center"}}><span style={{background:g.lessonSlot==="PM"?B.pink:B.ice,color:g.lessonSlot==="PM"?B.red:B.link,padding:"2px 6px",borderRadius:3,fontSize:8,fontWeight:800}}>{g.lessonSlot||"AM"}</span></td>
             {dates.map(d=>slots.map(sl=>{const s=dayKey(d),key=g.id+"-"+s+"-"+sl,val=grid[key],on=inRange(s,g.arr,g.dep),cls=classify(val),isEd=editingCell===key,isQP=quickPickCell===key;
-              return<td key={key} onClick={(e)=>handleCellClick(key,sl,on,e)} onDoubleClick={()=>!readOnly&&on&&startEdit(key,val)} style={{padding:"2px 3px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,verticalAlign:"middle",minWidth:64,maxWidth:100,background:!on?"#f5f5f5":cls.bg,cursor:on?"pointer":"default",position:"relative"}}>
-                {isEd?<input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} style={{width:"100%",fontSize:9,padding:"3px",border:"1px solid "+B.navy,borderRadius:2,fontFamily:"inherit"}}/>:
+              return<td key={key} onClick={(e)=>handleCellClick(key,sl,on,e)} onDoubleClick={()=>!readOnly&&on&&startEdit(key,val)} style={{padding:"2px 3px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,verticalAlign:"middle",minWidth:64,maxWidth:100,background:!on?B.bg:cls.bg,cursor:on?"pointer":"default",position:"relative"}}>
+                {isEd?<input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} style={{width:"100%",fontSize:9,padding:"3px",border:"1px solid "+B.border,borderRadius:2,fontFamily:"inherit",background:B.card,color:B.text}}/>:
                 val?<div style={{color:cls.color,fontSize:9,fontWeight:600,padding:"3px 4px",borderRadius:2,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:96}} title={val}>{val}</div>:
                 on?<div style={{height:18}}/>:<div style={{height:18}}/>}
-                {isQP&&<div style={{position:"fixed",top:qpPos.top,left:qpPos.left,zIndex:9999,background:B.white,border:"1px solid "+B.border,borderRadius:6,boxShadow:"0 4px 12px rgba(0,0,0,0.15)",padding:"4px 0",minWidth:140,maxHeight:200,overflowY:"auto"}}>
-                  {(sl==="EVE"?QUICK_EVE:QUICK_AM_PM).map(opt=><div key={opt} onClick={(e)=>{e.stopPropagation();quickPick(key,opt);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:classify(opt).color,whiteSpace:"nowrap"}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{opt}</div>)}
+                {isQP&&<div style={{position:"fixed",top:qpPos.top,left:qpPos.left,zIndex:9999,background:B.card,border:"1px solid "+B.border,borderRadius:6,boxShadow:"0 4px 12px rgba(0,0,0,0.15)",padding:"4px 0",minWidth:140,maxHeight:200,overflowY:"auto"}}>
+                  {(sl==="EVE"?QUICK_EVE:QUICK_AM_PM).map(opt=><div key={opt} onClick={(e)=>{e.stopPropagation();quickPick(key,opt);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:classify(opt).color,whiteSpace:"nowrap"}} onMouseEnter={e=>e.target.style.background=B.ice} onMouseLeave={e=>e.target.style.background="transparent"}>{opt}</div>)}
                   <div style={{borderTop:"1px solid "+B.border,marginTop:2,paddingTop:2}}>
-                    <div onClick={(e)=>{e.stopPropagation();quickPick(key,undefined);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:B.textMuted}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u2717"} Clear</div>
-                    <div onClick={(e)=>{e.stopPropagation();setQuickPickCell(null);startEdit(key,val);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:B.text}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u270f\ufe0f"} Custom text...</div>
+                    <div onClick={(e)=>{e.stopPropagation();quickPick(key,undefined);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:B.textMuted}} onMouseEnter={e=>e.target.style.background=B.ice} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u2717"} Clear</div>
+                    <div onClick={(e)=>{e.stopPropagation();setQuickPickCell(null);startEdit(key,val);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:B.text}} onMouseEnter={e=>e.target.style.background=B.ice} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u270f\ufe0f"} Custom text...</div>
                   </div>
                 </div>}
               </td>;}))}
@@ -373,11 +373,11 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           if (!hasAny) return null;
           return <tfoot>{["AM","PM"].map(slot => (
             <tr key={slot} style={{borderTop: slot === "AM" ? "2px solid " + B.navy : "none"}}>
-              <td colSpan={4} style={{...tdStyle, position:"sticky", left:0, zIndex:1, background: slot==="AM"?"#dbeafe":"#dcfce7", fontWeight:800, fontSize:9, color: slot==="AM"?"#1e40af":"#166534", padding:"4px 8px", textAlign:"right", minWidth:250}}>{slot} Lessons</td>
+              <td colSpan={4} style={{...tdStyle, position:"sticky", left:0, zIndex:1, background: slot==="AM"?B.cyanBg:B.successBg, fontWeight:800, fontSize:9, color: slot==="AM"?B.link:B.success, padding:"4px 8px", textAlign:"right", minWidth:250}}>{slot} Lessons</td>
               {dates.map(d => {
                 const ds = dayKey(d); const we = isWeekend(d); const val = split[ds]?.[slot.toLowerCase()] || 0;
-                return <td key={ds} colSpan={slots.length} style={{textAlign:"center", padding:"4px 2px", borderLeft:"2px solid "+B.border, background: we?"#fef2f2": slot==="AM"?"#eff6ff":"#f0fdf4"}}>
-                  {val > 0 ? <span style={{fontWeight:800, color: slot==="AM"?"#1e40af":"#166534", fontSize:10}}>{val}</span>
+                return <td key={ds} colSpan={slots.length} style={{textAlign:"center", padding:"4px 2px", borderLeft:"2px solid "+B.border, background: we?B.dangerBg:slot==="AM"?B.cyanBg:B.successBg}}>
+                  {val > 0 ? <span style={{fontWeight:800, color: slot==="AM"?B.link:B.success, fontSize:10}}>{val}</span>
                     : <span style={{color:B.textLight, fontSize:9}}>—</span>}
                 </td>;
               })}
@@ -403,32 +403,32 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           <span><strong style={{color:B.text}}>Dep:</strong> {fmtDate(selGroup.dep)}</span>
         </div>
         {/* Per-group template toolbar */}
-        {!readOnly && <div style={{padding:"6px 12px 8px",background:"#f8fafc",borderBottom:"1px solid "+B.border,display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+        {!readOnly && <div style={{padding:"6px 12px 8px",background:B.bg,borderBottom:"1px solid "+B.border,display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           <span style={{fontSize:9,fontWeight:800,color:B.textMuted,textTransform:"uppercase",letterSpacing:0.5}}>Template:</span>
-          {centreProgs.map((p,i)=>{const sel=groupTemplates[selGroup.id]?.type==="builtin"&&groupTemplates[selGroup.id]?.templateIndex===i;return<button key={i} onClick={()=>saveGroupTemplate(selGroup.id,{type:"builtin",templateIndex:i})} style={{padding:"3px 10px",borderRadius:4,fontSize:9,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:sel?"2px solid "+B.navy:"1px solid "+B.border,background:sel?B.navy:B.white,color:sel?B.white:B.navy}}>{p.nights||p.length}</button>;})}
-          {(()=>{const isCustom=groupTemplates[selGroup.id]?.type==="custom";return<button onClick={()=>setGroupTemplateTarget(selGroup.id)} style={{padding:"3px 10px",borderRadius:4,fontSize:9,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:isCustom?"2px solid #7c3aed":"1px solid "+B.border,background:isCustom?"#7c3aed":B.white,color:isCustom?B.white:B.textMuted}}>{isCustom?"\u270f\ufe0f Edit Custom":"\u2795 Custom Template"}</button>;})()}
-          {groupTemplates[selGroup.id] && <button onClick={()=>saveGroupTemplate(selGroup.id,null)} style={{padding:"3px 8px",borderRadius:4,fontSize:9,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+B.border,background:B.white,color:B.textMuted}}>Clear</button>}
+          {centreProgs.map((p,i)=>{const sel=groupTemplates[selGroup.id]?.type==="builtin"&&groupTemplates[selGroup.id]?.templateIndex===i;return<button key={i} onClick={()=>saveGroupTemplate(selGroup.id,{type:"builtin",templateIndex:i})} style={{padding:"3px 10px",borderRadius:4,fontSize:9,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:sel?"2px solid "+B.navy:"1px solid "+B.border,background:sel?B.navy:B.card,color:sel?B.white:B.text}}>{p.nights||p.length}</button>;})}
+          {(()=>{const isCustom=groupTemplates[selGroup.id]?.type==="custom";return<button onClick={()=>setGroupTemplateTarget(selGroup.id)} style={{padding:"3px 10px",borderRadius:4,fontSize:9,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:isCustom?"2px solid "+B.purple:"1px solid "+B.border,background:isCustom?B.purple:B.card,color:isCustom?B.white:B.textMuted}}>{isCustom?"\u270f\ufe0f Edit Custom":"\u2795 Custom Template"}</button>;})()}
+          {groupTemplates[selGroup.id] && <button onClick={()=>saveGroupTemplate(selGroup.id,null)} style={{padding:"3px 8px",borderRadius:4,fontSize:9,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+B.border,background:B.card,color:B.textMuted}}>Clear</button>}
           {groupTemplates[selGroup.id]
             ? <button onClick={()=>{if(Object.keys(grid).some(k=>k.startsWith(selGroup.id)&&grid[k])&&!window.confirm("This will overwrite "+selGroup.group+"'s existing programme. Continue?"))return;applyGroupTemplate(selGroup);}} style={{...btnPrimary,background:B.navy,fontSize:9,marginLeft:4}}><IcWand/> Apply to {selGroup.group}</button>
             : <span style={{fontSize:9,color:B.textMuted,fontStyle:"italic"}}>Select a template above, then apply</span>}
         </div>}
         <TableWrap><table style={{minWidth:1200,width:"100%",borderCollapse:"collapse",fontSize:10}}>
           <thead><tr><th style={{...thStyle,width:30}}></th>
-            {dates.filter(d=>inRange(dayKey(d),selGroup.arr,selGroup.dep)).map(d=>{const s=dayKey(d),we=isWeekend(d),exc=excDays[s];return<th key={s} style={{...thStyle,textAlign:"center",minWidth:80,background:exc?"#fff7ed":we?"#fef2f2":"#f8fafc"}}>
+            {dates.filter(d=>inRange(dayKey(d),selGroup.arr,selGroup.dep)).map(d=>{const s=dayKey(d),we=isWeekend(d),exc=excDays[s];return<th key={s} style={{...thStyle,textAlign:"center",minWidth:80,background:exc?B.pink:we?B.dangerBg:B.ice}}>
               <div style={{fontSize:7,color:B.textMuted}}>{fmtDate(d)}</div>
-              <div style={{fontWeight:800,fontSize:9,color:we?B.red:B.navy}}>{dayName(d)}</div></th>;})}
+              <div style={{fontWeight:800,fontSize:9,color:we?B.red:B.text}}>{dayName(d)}</div></th>;})}
           </tr></thead>
           <tbody>{slots.map(sl=><tr key={sl} style={{borderBottom:"1px solid "+B.borderLight}}>
-            <td style={{...tdStyle,fontWeight:800,fontSize:8,color:sl==="EVE"?"#92400e":B.textMuted,textAlign:"center"}}>{sl}</td>
+            <td style={{...tdStyle,fontWeight:800,fontSize:8,color:sl==="EVE"?B.warning:B.textMuted,textAlign:"center"}}>{sl}</td>
             {dates.filter(d=>inRange(dayKey(d),selGroup.arr,selGroup.dep)).map(d=>{const key=selGroup.id+"-"+dayKey(d)+"-"+sl,val=grid[key],cls=classify(val),isEd=editingCell===key,isQP=quickPickCell===key;
               return<td key={key} onClick={(e)=>handleCellClick(key,sl,true,e)} onDoubleClick={()=>!readOnly&&startEdit(key,val)} style={{padding:"4px 6px",borderLeft:"1px solid "+B.borderLight,verticalAlign:"top",cursor:"pointer",position:"relative"}}>
-                {isEd?<input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} style={{width:"100%",fontSize:9,padding:"4px",border:"1px solid "+B.navy,borderRadius:3,fontFamily:"inherit"}}/>:
+                {isEd?<input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} style={{width:"100%",fontSize:9,padding:"4px",border:"1px solid "+B.border,borderRadius:3,fontFamily:"inherit",background:B.card,color:B.text}}/>:
                 <div style={{background:cls.bg,color:cls.color,padding:"4px 6px",borderRadius:4,fontSize:9,fontWeight:600,minHeight:32,display:"flex",alignItems:"center"}}>{val||"\u2014"}</div>}
-                {isQP&&<div style={{position:"fixed",top:qpPos.top,left:qpPos.left,zIndex:9999,background:B.white,border:"1px solid "+B.border,borderRadius:6,boxShadow:"0 4px 12px rgba(0,0,0,0.15)",padding:"4px 0",minWidth:160,maxHeight:220,overflowY:"auto"}}>
-                  {(sl==="EVE"?QUICK_EVE:QUICK_AM_PM).map(opt=><div key={opt} onClick={(e)=>{e.stopPropagation();quickPick(key,opt);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:classify(opt).color,whiteSpace:"nowrap"}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{opt}</div>)}
+                {isQP&&<div style={{position:"fixed",top:qpPos.top,left:qpPos.left,zIndex:9999,background:B.card,border:"1px solid "+B.border,borderRadius:6,boxShadow:"0 4px 12px rgba(0,0,0,0.15)",padding:"4px 0",minWidth:160,maxHeight:220,overflowY:"auto"}}>
+                  {(sl==="EVE"?QUICK_EVE:QUICK_AM_PM).map(opt=><div key={opt} onClick={(e)=>{e.stopPropagation();quickPick(key,opt);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:classify(opt).color,whiteSpace:"nowrap"}} onMouseEnter={e=>e.target.style.background=B.ice} onMouseLeave={e=>e.target.style.background="transparent"}>{opt}</div>)}
                   <div style={{borderTop:"1px solid "+B.border,marginTop:2,paddingTop:2}}>
-                    <div onClick={(e)=>{e.stopPropagation();quickPick(key,undefined);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:B.textMuted}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u2717"} Clear</div>
-                    <div onClick={(e)=>{e.stopPropagation();setQuickPickCell(null);startEdit(key,val);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:B.text}} onMouseEnter={e=>e.target.style.background="#f1f5f9"} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u270f\ufe0f"} Custom text...</div>
+                    <div onClick={(e)=>{e.stopPropagation();quickPick(key,undefined);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:B.textMuted}} onMouseEnter={e=>e.target.style.background=B.ice} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u2717"} Clear</div>
+                    <div onClick={(e)=>{e.stopPropagation();setQuickPickCell(null);startEdit(key,val);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:B.text}} onMouseEnter={e=>e.target.style.background=B.ice} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u270f\ufe0f"} Custom text...</div>
                   </div>
                 </div>}
               </td>;})}
@@ -438,11 +438,11 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     </div>}
 
     {viewMode==="template" && <div>
-      <div style={{padding:"10px 20px",background:B.white,borderBottom:"1px solid "+B.border}}>
+      <div style={{padding:"10px 20px",background:B.card,borderBottom:"1px solid "+B.border}}>
         {centre?(centreProgs.length>0?<div>
           <div style={{fontSize:10,fontWeight:700,color:B.textMuted,marginBottom:6,textTransform:"uppercase"}}>Programme templates for {centre}</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-            {centreProgs.map((p,i)=><button key={i} onClick={()=>setSelectedTemplate(selectedTemplate===i?null:i)} style={{padding:"6px 14px",borderRadius:6,fontSize:11,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:selectedTemplate===i?"2px solid "+B.navy:"1px solid "+B.border,background:selectedTemplate===i?B.navy:B.white,color:selectedTemplate===i?B.white:B.navy}}>
+            {centreProgs.map((p,i)=><button key={i} onClick={()=>setSelectedTemplate(selectedTemplate===i?null:i)} style={{padding:"6px 14px",borderRadius:6,fontSize:11,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:selectedTemplate===i?"2px solid "+B.navy:"1px solid "+B.border,background:selectedTemplate===i?B.navy:B.card,color:selectedTemplate===i?B.white:B.text}}>
               {p.nights} {p.period?("\u00b7 "+p.period.split("-")[0].trim()):""}</button>)}
           </div></div>:<div style={{fontSize:11,color:B.textMuted,display:"flex",alignItems:"center",gap:10}}>No pre-built templates for this centre {!readOnly && <button onClick={()=>setShowTemplateModal(true)} style={{padding:"4px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+B.navy,background:B.navy,color:B.white}}>Set Up Custom Template</button>}</div>
         ):<div style={{fontSize:11,color:B.warning,fontWeight:600}}>Select a centre in the header to see templates</div>}
@@ -459,7 +459,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           <div style={{padding:"6px 8px",fontWeight:800,fontSize:11,color:B.text}}>Week {wk.week}</div>
           <TableWrap><table style={{minWidth:1200,width:"100%",borderCollapse:"collapse",fontSize:10}}>
             <thead><tr><th style={{...thStyle,width:30}}></th>
-              {wk.days.map((d,i)=><th key={i} style={{...thStyle,textAlign:"center",minWidth:100}}><div style={{fontWeight:800,fontSize:10,color:(d.day==="Saturday"||d.day==="Sunday")?B.red:B.navy}}>{d.day}</div></th>)}
+              {wk.days.map((d,i)=><th key={i} style={{...thStyle,textAlign:"center",minWidth:100}}><div style={{fontWeight:800,fontSize:10,color:(d.day==="Saturday"||d.day==="Sunday")?B.red:B.text}}>{d.day}</div></th>)}
             </tr></thead>
             <tbody>{(isMinistay ? ["am","pm","eve"] : ["am","pm"]).map(sl=><tr key={sl} style={{borderBottom:"1px solid "+B.borderLight}}>
               <td style={{...tdStyle,fontWeight:800,fontSize:8,color:B.textMuted,textAlign:"center"}}>{sl.toUpperCase()}</td>

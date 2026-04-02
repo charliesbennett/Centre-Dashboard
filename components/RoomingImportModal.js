@@ -4,17 +4,6 @@ import { uid } from "@/lib/constants";
 import { useB } from "@/lib/theme";
 import { parseRoomingExcel } from "@/lib/parseRoomingExcel";
 
-const TYPE_COLORS = {
-  M: { bg: "#dbeafe", color: "#1d4ed8" },
-  F: { bg: "#fce7f3", color: "#be185d" },
-  GL: { bg: "#dcfce7", color: "#15803d" },
-  UKLC: { bg: "#fef3c7", color: "#b45309" },
-};
-const typeStyle = (t) => {
-  const s = TYPE_COLORS[t?.toUpperCase?.()] || { bg: "#f1f5f9", color: "#475569" };
-  return { background: s.bg, color: s.color, padding: "1px 5px", borderRadius: 3, fontSize: 8, fontWeight: 700 };
-};
-
 export default function RoomingImportModal({
   onClose,
   existingHouses = [],
@@ -24,6 +13,16 @@ export default function RoomingImportModal({
   onImport,
 }) {
   const B = useB();
+  const TYPE_COLORS = {
+    M: { bg: B.cyanBg, color: B.link },
+    F: { bg: B.purpleBg, color: B.purple },
+    GL: { bg: B.successBg, color: B.success },
+    UKLC: { bg: B.warningBg, color: B.warning },
+  };
+  const typeStyle = (t) => {
+    const s = TYPE_COLORS[t?.toUpperCase?.()] || { bg: B.bg, color: B.textMuted };
+    return { background: s.bg, color: s.color, padding: "1px 5px", borderRadius: 3, fontSize: 8, fontWeight: 700 };
+  };
   const [stage, setStage] = useState("upload"); // upload | preview | done
   const [parsing, setParsing] = useState(false);
   const [parseResult, setParseResult] = useState(null); // { houses, totalRooms, totalBeds, namedBeds }
@@ -205,12 +204,12 @@ export default function RoomingImportModal({
               </div>
 
               {parseError && (
-                <div style={{ marginTop: 12, padding: "10px 14px", background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, fontSize: 11, color: "#dc2626" }}>
+                <div style={{ marginTop: 12, padding: "10px 14px", background: B.dangerBg, border: "1px solid " + B.border, borderRadius: 8, fontSize: 11, color: B.danger }}>
                   ⚠ {parseError}
                 </div>
               )}
 
-              <div style={{ marginTop: 14, padding: "10px 14px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, fontSize: 10, color: "#0369a1", lineHeight: 1.6 }}>
+              <div style={{ marginTop: 14, padding: "10px 14px", background: B.cyanBg, border: "1px solid " + B.border, borderRadius: 8, fontSize: 10, color: B.cyan, lineHeight: 1.6 }}>
                 <strong>Expected columns (in order):</strong><br />
                 Floor label &nbsp;·&nbsp; Building/House name &nbsp;·&nbsp; Room number &nbsp;·&nbsp; Type (M/F/GL/UKLC) &nbsp;·&nbsp; First name &nbsp;·&nbsp; Last name<br />
                 <span style={{ color: "#64748b" }}>Column letters are auto-detected — A–F and B–G layouts both work.</span>
@@ -263,7 +262,7 @@ export default function RoomingImportModal({
                       {Object.entries(floors).map(([floorLabel, fRooms], fi) => (
                         <div key={floorLabel}>
                           {Object.keys(floors).length > 1 && (
-                            <div style={{ padding: "4px 10px", fontSize: 8, fontWeight: 700, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.5, background: "#f8fafc", borderBottom: "1px solid " + B.borderLight }}>
+                            <div style={{ padding: "4px 10px", fontSize: 8, fontWeight: 700, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.5, background: B.bg, borderBottom: "1px solid " + B.borderLight }}>
                               {floorLabel}
                             </div>
                           )}
@@ -273,16 +272,16 @@ export default function RoomingImportModal({
                               const hasNames = r.beds.some((b) => b.firstName || b.lastName);
                               return (
                                 <div key={r.roomName} style={{
-                                  border: "1px solid " + (existingRoomEntry ? "#fde68a" : "#bbf7d0"),
-                                  borderRadius: 6, padding: "5px 8px", minWidth: 100, background: existingRoomEntry ? "#fffbeb" : "#f0fdf4",
+                                  border: "1px solid " + (existingRoomEntry ? B.warning+"44" : B.success+"44"),
+                                  borderRadius: 6, padding: "5px 8px", minWidth: 100, background: existingRoomEntry ? B.warningBg : B.successBg,
                                 }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
                                     <span style={{ fontWeight: 700, fontSize: 10, color: B.text }}>{r.roomName}</span>
                                     <span style={{ fontSize: 8, color: B.textMuted }}>{r.beds.length} bed{r.beds.length !== 1 ? "s" : ""}</span>
                                     {existingRoomEntry ? (
-                                      <span style={{ fontSize: 7, padding: "1px 4px", borderRadius: 3, background: "#fef3c7", color: "#b45309", fontWeight: 700 }}>exists</span>
+                                      <span style={{ fontSize: 7, padding: "1px 4px", borderRadius: 3, background: B.warningBg, color: B.warning, fontWeight: 700 }}>exists</span>
                                     ) : (
-                                      <span style={{ fontSize: 7, padding: "1px 4px", borderRadius: 3, background: "#dcfce7", color: "#15803d", fontWeight: 700 }}>new</span>
+                                      <span style={{ fontSize: 7, padding: "1px 4px", borderRadius: 3, background: B.successBg, color: B.success, fontWeight: 700 }}>new</span>
                                     )}
                                   </div>
                                   <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
@@ -304,7 +303,7 @@ export default function RoomingImportModal({
               })}
 
               {/* What will happen */}
-              <div style={{ marginTop: 12, padding: "10px 14px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, fontSize: 10, color: "#0369a1", lineHeight: 1.8 }}>
+              <div style={{ marginTop: 12, padding: "10px 14px", background: B.cyanBg, border: "1px solid " + B.border, borderRadius: 8, fontSize: 10, color: B.cyan, lineHeight: 1.8 }}>
                 <strong>What will be imported:</strong><br />
                 {diff.newHousesCount > 0 && <span>✓ Create {diff.newHousesCount} new house{diff.newHousesCount > 1 ? "s" : ""}<br /></span>}
                 {diff.newRoomsCount > 0 && <span>✓ Create {diff.newRoomsCount} new room{diff.newRoomsCount > 1 ? "s" : ""}<br /></span>}
@@ -335,8 +334,8 @@ export default function RoomingImportModal({
           {/* ── DONE ── */}
           {stage === "done" && importResult && (
             <div style={{ textAlign: "center", padding: "24px 0" }}>
-              <div style={{ width: 60, height: 60, borderRadius: "50%", background: "#dcfce7", border: "3px solid #4ade80", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 26 }}>✓</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "#15803d", marginBottom: 8 }}>Import Complete</div>
+              <div style={{ width: 60, height: 60, borderRadius: "50%", background: B.successBg, border: "3px solid " + B.success, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 26 }}>✓</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: B.success, marginBottom: 8 }}>Import Complete</div>
               <div style={{ fontSize: 12, color: B.textMuted, lineHeight: 1.8 }}>
                 {importResult.createdHouses > 0 && <div>{importResult.createdHouses} house{importResult.createdHouses > 1 ? "s" : ""} created</div>}
                 {importResult.createdRooms > 0 && <div>{importResult.createdRooms} room{importResult.createdRooms > 1 ? "s" : ""} created</div>}

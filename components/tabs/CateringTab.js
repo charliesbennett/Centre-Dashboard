@@ -267,7 +267,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
         {MEALS.map((m) => (
           <span key={m} style={{ background: MEAL_COLORS[m] + "20", color: MEAL_COLORS[m], padding: "2px 7px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{m}</span>
         ))}
-        {overrideCount > 0 && <span style={{ background: "#fff7ed", color: "#ea580c", padding: "2px 7px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{overrideCount} manual overrides</span>}
+        {overrideCount > 0 && <span style={{ background: B.pink, color: B.red, padding: "2px 7px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{overrideCount} manual overrides</span>}
         <span style={{ fontSize: 9, color: B.textMuted, marginLeft: 4 }}>Click cell to override {"\u00b7"} Clear to reset to auto</span>
       </div>
 
@@ -278,13 +278,13 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
             <table style={{ minWidth: 1200, width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
               <thead>
                 <tr>
-                  <th style={{ ...thStyle, width: 110, position: "sticky", left: 0, zIndex: 2, background: "#f8fafc" }}>Meal</th>
+                  <th style={{ ...thStyle, width: 110, position: "sticky", left: 0, zIndex: 2, background: B.bg }}>Meal</th>
                   {dates.map((d) => {
                     const s = dayKey(d); const we = isWeekend(d); const exc = excDays[s];
                     const specials = specialMeals.filter((sm) => sm.date === s);
                     return (
-                      <th key={s} style={{ ...thStyle, textAlign: "center", minWidth: 36, background: exc ? "#fff7ed" : we ? "#fef2f2" : "#f8fafc" }}>
-                        <div style={{ fontWeight: 800, fontSize: 8, color: we ? B.red : B.navy }}>{dayName(d)}</div>
+                      <th key={s} style={{ ...thStyle, textAlign: "center", minWidth: 36, background: exc ? B.pink : we ? B.dangerBg : B.ice }}>
+                        <div style={{ fontWeight: 800, fontSize: 8, color: we ? B.red : B.text }}>{dayName(d)}</div>
                         <div style={{ fontSize: 7, color: B.textMuted }}>{d.getDate()}/{d.getMonth()+1}</div>
                         {exc && <div style={{ fontSize: 6, color: "#ea580c", fontWeight: 800 }}>{exc === "Full" ? "FD" : "HD"}</div>}
                         {specials.length > 0 && <div style={{ fontSize: 6, color: "#7c3aed", fontWeight: 800 }}>{"\u2b50"}</div>}
@@ -309,9 +309,9 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
                       return (
                         <td key={s} onClick={() => !readOnly && !isEd && startEdit(s, m)} style={{
                           textAlign: "center", padding: "4px 1px", cursor: "pointer",
-                          fontWeight: v ? 800 : 400, color: v ? (isOverridden ? "#ea580c" : B.navy) : B.textLight,
+                          fontWeight: v ? 800 : 400, color: v ? (isOverridden ? B.red : B.text) : B.textLight,
                           fontSize: v ? 11 : 9, borderLeft: "1px solid " + B.borderLight,
-                          background: isOverridden ? "#fff7ed" : v ? MEAL_COLORS[m] + "10" : "transparent",
+                          background: isOverridden ? B.pink : v ? MEAL_COLORS[m] + "20" : "transparent",
                         }}>
                           {isEd ? (
                             <input autoFocus value={editValue} onChange={(e) => setEditValue(e.target.value)}
@@ -359,7 +359,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
             <>
               {/* Team row */}
               <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
-                <div style={{ padding: "8px 16px", fontWeight: 800, fontSize: 11, color: "#0369a1", background: "#e0f2fe", borderBottom: "1px solid #bae6fd" }}>
+                <div style={{ padding: "8px 16px", fontWeight: 800, fontSize: 11, color: B.cyan, background: B.cyanBg, borderBottom: "1px solid " + B.border }}>
                   {"\ud83d\udc64"} Staff Team ({teamSize} people)
                 </div>
                 <div style={{ overflowX: "auto" }}>
@@ -391,10 +391,10 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
               {/* Each group */}
               {groups.map((g) => (
                 <div key={g.id} style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
-                  <div style={{ padding: "8px 16px", display: "flex", gap: 8, alignItems: "center", background: "#f0f9ff", borderBottom: "1px solid " + B.borderLight }}>
+                  <div style={{ padding: "8px 16px", display: "flex", gap: 8, alignItems: "center", background: B.cyanBg, borderBottom: "1px solid " + B.borderLight }}>
                     <span style={{ fontWeight: 800, fontSize: 11, color: B.text }}>{g.group}</span>
                     <span style={{ fontSize: 9, color: B.textMuted }}>{g.agent}</span>
-                    <span style={{ background: "#dbeafe", color: "#1e40af", padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{(g.stu||0)+(g.gl||0)} pax</span>
+                    <span style={{ background: B.cyanBg, color: B.link, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{(g.stu||0)+(g.gl||0)} pax</span>
                     <span style={{ fontSize: 9, color: B.textMuted }}>{fmtDate(g.arr)} {"\u2192"} {fmtDate(g.dep)}</span>
                     <span style={{ fontSize: 9, color: B.textMuted }}>1st: {g.firstMeal || "Dinner"} {"\u00b7"} Last: {g.lastMeal || "Packed Lunch"}</span>
                     {dietary.filter((d) => d.group === g.group).length > 0 && (
@@ -418,7 +418,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
                               <td style={{ padding: "4px 8px" }}><span style={{ background: MEAL_COLORS[m] + "20", color: MEAL_COLORS[m], padding: "1px 6px", borderRadius: 3, fontSize: 8, fontWeight: 700 }}>{m}</span></td>
                               {dates.map((d) => {
                                 const v = ((groupData[g.id] || {})[dayKey(d)] || {})[m] || 0;
-                                return <td key={dayKey(d)} style={{ textAlign: "center", fontSize: 9, fontWeight: v ? 700 : 400, color: v ? B.navy : B.textLight, borderLeft: "1px solid " + B.borderLight }}>{v || ""}</td>;
+                                return <td key={dayKey(d)} style={{ textAlign: "center", fontSize: 9, fontWeight: v ? 700 : 400, color: v ? B.text : B.textLight, borderLeft: "1px solid " + B.borderLight }}>{v || ""}</td>;
                               })}
                             </tr>
                           );
@@ -527,7 +527,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
                   <tr key={s.id} style={{ borderBottom: "1px solid " + B.borderLight }}>
                     <td style={{ ...tdStyle, fontWeight: 700, color: B.text }}>{fmtDate(s.date)}</td>
                     <td style={tdStyle}>
-                      <span style={{ background: s.meal === "BBQ" ? "#fed7aa" : s.meal === "Party" ? "#e9d5ff" : "#dbeafe", color: s.meal === "BBQ" ? "#ea580c" : s.meal === "Party" ? "#7c3aed" : "#1e40af", padding: "2px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800 }}>{s.meal}</span>
+                      <span style={{ background: s.meal === "BBQ" ? B.warningBg : s.meal === "Party" ? B.purpleBg : B.cyanBg, color: s.meal === "BBQ" ? B.warning : s.meal === "Party" ? B.purple : B.link, padding: "2px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800 }}>{s.meal}</span>
                     </td>
                     <td style={{ ...tdStyle, fontWeight: 600 }}>{s.description}</td>
                     <td style={{ ...tdStyle, fontWeight: 800, textAlign: "center" }}>{s.count}</td>
@@ -552,7 +552,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
           </div>
 
           {showOffsiteForm && (
-            <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderTop: "none", padding: "10px 12px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
+            <div style={{ background: B.cyanBg, border: "1px solid " + B.border, borderTop: "none", padding: "10px 12px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
               <Fld label="Group">
                 <select value={offsiteForm.groupId}
                   onChange={(e) => {

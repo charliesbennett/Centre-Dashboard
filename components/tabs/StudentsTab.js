@@ -352,7 +352,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
                 Import Group
               </button>
               <button onClick={() => { setImportPreview(null); if (fileRef.current) fileRef.current.value = ""; }}
-                style={{ padding: "10px 16px", background: "#f1f5f9", border: "1px solid " + B.border, color: B.textMuted, borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
+                style={{ padding: "10px 16px", background: B.bg, border: "1px solid " + B.border, color: B.textMuted, borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
                 Cancel
               </button>
             </div>
@@ -391,7 +391,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
               </div>
               <div style={{ padding: "0 20px 18px", display: "flex", gap: 8 }}>
                 <button onClick={saveEdit} style={{ flex: 1, padding: "10px", background: B.navy, border: "none", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>Save Changes</button>
-                <button onClick={() => setEditingGroup(null)} style={{ padding: "10px 16px", background: "#f1f5f9", border: "1px solid " + B.border, color: B.textMuted, borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Cancel</button>
+                <button onClick={() => setEditingGroup(null)} style={{ padding: "10px 16px", background: B.bg, border: "1px solid " + B.border, color: B.textMuted, borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Cancel</button>
               </div>
             </div>
           </div>
@@ -406,8 +406,8 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
         {archivedGroups.length > 0 && (
           <button onClick={() => setShowArchived(!showArchived)} style={{
             padding: "6px 12px", borderRadius: 6, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", marginLeft: "auto",
-            background: showArchived ? "#fef3c7" : "#f1f5f9", border: "1px solid " + (showArchived ? "#fbbf24" : B.border),
-            color: showArchived ? "#92400e" : B.textMuted,
+            background: showArchived ? B.warningBg : B.bg, border: "1px solid " + (showArchived ? B.warning : B.border),
+            color: showArchived ? B.warning : B.textMuted,
           }}>{showArchived ? "\ud83d\udcc2 Hide Archived" : "\ud83d\uddc3\ufe0f Show Archived"} ({archivedGroups.length})</button>
         )}
       </div>
@@ -420,13 +420,13 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
             <table style={{ borderCollapse: "collapse", fontSize: 10, width: "100%" }}>
               <thead>
                 <tr>
-                  <th style={{ ...thStyle, position: "sticky", left: 0, background: "#f8fafc", zIndex: 2, minWidth: 60, textAlign: "left" }}>Session</th>
+                  <th style={{ ...thStyle, position: "sticky", left: 0, background: B.ice, zIndex: 2, minWidth: 60, textAlign: "left" }}>Session</th>
                   {lessonDates.map((d) => {
                     const ds = dayKey(d); const we = isWeekend(d); const split = lessonSplit[ds];
                     const hasLessons = split && (split.am > 0 || split.pm > 0);
-                    return <th key={ds} style={{ ...thStyle, textAlign: "center", minWidth: 52, padding: "3px 4px", background: we ? "#fef2f2" : hasLessons ? "#f8fafc" : "#fafafa" }}>
+                    return <th key={ds} style={{ ...thStyle, textAlign: "center", minWidth: 52, padding: "3px 4px", background: we ? B.dangerBg : B.ice }}>
                       <div style={{ fontSize: 7, color: B.textMuted }}>{d.getDate()}/{d.getMonth()+1}</div>
-                      <div style={{ fontSize: 9, fontWeight: 800, color: we ? B.red : B.navy }}>{dayName(d)}</div>
+                      <div style={{ fontSize: 9, fontWeight: 800, color: we ? B.red : B.text }}>{dayName(d)}</div>
                     </th>;
                   })}
                 </tr>
@@ -434,11 +434,11 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
               <tbody>
                 {["AM","PM"].map((slot) => (
                   <tr key={slot} style={{ borderBottom: slot === "AM" ? "1px solid " + B.borderLight : "none" }}>
-                    <td style={{ ...thStyle, position: "sticky", left: 0, background: slot === "AM" ? "#dbeafe" : "#dcfce7", zIndex: 1, fontSize: 9, fontWeight: 800, color: slot === "AM" ? "#1e40af" : "#166534", padding: "4px 8px" }}>{slot} Lessons</td>
+                    <td style={{ ...thStyle, position: "sticky", left: 0, background: slot === "AM" ? B.ice : B.pink, zIndex: 1, fontSize: 9, fontWeight: 800, color: slot === "AM" ? B.link : B.red, padding: "4px 8px" }}>{slot} Lessons</td>
                     {lessonDates.map((d) => {
                       const ds = dayKey(d); const val = lessonSplit[ds]?.[slot.toLowerCase()] || 0; const we = isWeekend(d);
-                      return <td key={ds} style={{ textAlign: "center", padding: "4px 2px", borderLeft: "1px solid " + B.borderLight, background: we ? "#fef2f2" : "transparent" }}>
-                        {val > 0 ? <span style={{ fontWeight: 700, color: slot === "AM" ? "#1e40af" : "#166534", fontSize: 10 }}>{val}</span>
+                      return <td key={ds} style={{ textAlign: "center", padding: "4px 2px", borderLeft: "1px solid " + B.borderLight, background: we ? B.dangerBg : "transparent" }}>
+                        {val > 0 ? <span style={{ fontWeight: 700, color: slot === "AM" ? B.link : B.red, fontSize: 10 }}>{val}</span>
                           : <span style={{ color: B.textLight, fontSize: 9 }}>—</span>}
                       </td>;
                     })}
@@ -513,7 +513,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
       {view === "flags" && (() => {
         const allFlagged = getFlaggedStudents(groups);
         const filtered = flagFilter === "All" ? allFlagged : allFlagged.filter((f) => f.flagType === flagFilter);
-        const BADGE = { Medical: { bg: "#fef2f2", color: B.danger }, Dietary: { bg: "#f0fdf4", color: B.success }, Both: { bg: "#faf5ff", color: B.purple } };
+        const BADGE = { Medical: { bg: B.dangerBg, color: B.danger }, Dietary: { bg: B.successBg, color: B.success }, Both: { bg: B.purpleBg, color: B.purple } };
         return (
           <div style={{ padding: "12px 20px 20px" }}>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
@@ -578,12 +578,12 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
                     <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, color: B.text }}>{(x.stu || 0) + (x.gl || 0)}</td>
                     <td style={tdStyle} onClick={(e) => { e.stopPropagation(); toggleLessonSlot(x.id); }}>
                       <span style={{
-                        background: x.lessonSlot === "AM" ? "#dbeafe" : "#fae8ff",
-                        color: x.lessonSlot === "AM" ? "#1e40af" : "#9333ea",
+                        background: x.lessonSlot === "AM" ? B.ice : B.pink,
+                        color: x.lessonSlot === "AM" ? B.link : B.red,
                         padding: "2px 8px", borderRadius: 4, fontSize: 9, fontWeight: 800, cursor: "pointer",
                       }}>{x.lessonSlot || "AM"}</span>
                     </td>
-                    <td style={tdStyle}><span style={{ background: "#e0f2fe", color: "#0369a1", padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{x.prog}</span></td>
+                    <td style={tdStyle}><span style={{ background: B.cyanBg, color: B.cyan, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{x.prog}</span></td>
                     <td style={tdStyle}>{fmtDate(x.arr)}</td>
                     <td style={tdStyle}>{fmtDate(x.dep)}</td>
                     <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
@@ -603,7 +603,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
                   </tr>
                   {expanded === x.id && x.students && (
                     <tr key={x.id + "-d"} style={{ borderBottom: "1px solid " + B.borderLight }}>
-                      <td colSpan={13} style={{ padding: "0 8px 12px", background: "#f8fafc" }}>
+                      <td colSpan={13} style={{ padding: "0 8px 12px", background: B.bg }}>
                         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", padding: "8px 12px" }}>
                           {x.arrFlight && <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Arrival:</span> {x.arrAirport} · {x.arrFlight} {x.arrTime ? "at " + x.arrTime : ""}</div>}
                           {x.depFlight && <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Departure:</span> {x.depAirport} · {x.depFlight} {x.depTime ? "at " + x.depTime : ""}</div>}
@@ -612,7 +612,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
                         </div>
                         <div style={{ overflowX: "auto", maxWidth: "calc(100vw - 60px)" }}>
                         <table style={{ minWidth: 900, borderCollapse: "collapse", fontSize: 10, background: B.card, borderRadius: 6 }}>
-                          <thead><tr style={{ background: "#f1f5f9" }}>{["#", "Name", "DOB", "Age", "Sex", "Nat", "Accomm", "Arr", "Dep", "Specialism", "Medical", "Swimming"].map((h) => <th key={h} style={{ ...thStyle, fontSize: 8, padding: "4px 5px" }}>{h}</th>)}</tr></thead>
+                          <thead><tr style={{ background: B.bg }}>{["#", "Name", "DOB", "Age", "Sex", "Nat", "Accomm", "Arr", "Dep", "Specialism", "Medical", "Swimming"].map((h) => <th key={h} style={{ ...thStyle, fontSize: 8, padding: "4px 5px" }}>{h}</th>)}</tr></thead>
                           <tbody>
                             {(x.students || []).map((s, i) => (
                               <tr key={s.id} style={{ borderBottom: "1px solid " + B.borderLight }}>

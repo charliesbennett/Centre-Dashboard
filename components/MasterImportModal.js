@@ -101,7 +101,7 @@ export default function MasterImportModal({ groups: dashGroups = [], onClose, on
           <div style={{ padding: 28, display: "flex", flexDirection: "column", gap: 16, alignItems: "center" }}>
             <div
               onClick={() => fileRef.current?.click()}
-              style={{ border: "2px dashed " + B.border, borderRadius: 10, padding: "40px 32px", textAlign: "center", cursor: "pointer", background: "#f8fafc", width: "100%", boxSizing: "border-box" }}
+              style={{ border: "2px dashed " + B.border, borderRadius: 10, padding: "40px 32px", textAlign: "center", cursor: "pointer", background: B.bg, width: "100%", boxSizing: "border-box" }}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); }}
             >
@@ -120,7 +120,7 @@ export default function MasterImportModal({ groups: dashGroups = [], onClose, on
           <>
             <div style={{ overflowY: "auto", flex: 1 }}>
               {/* Options bar */}
-              <div style={{ padding: "10px 20px", background: "#f8fafc", borderBottom: "1px solid " + B.border, display: "flex", gap: 16, alignItems: "center", flexShrink: 0 }}>
+              <div style={{ padding: "10px 20px", background: B.bg, borderBottom: "1px solid " + B.border, display: "flex", gap: 16, alignItems: "center", flexShrink: 0 }}>
                 <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
                   <input type="checkbox" checked={updateMeta} onChange={(e) => setUpdateMeta(e.target.checked)} />
                   Also update student counts & dates from Excel
@@ -131,7 +131,7 @@ export default function MasterImportModal({ groups: dashGroups = [], onClose, on
               </div>
 
               {/* Column headers */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px", gap: 8, padding: "6px 20px 4px", background: "#f1f5f9", borderBottom: "1px solid " + B.border }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px", gap: 8, padding: "6px 20px 4px", background: B.bg, borderBottom: "1px solid " + B.border }}>
                 <span style={labelStyle}>From Excel</span>
                 <span style={labelStyle}>Match to Dashboard Group</span>
                 <span style={labelStyle}>Confidence</span>
@@ -177,7 +177,7 @@ export default function MasterImportModal({ groups: dashGroups = [], onClose, on
               <button onClick={handleConfirm} disabled={importCount === 0} style={{ flex: 1, padding: "10px", background: importCount > 0 ? B.navy : "#94a3b8", border: "none", color: "#fff", borderRadius: 8, cursor: importCount > 0 ? "pointer" : "not-allowed", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>
                 Import {importCount} Group{importCount !== 1 ? "s" : ""}
               </button>
-              <button onClick={() => setStage("upload")} style={{ padding: "10px 16px", background: "#f1f5f9", border: "1px solid " + B.border, color: B.textMuted, borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Back</button>
+              <button onClick={() => setStage("upload")} style={{ padding: "10px 16px", background: B.bg, border: "1px solid " + B.border, color: B.textMuted, borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Back</button>
             </div>
           </>
         )}

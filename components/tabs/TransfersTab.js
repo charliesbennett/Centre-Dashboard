@@ -14,7 +14,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
     Pending: { color: B.warning, bg: B.warningBg },
     Booked: { color: B.success, bg: B.successBg },
     Confirmed: { color: B.link, bg: B.cyanBg },
-    "Own Transfer": { color: B.textMuted, bg: "#f1f5f9" },
+    "Own Transfer": { color: B.textMuted, bg: B.bg },
     Cancelled: { color: B.danger, bg: B.dangerBg },
   };
   const [view, setView] = useState("overview"); // overview | arrivals | departures | timeline
@@ -131,7 +131,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
               {UKLC_OPTIONS.map((o) => <option key={o}>{o}</option>)}
             </select>
           ) : (
-            <span style={{ background: t.uklc === "No" ? "#f1f5f9" : t.uklc === "TBC" ? B.warningBg : B.successBg, color: t.uklc === "No" ? B.textMuted : t.uklc === "TBC" ? B.warning : B.success, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{t.uklc || "Yes"}</span>
+            <span style={{ background: t.uklc === "No" ? B.bg : t.uklc === "TBC" ? B.warningBg : B.successBg, color: t.uklc === "No" ? B.textMuted : t.uklc === "TBC" ? B.warning : B.success, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{t.uklc || "Yes"}</span>
           )}
         </td>
         {showArr && <>
@@ -340,7 +340,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
             return (
               <div key={date} style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
                 {/* Day header */}
-                <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, background: "#f8fafc", borderBottom: "1px solid " + B.borderLight }}>
+                <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, background: B.bg, borderBottom: "1px solid " + B.borderLight }}>
                   <div style={{ minWidth: 90 }}>
                     <div style={{ fontSize: 13, fontWeight: 800, color: B.text }}>{dayName(d)}</div>
                     <div style={{ fontSize: 10, color: B.textMuted }}>{fmtDate(date)}</div>

@@ -124,13 +124,13 @@ export default function RoomingOverviewView({
               <table style={{ borderCollapse: "collapse", fontSize: 10, minWidth: Math.max(400, dates.length * 130 + 170), width: "100%" }}>
                 <thead>
                   <tr>
-                    <th style={{ ...thStyle, position: "sticky", left: 0, zIndex: 3, background: "#f8fafc", minWidth: 90, textAlign: "left" }}>House</th>
-                    <th style={{ ...thStyle, position: "sticky", left: 90, zIndex: 3, background: "#f8fafc", minWidth: 70, textAlign: "left" }}>Room</th>
+                    <th style={{ ...thStyle, position: "sticky", left: 0, zIndex: 3, background: B.bg, minWidth: 90, textAlign: "left" }}>House</th>
+                    <th style={{ ...thStyle, position: "sticky", left: 90, zIndex: 3, background: B.bg, minWidth: 70, textAlign: "left" }}>Room</th>
                     {dates.map((d) => {
                       const we = isWeekend(d);
                       return (
-                        <th key={dayKey(d)} style={{ ...thStyle, textAlign: "left", minWidth: 130, background: we ? "#fef2f2" : "#f8fafc" }}>
-                          <div style={{ fontWeight: 800, fontSize: 8, color: we ? B.red : B.navy }}>{dayName(d)}</div>
+                        <th key={dayKey(d)} style={{ ...thStyle, textAlign: "left", minWidth: 130, background: we ? B.dangerBg : B.bg }}>
+                          <div style={{ fontWeight: 800, fontSize: 8, color: we ? B.red : B.text }}>{dayName(d)}</div>
                           <div style={{ fontSize: 7, color: B.textMuted }}>{d.getDate()}/{d.getMonth() + 1}</div>
                         </th>
                       );
@@ -238,8 +238,8 @@ export default function RoomingOverviewView({
                       );
                     })}
                   </tr>
-                  <tr style={{ background: "#f0fdf4" }}>
-                    <td colSpan={2} style={{ padding: "5px 10px", fontWeight: 700, color: B.success, fontSize: 9, position: "sticky", left: 0, zIndex: 1, background: "#f0fdf4" }}>AVAILABLE</td>
+                  <tr style={{ background: B.successBg }}>
+                    <td colSpan={2} style={{ padding: "5px 10px", fontWeight: 700, color: B.success, fontSize: 9, position: "sticky", left: 0, zIndex: 1, background: B.successBg }}>AVAILABLE</td>
                     {dates.map((d) => {
                       const ds = dayKey(d);
                       const t = bedsGridTotals[ds];
@@ -274,13 +274,13 @@ export default function RoomingOverviewView({
             <table style={{ minWidth: Math.max(600, dates.length * 38 + 160), width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
               <thead>
                 <tr>
-                  <th style={{ ...thStyle, width: 160, position: "sticky", left: 0, zIndex: 2, background: "#f8fafc" }}>Group</th>
+                  <th style={{ ...thStyle, width: 160, position: "sticky", left: 0, zIndex: 2, background: B.bg }}>Group</th>
                   {dates.map((d) => {
                     const s = dayKey(d);
                     const we = isWeekend(d);
                     return (
-                      <th key={s} style={{ ...thStyle, textAlign: "center", minWidth: 36, background: we ? "#fef2f2" : "#f8fafc" }}>
-                        <div style={{ fontWeight: 800, fontSize: 8, color: we ? B.red : B.navy }}>{dayName(d)}</div>
+                      <th key={s} style={{ ...thStyle, textAlign: "center", minWidth: 36, background: we ? B.dangerBg : B.bg }}>
+                        <div style={{ fontWeight: 800, fontSize: 8, color: we ? B.red : B.text }}>{dayName(d)}</div>
                         <div style={{ fontSize: 7, color: B.textMuted }}>{d.getDate()}/{d.getMonth() + 1}</div>
                       </th>
                     );
@@ -311,16 +311,16 @@ export default function RoomingOverviewView({
                           textAlign: "center", padding: "4px 1px", cursor: "pointer",
                           borderLeft: "1px solid " + B.borderLight,
                           fontWeight: v ? 800 : 400,
-                          color: v ? (isOverridden ? "#ea580c" : B.navy) : B.textLight,
+                          color: v ? (isOverridden ? B.red : B.text) : B.textLight,
                           fontSize: v ? 11 : 9,
-                          background: isOverridden ? "#fff7ed" : v ? GROUP_COLORS[gi % GROUP_COLORS.length] + "18" : "transparent",
+                          background: isOverridden ? B.pink : v ? GROUP_COLORS[gi % GROUP_COLORS.length] + "18" : "transparent",
                         }}>
                           {isEd ? (
                             <input autoFocus value={editValue}
                               onChange={(e) => setEditValue(e.target.value)}
                               onBlur={commitCellEdit}
                               onKeyDown={(e) => e.key === "Enter" && commitCellEdit()}
-                              style={{ width: 32, fontSize: 10, textAlign: "center", border: "1px solid " + B.navy, borderRadius: 2, padding: 2, fontFamily: "inherit" }} />
+                              style={{ width: 32, fontSize: 10, textAlign: "center", border: "1px solid " + B.border, borderRadius: 2, padding: 2, fontFamily: "inherit", background: B.card, color: B.text }} />
                           ) : v || "\u2014"}
                         </td>
                       );
@@ -340,8 +340,8 @@ export default function RoomingOverviewView({
                   })}
                 </tr>
                 {totalBeds > 0 && (
-                  <tr style={{ background: "#f0fdf4" }}>
-                    <td style={{ padding: "5px 8px", fontWeight: 700, color: B.success, fontSize: 9, position: "sticky", left: 0, zIndex: 1, background: "#f0fdf4" }}>CAPACITY SPARE</td>
+                  <tr style={{ background: B.successBg }}>
+                    <td style={{ padding: "5px 8px", fontWeight: 700, color: B.success, fontSize: 9, position: "sticky", left: 0, zIndex: 1, background: B.successBg }}>CAPACITY SPARE</td>
                     {dates.map((d) => {
                       const ds = dayKey(d);
                       const spare = totalBeds - (dailyTotals[ds] || 0);

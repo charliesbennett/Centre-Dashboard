@@ -336,7 +336,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                               <select value={editCoachForm.vehicle || "Coach"} onChange={(e) => setEditCoachForm((p) => ({ ...p, vehicle: e.target.value }))} style={{ ...ecFi, cursor: "pointer", width: 80 }}>
                                 {["Coach", "Minibus", "Double Decker", "Train", "Other"].map((v) => <option key={v}>{v}</option>)}
                               </select>
-                            ) : <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{c.vehicle}</span>}</td>
+                            ) : <span style={{ background: B.bg, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{c.vehicle}</span>}</td>
                             <td style={tdStyle}>{isEd ? <input value={editCoachForm.pickupTime || ""} onChange={(e) => setEditCoachForm((p) => ({ ...p, pickupTime: e.target.value }))} style={{ ...ecFi, width: 55 }} placeholder="09:00" /> : c.pickupTime || "\u2014"}</td>
                             <td style={tdStyle}>{isEd ? <input value={editCoachForm.dropoffTime || ""} onChange={(e) => setEditCoachForm((p) => ({ ...p, dropoffTime: e.target.value }))} style={{ ...ecFi, width: 55 }} placeholder="17:00" /> : c.dropoffTime || "\u2014"}</td>
                             <td style={{ ...tdStyle, fontWeight: 700 }}>{isEd ? <input type="number" value={editCoachForm.cost || ""} onChange={(e) => setEditCoachForm((p) => ({ ...p, cost: e.target.value }))} style={{ ...ecFi, width: 60 }} /> : c.cost ? "\u00a3" + c.cost.toLocaleString() : "\u2014"}</td>
@@ -370,7 +370,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                 )}
 
                 {showCoachForm === exc.date ? (
-                  <div style={{ background: "#f8fafc", border: "1px solid " + B.border, borderRadius: 8, padding: "8px 12px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
+                  <div style={{ background: B.bg, border: "1px solid " + B.border, borderRadius: 8, padding: "8px 12px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
                     <Fld label="Company"><input value={coachForm.company} onChange={(e) => setCoachForm((p) => ({ ...p, company: e.target.value }))} style={{ ...fi, width: 140 }} placeholder="e.g. National Express" /></Fld>
                     <Fld label="Vehicle">
                       <select value={coachForm.vehicle} onChange={(e) => setCoachForm((p) => ({ ...p, vehicle: e.target.value }))} style={{ ...fi, cursor: "pointer", width: 90 }}>

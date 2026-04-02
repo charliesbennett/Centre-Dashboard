@@ -47,7 +47,7 @@ export default function LoginPage({ onLogin, error: authError }) {
         <h1 style={{ textAlign: "center", fontSize: 22, fontWeight: 800, color: B.text, margin: "0 0 4px" }}>Centre Dashboard</h1>
         <p style={{ textAlign: "center", fontSize: 13, color: "#7a8599", margin: "0 0 28px" }}>Sign in with your UKLC Account</p>
 
-        {err && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "10px 16px", marginBottom: 18, fontSize: 13, color: "#dc2626", fontWeight: 600 }}>{err}</div>}
+        {err && <div style={{ background: B.dangerBg, border: "1px solid " + B.border, borderRadius: 12, padding: "10px 16px", marginBottom: 18, fontSize: 13, color: B.danger, fontWeight: 600 }}>{err}</div>}
 
         {/* Email */}
         <div style={{ marginBottom: 20 }}>

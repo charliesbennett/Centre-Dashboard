@@ -291,7 +291,7 @@ export default function RoomingHousesView({
           </div>
 
           {showAddHouse && (
-            <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderTop: "none", padding: "10px 14px", display: "flex", gap: 8, alignItems: "flex-end" }}>
+            <div style={{ background: B.successBg, border: "1px solid " + B.border, borderTop: "none", padding: "10px 14px", display: "flex", gap: 8, alignItems: "flex-end" }}>
               <Fld label="House Name">
                 <input value={newHouseName} onChange={(e) => setNewHouseName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addHouse()}
@@ -317,7 +317,7 @@ export default function RoomingHousesView({
 
             return (
               <div key={house.id} style={{ background: B.card, border: "1px solid " + B.border, borderTop: "none" }}>
-                <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", cursor: "pointer", borderBottom: isExpanded ? "1px solid " + B.border : "none" }}
+                <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, background: B.bg, cursor: "pointer", borderBottom: isExpanded ? "1px solid " + B.border : "none" }}
                   onClick={() => setExpandedHouse(isExpanded ? null : house.id)}>
                   <span style={{ fontSize: 11, color: B.textMuted }}>{isExpanded ? "\u25bc" : "\u25b6"}</span>
                   {editingHouseId === house.id ? (
@@ -360,7 +360,7 @@ export default function RoomingHousesView({
                             return (
                               <div key={room.id} style={{
                                 border: "1px solid " + B.border, borderRadius: 6, padding: "6px 10px",
-                                minWidth: 120, background: occupancy >= room.capacity ? "#f0fdf4" : "#f8fafc",
+                                minWidth: 120, background: occupancy >= room.capacity ? B.successBg : B.bg,
                                 position: "relative",
                               }}>
                                 {isEditing ? (
@@ -409,7 +409,7 @@ export default function RoomingHousesView({
                     ))}
 
                     {showAddRoom === house.id ? (
-                      <div style={{ display: "flex", gap: 6, alignItems: "flex-end", marginTop: 8, padding: "8px 10px", background: "#f0f9ff", borderRadius: 6, border: "1px dashed #bae6fd" }}>
+                      <div style={{ display: "flex", gap: 6, alignItems: "flex-end", marginTop: 8, padding: "8px 10px", background: B.cyanBg, borderRadius: 6, border: "1px dashed " + B.border }}>
                         <Fld label="Room Name">
                           <input value={newRoom.roomName} onChange={(e) => setNewRoom((p) => ({ ...p, roomName: e.target.value }))}
                             placeholder="e.g. Room 1, Dorm A..." style={{ ...inputStyle, width: 120 }} autoFocus />
@@ -470,7 +470,7 @@ export default function RoomingHousesView({
                             padding: "5px 10px", borderRadius: 6, fontSize: 9, fontWeight: 700,
                             fontFamily: "inherit", cursor: isLoading ? "default" : "pointer",
                             border: "1px solid " + (hasToken ? "#4ade80" : B.border),
-                            background: hasToken ? "#f0fdf4" : B.white,
+                            background: hasToken ? B.successBg : B.card,
                             color: hasToken ? "#16a34a" : B.textMuted,
                           }}>
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -509,7 +509,7 @@ export default function RoomingHousesView({
                     {Object.entries(floors).map(([floor, fRooms]) => (
                       <div key={floor}>
                         {Object.keys(floors).length > 1 && (
-                          <div style={{ padding: "4px 16px", fontSize: 9, fontWeight: 700, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.5, background: "#f8fafc", borderBottom: "1px solid " + B.borderLight }}>
+                          <div style={{ padding: "4px 16px", fontSize: 9, fontWeight: 700, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.5, background: B.bg, borderBottom: "1px solid " + B.borderLight }}>
                             {floor}
                           </div>
                         )}
@@ -521,7 +521,7 @@ export default function RoomingHousesView({
                               <div key={room.id} style={{
                                 border: "1px solid " + (roomFilled >= room.capacity ? "#86efac" : B.border),
                                 borderRadius: 8, padding: "8px 10px", minWidth: 170, flex: "0 0 auto",
-                                background: roomFilled >= room.capacity ? "#f0fdf4" : B.card,
+                                background: roomFilled >= room.capacity ? B.successBg : B.card,
                               }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                                   <div style={{ fontWeight: 700, fontSize: 11, color: B.text }}>{room.roomName}</div>
@@ -533,7 +533,7 @@ export default function RoomingHousesView({
                                   const a = getAssignment(room.id, slotIdx);
                                   const otype = a?.occupantType || "student";
                                   const dotColor = otype === "uklc" ? "#1c3048" : otype === "gl" ? "#16a34a" : (a?.groupId ? groupColorMap[a.groupId] : null);
-                                  const inputBg = dotColor ? dotColor + "12" : "#f8fafc";
+                                  const inputBg = dotColor ? dotColor + "12" : B.bg;
                                   const inputBorder = dotColor ? dotColor + "40" : B.borderLight;
                                   return (
                                     <div key={slotIdx} style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 4 }}>
@@ -613,7 +613,7 @@ export default function RoomingHousesView({
                         </tr>
                       );
                     })}
-                    <tr style={{ background: "#f8fafc", borderTop: "2px solid " + B.border }}>
+                    <tr style={{ background: B.bg, borderTop: "2px solid " + B.border }}>
                       <td style={{ ...tdStyle, fontWeight: 800, color: B.text }}>TOTAL</td>
                       <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{roomingRooms.length}</td>
                       <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{totalBeds}</td>
@@ -708,7 +708,7 @@ export default function RoomingHousesView({
                     {Object.entries(floors).map(([floor, fRooms]) => (
                       <div key={floor}>
                         {Object.keys(floors).length > 1 && (
-                          <div style={{ padding: "4px 16px", fontSize: 9, fontWeight: 700, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.5, background: "#f8fafc", borderBottom: "1px solid " + B.borderLight }}>
+                          <div style={{ padding: "4px 16px", fontSize: 9, fontWeight: 700, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.5, background: B.bg, borderBottom: "1px solid " + B.borderLight }}>
                             {floor}
                           </div>
                         )}
@@ -728,16 +728,16 @@ export default function RoomingHousesView({
 
                             return (
                               <div key={room.id} style={{
-                                border: "2px solid " + (presentCount >= room.capacity ? "#86efac" : isEmpty ? B.borderLight : B.border),
+                                border: "2px solid " + (presentCount >= room.capacity ? B.success+"44" : isEmpty ? B.borderLight : B.border),
                                 borderRadius: 8, padding: "8px 10px", minWidth: 150, flex: "0 0 auto",
-                                background: presentCount >= room.capacity ? "#f0fdf4" : isEmpty ? "#fafafa" : B.card,
+                                background: presentCount >= room.capacity ? B.successBg : isEmpty ? B.bg : B.card,
                                 opacity: isEmpty && roomingAssignments.filter((a) => a.roomId === room.id && a.occupantName).length === 0 ? 0.5 : 1,
                               }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                                   <div style={{ fontWeight: 800, fontSize: 11, color: B.text }}>{room.roomName}</div>
                                   <span style={{
                                     fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
-                                    background: presentCount >= room.capacity ? "#dcfce7" : presentCount > 0 ? B.cyanBg : "#f1f5f9",
+                                    background: presentCount >= room.capacity ? B.successBg : presentCount > 0 ? B.cyanBg : B.bg,
                                     color: presentCount >= room.capacity ? B.success : presentCount > 0 ? B.link : B.textLight,
                                   }}>
                                     {presentCount}/{room.capacity}
@@ -751,8 +751,8 @@ export default function RoomingHousesView({
                                     <div key={idx} style={{
                                       display: "flex", alignItems: "center", gap: 6, padding: "4px 6px",
                                       marginBottom: 3, borderRadius: 5,
-                                      background: present ? (gc ? gc + "15" : "#f0fdf4") : away ? "#f5f5f5" : "#f8fafc",
-                                      border: "1px solid " + (present ? (gc ? gc + "30" : "#86efac") : away ? "#e5e7eb" : B.borderLight),
+                                      background: present ? (gc ? gc + "15" : B.successBg) : B.bg,
+                                      border: "1px solid " + (present ? (gc ? gc + "30" : B.success+"44") : B.borderLight),
                                       opacity: away ? 0.45 : 1,
                                     }}>
                                       <div style={{

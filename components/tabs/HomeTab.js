@@ -519,7 +519,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
           </div>
 
           {excToday && (
-            <div style={{ padding: "6px 14px", background: excToday === "Full" ? "#fff7ed" : B.yellow + "25", borderBottom: "1px solid " + B.borderLight, fontSize: 10, fontWeight: 800, color: excToday === "Full" ? "#ea580c" : "#92400e", display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ padding: "6px 14px", background: B.warningBg, borderBottom: "1px solid " + B.borderLight, fontSize: 10, fontWeight: 800, color: B.warning, display: "flex", alignItems: "center", gap: 6 }}>
               <span>{excToday === "Full" ? <IcBus /> : <IcMountain />}</span>
               {excToday === "Full" ? "Full Day Excursion — groups off-site" : "Half Day Excursion"}
             </div>
@@ -539,7 +539,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                     {(g.stu || 0) + (g.gl || 0)} pax
                   </span>
                   {today !== g.arr && today !== g.dep && (
-                    <span style={{ fontSize: 8, fontWeight: 800, padding: "1px 5px", borderRadius: 3, background: g.lessonSlot === "PM" ? "#dcfce7" : "#dbeafe", color: g.lessonSlot === "PM" ? "#166534" : "#1e40af" }}>
+                    <span style={{ fontSize: 8, fontWeight: 800, padding: "1px 5px", borderRadius: 3, background: g.lessonSlot === "PM" ? B.pink : B.ice, color: g.lessonSlot === "PM" ? B.red : B.link }}>
                       {(() => { const slot = calcLessonSplit([g], [today])[today]; return slot?.am > 0 ? "AM Lessons" : slot?.pm > 0 ? "PM Lessons" : ""; })()}
                     </span>
                   )}
@@ -673,7 +673,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
                       {isToday ? (
                         <span style={{ background: "#fce7f3", color: "#be185d", padding: "2px 7px", borderRadius: 4, fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}><IcSparkles /> Today!</span>
                       ) : isTomorrow ? (
-                        <span style={{ background: "#fef3c7", color: "#92400e", padding: "2px 7px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>Tomorrow</span>
+                        <span style={{ background: B.warningBg, color: B.warning, padding: "2px 7px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>Tomorrow</span>
                       ) : (
                         <span style={{ color: B.textMuted, fontSize: 9 }}>in {b.daysUntil} days</span>
                       )}

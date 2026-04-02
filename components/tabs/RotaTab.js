@@ -642,7 +642,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
 
       {/* ── AI status strip ──────────────────────────────── */}
       {(aiGenerating || aiError) && (
-        <div style={{ flexShrink: 0, padding: "6px 16px", background: aiError ? B.dangerBg : "#e0f2fe", borderBottom: `1px solid ${aiError ? "#fca5a5" : "#bae6fd"}`, fontSize: 10, color: aiError ? B.danger : "#0369a1", fontWeight: 600 }}>
+        <div style={{ flexShrink: 0, padding: "6px 16px", background: aiError ? B.dangerBg : B.cyanBg, borderBottom: `1px solid ${aiError ? B.danger+"44" : B.border}`, fontSize: 10, color: aiError ? B.danger : B.cyan, fontWeight: 600 }}>
           {aiGenerating && (
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <span>Claude is generating your rota…</span>
@@ -657,9 +657,9 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                   return (
                     <span key={step} style={{
                       padding: "2px 8px", borderRadius: 10, fontSize: 9, fontWeight: 700,
-                      background: done ? B.success + "25" : active ? "#bae6fd" : "#f1f5f9",
-                      color: done ? B.success : active ? "#0369a1" : B.textMuted,
-                      border: `1px solid ${done ? B.success : active ? "#7dd3fc" : B.border}`,
+                      background: done ? B.success + "25" : active ? B.cyanBg : B.bg,
+                      color: done ? B.success : active ? B.cyan : B.textMuted,
+                      border: `1px solid ${done ? B.success : active ? B.cyan : B.border}`,
                     }}>
                       {done ? "✓ " : active ? "⏳ " : ""}{label}
                     </span>
@@ -674,7 +674,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
 
       {/* ── Reviewer corrections panel ───────────────────── */}
       {reviewerCorrections !== null && !reviewerDismissed && (
-        <div style={{ flexShrink: 0, padding: "6px 16px", background: "#f0fdf4", borderBottom: `1px solid #86efac`, fontSize: 10, color: "#15803d", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ flexShrink: 0, padding: "6px 16px", background: B.successBg, borderBottom: `1px solid ${B.border}`, fontSize: 10, color: B.success, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
           <span>{reviewerCorrections === 0 ? "Reviewer found no issues — rota looks clean." : `Reviewer auto-corrected ${reviewerCorrections} issue${reviewerCorrections === 1 ? "" : "s"} in the generated rota.`}</span>
           <button onClick={() => setReviewerDismissed(true)} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "#15803d", fontSize: 12, fontWeight: 800, padding: "0 4px" }}>x</button>
         </div>
@@ -682,7 +682,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
 
       {/* ── Staffing adequacy suggestions ────────────────── */}
       {staffingSuggestions.length > 0 && (
-        <div style={{ flexShrink: 0, padding: "6px 16px", background: "#fef3c7", borderBottom: `1px solid #fcd34d`, fontSize: 9, color: "#92400e" }}>
+        <div style={{ flexShrink: 0, padding: "6px 16px", background: B.warningBg, borderBottom: `1px solid ${B.border}`, fontSize: 9, color: B.warning }}>
           <strong style={{ fontSize: 10 }}>⚠️ Staffing gaps detected — consider adding staff:</strong>
           {(() => {
             const amShort = staffingSuggestions.filter((s) => s.slot === "AM").reduce((m, s) => Math.max(m, s.shortfall), 0);
@@ -703,7 +703,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       {(hasRotaData || showRatios) && (
         <div style={{ flexShrink: 0, borderBottom: `1px solid ${B.border}` }}>
           {hasRotaData && groups && groups.length > 0 && (
-            <div style={{ padding: "4px 16px", background: "#e0f2fe", fontSize: 9, color: "#0369a1", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ padding: "4px 16px", background: B.cyanBg, fontSize: 9, color: B.cyan, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
               <span style={{ fontWeight: 700 }}>Lesson slots (Wk1):</span>
               {groups.map((g) => (
                 <span key={g.id}><strong>{g.group}</strong>: {g.lessonSlot || "AM"} ({g.stu} stu)</span>
@@ -801,20 +801,20 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
           </thead>
           <tbody>
             {hasRotaData && groups && groups.length > 0 && (
-              <tr style={{ borderBottom: "2px solid "+B.border, background: "#f0fdf4" }}>
-                <td style={{ ...tdStyle, position: "sticky", left: 0, zIndex: 1, background: "#f0fdf4", fontSize: 9, fontWeight: 800, color: B.success }}>Ratio</td>
-                <td style={{ ...tdStyle, position: "sticky", left: 52, zIndex: 1, background: "#f0fdf4", fontSize: 10, fontWeight: 700, color: B.text }}>Staff+GL / Need</td>
-                <td style={{ ...tdStyle, position: "sticky", left: 192, zIndex: 1, background: "#f0fdf4" }}></td>
-                <td style={{ ...tdStyle, position: "sticky", left: 236, zIndex: 1, background: "#f0fdf4" }}></td>
+              <tr style={{ borderBottom: "2px solid "+B.border, background: B.successBg }}>
+                <td style={{ ...tdStyle, position: "sticky", left: 0, zIndex: 1, background: B.successBg, fontSize: 9, fontWeight: 800, color: B.success }}>Ratio</td>
+                <td style={{ ...tdStyle, position: "sticky", left: 52, zIndex: 1, background: B.successBg, fontSize: 10, fontWeight: 700, color: B.text }}>Staff+GL / Need</td>
+                <td style={{ ...tdStyle, position: "sticky", left: 192, zIndex: 1, background: B.successBg }}></td>
+                <td style={{ ...tdStyle, position: "sticky", left: 236, zIndex: 1, background: B.successBg }}></td>
                 {dates.map((d) => {
                   const ds = dayKey(d); const rd = ratioData[ds];
                   return SLOTS.map((sl) => {
-                    if (!rd) return <td key={ds+"-"+sl} style={{ padding: "1px", borderLeft: sl === "AM" ? "2px solid "+B.border : "1px solid "+B.borderLight, background: "#f0fdf4" }}><div style={{ height: 20 }} /></td>;
+                    if (!rd) return <td key={ds+"-"+sl} style={{ padding: "1px", borderLeft: sl === "AM" ? "2px solid "+B.border : "1px solid "+B.borderLight, background: B.successBg }}><div style={{ height: 20 }} /></td>;
                     const sw = getStaffWorking(ds, sl);
                     const tot = sw + rd.gls;
                     const ok = tot >= rd.required;
                     return (
-                      <td key={ds+"-"+sl} style={{ padding: "2px", borderLeft: sl === "AM" ? "2px solid "+B.border : "1px solid "+B.borderLight, textAlign: "center", background: ok ? "#f0fdf4" : "#fee2e2" }}>
+                      <td key={ds+"-"+sl} style={{ padding: "2px", borderLeft: sl === "AM" ? "2px solid "+B.border : "1px solid "+B.borderLight, textAlign: "center", background: ok ? B.successBg : B.dangerBg }}>
                         <div style={{ fontSize: 10, fontWeight: 800, color: ok ? B.success : B.danger, lineHeight: 1 }}>{tot}/{rd.required}</div>
                         <div style={{ fontSize: 9, color: B.textMuted }}>{rd.students}s</div>
                       </td>
@@ -833,7 +833,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
               return (
                 <tr key={s.id} style={{ borderBottom: "1px solid "+B.borderLight }}>
                   <td style={{ ...tdStyle, position: "sticky", left: 0, background: B.card, zIndex: 1 }}>
-                    <span style={{ background: "#dbeafe", color: "#1e40af", padding: "3px 7px", borderRadius: 4, fontSize: 10, fontWeight: 800 }}>{s.role}</span>
+                    <span style={{ background: B.cyanBg, color: B.link, padding: "3px 7px", borderRadius: 4, fontSize: 10, fontWeight: 800 }}>{s.role}</span>
                   </td>
                   <td style={{ ...tdStyle, fontWeight: 700, color: B.text, fontSize: 12, position: "sticky", left: 52, background: B.card, zIndex: 1, whiteSpace: "nowrap" }}>{s.name}</td>
                   <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, fontSize: 12, position: "sticky", left: 192, background: B.card, zIndex: 1, color: over ? B.danger : B.text }}>

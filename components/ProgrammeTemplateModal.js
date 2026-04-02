@@ -170,7 +170,7 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, m
         {/* Left: spreadsheet preview */}
         <div style={{ width:"55%", display:"flex", flexDirection:"column", borderRight:"2px solid #2a3f52" }}>
           <div style={{ padding:"8px 14px", background:"#162534", borderBottom:"1px solid #2a3f52", display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
-            <label style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"6px 14px", background:B.white, borderRadius:5, cursor:parsing?"not-allowed":"pointer", fontSize:10, fontWeight:700, color:B.text, opacity:parsing?0.6:1 }}>
+            <label style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"6px 14px", background:B.card, borderRadius:5, cursor:parsing?"not-allowed":"pointer", fontSize:10, fontWeight:700, color:B.text, opacity:parsing?0.6:1 }}>
               {parsing ? "⏳ Extracting…" : "📊 Upload Sample Programme Excel"}
               <input type="file" accept=".xlsx,.xls" onChange={handleUpload} disabled={parsing} style={{ display:"none" }} />
             </label>
@@ -226,15 +226,15 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, m
           {isSummer && (
             <div style={{ padding:"6px 12px", background:B.card, borderBottom:"1px solid "+B.border, display:"flex", gap:4, alignItems:"center", flexShrink:0 }}>
               {weeks.map((_, i) => (
-                <button key={i} onClick={() => setActiveWeek(i)} style={{ padding:"3px 12px", borderRadius:4, fontSize:10, fontWeight:700, fontFamily:"inherit", cursor:"pointer", border: activeWeek===i ? "2px solid "+B.navy : "1px solid "+B.border, background: activeWeek===i ? B.navy : B.white, color: activeWeek===i ? B.white : B.navy }}>Week {i+1}</button>
+                <button key={i} onClick={() => setActiveWeek(i)} style={{ padding:"3px 12px", borderRadius:4, fontSize:10, fontWeight:700, fontFamily:"inherit", cursor:"pointer", border: activeWeek===i ? "2px solid "+B.navy : "1px solid "+B.border, background: activeWeek===i ? B.navy : B.card, color: activeWeek===i ? B.white : B.text }}>Week {i+1}</button>
               ))}
-              <button onClick={() => { setWeeks((p) => [...p, emptySummer()]); setActiveWeek(weeks.length); }} style={{ padding:"3px 10px", borderRadius:4, fontSize:10, fontWeight:700, fontFamily:"inherit", cursor:"pointer", border:"1px dashed "+B.border, background:B.white, color:B.textMuted }}>+ Add Week</button>
-              {weeks.length > 1 && <button onClick={() => { setWeeks((p) => p.filter((_,i) => i !== activeWeek)); setActiveWeek(Math.max(0, activeWeek-1)); }} style={{ padding:"3px 8px", borderRadius:4, fontSize:9, fontWeight:700, fontFamily:"inherit", cursor:"pointer", border:"1px solid #fecaca", background:"#fff1f2", color:B.red }}>Remove</button>}
+              <button onClick={() => { setWeeks((p) => [...p, emptySummer()]); setActiveWeek(weeks.length); }} style={{ padding:"3px 10px", borderRadius:4, fontSize:10, fontWeight:700, fontFamily:"inherit", cursor:"pointer", border:"1px dashed "+B.border, background:B.card, color:B.textMuted }}>+ Add Week</button>
+              {weeks.length > 1 && <button onClick={() => { setWeeks((p) => p.filter((_,i) => i !== activeWeek)); setActiveWeek(Math.max(0, activeWeek-1)); }} style={{ padding:"3px 8px", borderRadius:4, fontSize:9, fontWeight:700, fontFamily:"inherit", cursor:"pointer", border:"1px solid "+B.danger+"44", background:B.dangerBg, color:B.red }}>Remove</button>}
             </div>
           )}
 
           {msg && (
-            <div style={{ padding:"7px 14px", background:msg.ok?"#dcfce7":"#fef3c7", borderBottom:"1px solid "+(msg.ok?"#86efac":"#fde68a"), fontSize:9, color:msg.ok?"#166534":"#92400e", fontWeight:600, flexShrink:0 }}>
+            <div style={{ padding:"7px 14px", background:msg.ok?B.successBg:B.warningBg, borderBottom:"1px solid "+B.border, fontSize:9, color:msg.ok?B.success:B.warning, fontWeight:600, flexShrink:0 }}>
               {msg.ok ? "✓ " : "⚠ "}{msg.text}
             </div>
           )}
@@ -255,9 +255,9 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, m
               const isWeekend = isSummer && SUMMER_WEEKEND.includes(day);
               const isFirst = !isSummer && day === "1";
               const isLast  = !isSummer && day === "7";
-              const accent  = isFirst ? "#1e40af" : isLast ? B.red : isWeekend ? B.red : B.navy;
-              const bg      = isFirst ? "#eff6ff" : isLast ? "#fef2f2" : isWeekend ? "#fff1f2" : "#f8fafc";
-              const border  = isFirst ? "#bfdbfe" : isLast ? "#fecaca" : isWeekend ? "#fecaca" : B.borderLight;
+              const accent  = isFirst ? B.link : isLast ? B.red : isWeekend ? B.red : B.text;
+              const bg      = isFirst ? B.cyanBg : isLast ? B.dangerBg : isWeekend ? B.dangerBg : B.bg;
+              const border  = isFirst ? B.link+"44" : isLast ? B.danger+"44" : isWeekend ? B.danger+"44" : B.borderLight;
               const label   = isSummer ? day : MINISTAY_LABELS[day];
               const slots   = isSummer ? ["am","pm"] : ["am","pm","eve"];
               // Read from correct source: summer uses weeks[activeWeek], ministay uses template
@@ -292,7 +292,7 @@ export default function ProgrammeTemplateModal({ currentJson, onSave, onClose, m
                         value={dayData.exc_dest || ""}
                         onChange={(e) => update(day, "exc_dest", e.target.value)}
                         placeholder="e.g. Oxford with walking tour"
-                        style={{ width:"100%", padding:"3px 5px", fontSize:9, fontFamily:"inherit", border:"1px solid "+B.border, borderRadius:3, color:EXC_COLORS[dayData.exc], fontWeight:700, background:B.white, boxSizing:"border-box" }}
+                        style={{ width:"100%", padding:"3px 5px", fontSize:9, fontFamily:"inherit", border:"1px solid "+B.border, borderRadius:3, color:EXC_COLORS[dayData.exc], fontWeight:700, background:B.card, boxSizing:"border-box" }}
                       />
                     </div>
                   )}
