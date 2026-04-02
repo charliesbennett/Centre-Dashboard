@@ -117,6 +117,22 @@ export default function RoomingTab({
   const totalGL = activeGroups.reduce((s, g) => s + (g.gl || 0), 0);
   const maxNight = dates.length > 0 ? Math.max(...dates.map((d) => dailyTotals[dayKey(d)] || 0)) : 0;
 
+  // ── Checklist helpers (stored in roomingOverrides with ck_ prefix) ──
+  const ckChecked = (roomId) => !!roomingOverrides[`ck_checked_${roomId}`];
+  const ckNotes = (roomId) => roomingOverrides[`ck_notes_${roomId}`] || "";
+  const setckChecked = (roomId, val) =>
+    setRoomingOverrides({ ...roomingOverrides, [`ck_checked_${roomId}`]: val ? 1 : 0 });
+  const setckNotes = (roomId, val) =>
+    setRoomingOverrides({ ...roomingOverrides, [`ck_notes_${roomId}`]: val });
+  const resetChecklist = () => {
+    const cleaned = Object.fromEntries(
+      Object.entries(roomingOverrides).filter(([k]) => !k.startsWith("ck_"))
+    );
+    setRoomingOverrides(cleaned);
+  };
+  const totalRooms = roomingRooms.length;
+  const totalChecked = roomingRooms.filter((r) => ckChecked(r.id)).length;
+
   // ── Print: Overview grid ───────────────────────────────
   const handlePrintOverview = () => {
     const w = window.open("", "_blank");
@@ -369,6 +385,50 @@ export default function RoomingTab({
     w.print();
   };
 
+  // ── Print: Room inspection checklist ───────────────────
+  const handlePrintChecklist = () => {
+    const w = window.open("", "_blank");
+    w.document.write(`<html><head><title>Room Inspection Checklist</title><style>
+      body{font-family:sans-serif;font-size:11px;padding:16px;color:#1c3048}
+      h1{font-size:15px;margin:0 0 4px}
+      .sub{font-size:10px;color:#666;margin-bottom:14px}
+      h2{font-size:12px;margin:14px 0 6px;color:#1c3048;border-bottom:2px solid #1c3048;padding-bottom:3px}
+      table{border-collapse:collapse;width:100%;margin-bottom:8px}
+      th{background:#f0f0f0;padding:4px 8px;font-size:10px;text-align:left;border:1px solid #ddd}
+      td{border:1px solid #ddd;padding:6px 8px;vertical-align:middle;font-size:10px}
+      td.check{text-align:center;width:32px}
+      td.notes{min-width:160px;min-height:40px}
+      tr.done{background:#f0fdf4}
+      tr.done td{color:#15803d}
+      @media print{body{padding:0}@page{size:A4 portrait;margin:15mm}}
+    </style></head><body>`);
+    w.document.write(`<h1>Room Inspection Checklist</h1><div class="sub">Generated ${new Date().toLocaleDateString("en-GB")}</div>`);
+    roomingHouses.forEach((house) => {
+      const houseRooms = roomingRooms.filter((r) => r.houseId === house.id);
+      if (!houseRooms.length) return;
+      const checkedCount = houseRooms.filter((r) => ckChecked(r.id)).length;
+      w.document.write(`<h2>${house.name} <span style="font-weight:400;font-size:10px;color:#555">${checkedCount}/${houseRooms.length} inspected</span></h2>`);
+      w.document.write(`<table><thead><tr><th>✓</th><th>Room</th><th>Occupants</th><th>Notes / Issues</th></tr></thead><tbody>`);
+      houseRooms.forEach((room) => {
+        const checked = ckChecked(room.id);
+        const notes = ckNotes(room.id);
+        const namedOccupants = Array.from({ length: room.capacity }, (_, idx) =>
+          roomingAssignments.find((a) => a.roomId === room.id && a.slotIndex === idx)
+        ).filter((a) => a?.occupantName).map((a) => a.occupantName);
+        w.document.write(`<tr class="${checked ? "done" : ""}">
+          <td class="check">${checked ? "✓" : "□"}</td>
+          <td style="font-weight:700">${room.roomName}</td>
+          <td>${namedOccupants.length > 0 ? namedOccupants.join(", ") : `—  (${room.capacity} beds)`}</td>
+          <td class="notes">${notes || ""}</td>
+        </tr>`);
+      });
+      w.document.write("</tbody></table>");
+    });
+    w.document.write("</body></html>");
+    w.document.close();
+    w.print();
+  };
+
   return (
     <div>
       {/* ── Header stats + top-level view switcher ──────── */}
@@ -381,15 +441,19 @@ export default function RoomingTab({
         <StatCard label="Beds" value={totalBeds} accent={B.cyan} />
         {totalBeds > 0 && <StatCard label="Assigned" value={occupiedBeds} accent={B.warning} />}
         <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
-          {["overview", "houses"].map((v) => (
+          {[
+            { v: "overview", label: "📊 Overview" },
+            { v: "houses", label: "🏠 Houses" },
+            { v: "checklist", label: "✅ Checklist" },
+          ].map(({ v, label }) => (
             <button key={v} onClick={() => setView(v)} style={{
               padding: "5px 14px", borderRadius: 5, fontSize: 10, fontWeight: 700,
               fontFamily: "inherit", cursor: "pointer",
               border: "1px solid " + (view === v ? B.navy : B.border),
-              background: view === v ? B.navy : B.white,
+              background: view === v ? B.navy : B.card,
               color: view === v ? B.white : B.textMuted,
             }}>
-              {v === "overview" ? "\ud83d\udcca Overview" : "\ud83c\udfe0 Houses"}
+              {label}
             </button>
           ))}
         </div>
@@ -436,6 +500,132 @@ export default function RoomingTab({
           onPrintNightly={handlePrintNightly}
           onPrintRoomingList={handlePrintRoomingList}
         />
+      )}
+
+      {/* ── CHECKLIST VIEW ─────────────────────────────── */}
+      {view === "checklist" && (
+        <div style={{ padding: "0 20px 20px" }}>
+          {/* Header + actions */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: B.text }}>Room Inspection Checklist</div>
+              <div style={{ fontSize: 12, color: B.textMuted, marginTop: 2 }}>
+                Tick each room when inspected. Add notes for any issues spotted.
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              {totalRooms > 0 && (
+                <span style={{ fontSize: 12, color: B.textMuted }}>
+                  {totalChecked} / {totalRooms} inspected
+                </span>
+              )}
+              {!readOnly && totalChecked > 0 && (
+                <button onClick={() => { if (window.confirm("Reset all inspection checkboxes and notes?")) resetChecklist(); }}
+                  style={{ padding: "5px 12px", borderRadius: 5, fontSize: 11, fontWeight: 600, fontFamily: "inherit",
+                    cursor: "pointer", border: "1px solid " + B.border, background: B.dangerBg, color: B.danger }}>
+                  Reset All
+                </button>
+              )}
+              <button onClick={handlePrintChecklist}
+                style={{ padding: "5px 12px", borderRadius: 5, fontSize: 11, fontWeight: 600, fontFamily: "inherit",
+                  cursor: "pointer", border: "none", background: B.navy, color: B.white }}>
+                🖨 Print
+              </button>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          {totalRooms > 0 && (
+            <div style={{ marginBottom: 20, background: B.bg, borderRadius: 6, overflow: "hidden", height: 8, border: "1px solid " + B.border }}>
+              <div style={{
+                height: "100%", transition: "width 0.3s",
+                background: totalChecked === totalRooms ? B.success : B.cyan,
+                width: `${(totalChecked / totalRooms) * 100}%`,
+              }} />
+            </div>
+          )}
+
+          {roomingHouses.length === 0 && (
+            <div style={{ textAlign: "center", padding: 40, color: B.textMuted, fontSize: 14 }}>
+              No houses configured. Set up houses in the Houses view first.
+            </div>
+          )}
+
+          {roomingHouses.map((house) => {
+            const houseRooms = roomingRooms.filter((r) => r.houseId === house.id);
+            if (!houseRooms.length) return null;
+            const checkedCount = houseRooms.filter((r) => ckChecked(r.id)).length;
+            return (
+              <div key={house.id} style={{ marginBottom: 16, borderRadius: 8, overflow: "hidden", border: "1px solid " + B.border }}>
+                {/* House header */}
+                <div style={{ background: B.navy, color: B.white, padding: "8px 16px",
+                  fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center" }}>
+                  <span>🏠 {house.name}</span>
+                  <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 400, opacity: 0.85 }}>
+                    {checkedCount} / {houseRooms.length} inspected
+                  </span>
+                </div>
+                {/* Room rows */}
+                {houseRooms.map((room, i) => {
+                  const checked = ckChecked(room.id);
+                  const notes = ckNotes(room.id);
+                  const namedOccupants = Array.from({ length: room.capacity }, (_, idx) =>
+                    roomingAssignments.find((a) => a.roomId === room.id && a.slotIndex === idx)
+                  ).filter((a) => a?.occupantName);
+                  return (
+                    <div key={room.id} style={{
+                      display: "flex", alignItems: "flex-start", gap: 12,
+                      padding: "10px 16px",
+                      background: checked ? B.successBg : (i % 2 === 0 ? B.card : B.bg),
+                      borderTop: i > 0 ? "1px solid " + B.border : "none",
+                      transition: "background 0.2s",
+                    }}>
+                      {/* Checkbox */}
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={readOnly}
+                        onChange={(e) => setckChecked(room.id, e.target.checked)}
+                        style={{ marginTop: 4, width: 16, height: 16, accentColor: B.success, cursor: readOnly ? "default" : "pointer", flexShrink: 0 }}
+                      />
+                      {/* Room info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: checked ? B.success : B.text }}>
+                          {room.roomName}
+                          {checked && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 500, color: B.success }}>✓ Inspected</span>}
+                        </div>
+                        <div style={{ fontSize: 11, color: B.textMuted, marginTop: 2 }}>
+                          {namedOccupants.length} / {room.capacity} beds assigned
+                          {namedOccupants.length > 0 && (
+                            <span style={{ marginLeft: 6 }}>
+                              · {namedOccupants.map((a) => a.occupantName).slice(0, 3).join(", ")}
+                              {namedOccupants.length > 3 && ` +${namedOccupants.length - 3} more`}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {/* Notes */}
+                      <textarea
+                        placeholder="Notes / issues…"
+                        value={notes}
+                        disabled={readOnly}
+                        onChange={(e) => setckNotes(room.id, e.target.value)}
+                        rows={2}
+                        style={{
+                          width: 200, minWidth: 120, resize: "vertical", fontSize: 11,
+                          padding: "4px 8px", borderRadius: 4,
+                          border: "1px solid " + B.border,
+                          background: B.card, color: B.text,
+                          fontFamily: "inherit", lineHeight: 1.4,
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       )}
 
       <div style={{ padding: "0 20px 8px", fontSize: 9, color: B.success, fontWeight: 600 }}>
