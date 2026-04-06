@@ -9,7 +9,7 @@ const DIET_TYPES = ["Vegetarian", "Vegan", "Halal", "Kosher", "Gluten-Free", "Da
 export default function CateringTab({ groups, staff, progStart, progEnd, excDays, cateringData, setCateringData, readOnly = false }) {
   const B = useB();
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
-  const teamSize = staff.length;
+  const teamSize = staff.filter((s) => s.acc === "Residential").length;
   const cd = cateringData || {};
   const dietary = cd.dietary || [];
   const specialMeals = cd.specialMeals || [];
@@ -309,9 +309,9 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
                       return (
                         <td key={s} onClick={() => !readOnly && !isEd && startEdit(s, m)} style={{
                           textAlign: "center", padding: "4px 1px", cursor: "pointer",
-                          fontWeight: v ? 800 : 400, color: v ? (isOverridden ? B.red : B.text) : B.textLight,
+                          fontWeight: v ? 800 : 400, color: v ? (isOverridden ? B.link : B.text) : B.textLight,
                           fontSize: v ? 11 : 9, borderLeft: "1px solid " + B.borderLight,
-                          background: isOverridden ? B.pink : v ? MEAL_COLORS[m] + "20" : "transparent",
+                          background: v ? MEAL_COLORS[m] + "20" : "transparent",
                         }}>
                           {isEd ? (
                             <input autoFocus value={editValue} onChange={(e) => setEditValue(e.target.value)}
@@ -343,7 +343,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
           </TableWrap>
           {overrideCount > 0 && (
             <div style={{ padding: "6px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 9, color: "#ea580c" }}>{"\u26a0\ufe0f"} {overrideCount} cells manually overridden (shown in orange)</span>
+              <span style={{ fontSize: 9, color: B.link }}>{"\u270f\ufe0f"} {overrideCount} cells manually overridden (shown in blue)</span>
               {!readOnly && <button onClick={() => update("overrides", {})} style={{ fontSize: 9, color: B.textMuted, background: "transparent", border: "1px solid " + B.border, borderRadius: 4, padding: "3px 8px", cursor: "pointer", fontFamily: "inherit" }}>Reset All Overrides</button>}
             </div>
           )}

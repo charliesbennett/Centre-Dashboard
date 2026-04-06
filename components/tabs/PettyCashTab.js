@@ -38,12 +38,12 @@ export default function PettyCashTab({ pettyCash = {}, setPettyCash, readOnly = 
         <StatCard label="Income" value={fmtMoney(totalInc)} accent={B.success} />
         <StatCard label="Expenses" value={fmtMoney(totalExp)} accent={B.danger} />
         <StatCard label="To ROM" value={fmtMoney(toRom)} accent="#7c3aed" />
-        <StatCard label="Balance" value={fmtMoney(balance)} accent={balance >= 0 ? B.success : B.danger} />
+        <StatCard label="Closing" value={fmtMoney(balance)} accent={balance >= 0 ? B.success : B.danger} />
       </div>
 
       <div style={{ background: B.card, borderBottom: `1px solid ${B.border}`, padding: "10px 20px", display: "flex", gap: 10, alignItems: "center" }}>
         <Fld label="Opening (£)"><input type="number" step="0.01" value={opening} onChange={(e) => setOpening(+e.target.value || 0)} style={{ ...fi, width: 80 }} disabled={readOnly} /></Fld>
-        <Fld label="To ROM (£)"><input type="number" step="0.01" value={toRom} onChange={(e) => setToRom(+e.target.value || 0)} style={{ ...fi, width: 80 }} disabled={readOnly} /></Fld>
+        <Fld label="To ROM (£)" title="Amount sent to the Regional Operations Manager"><input type="number" step="0.01" value={toRom} onChange={(e) => setToRom(+e.target.value || 0)} style={{ ...fi, width: 80 }} disabled={readOnly} /></Fld>
       </div>
 
       <div style={{ padding: "12px 20px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>

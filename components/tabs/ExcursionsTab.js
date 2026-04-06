@@ -14,7 +14,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
   };
   const isMinistay = /mini[\s-]?stay/i.test(centre || "");
   const [showCoachForm, setShowCoachForm] = useState(null);
-  const [coachForm, setCoachForm] = useState({ company: "", phone: "", cost: "", pickupTime: "", dropoffTime: "", vehicle: "Coach", notes: "", status: "Pending" });
+  const [coachForm, setCoachForm] = useState({ company: "", phone: "", invoiceNo: "", bookingRef: "", pickupTime: "", dropoffTime: "", vehicle: "Coach", notes: "", status: "Pending" });
   const [editingDest, setEditingDest] = useState(null);
   const [destValue, setDestValue] = useState("");
   const [editCoachKey, setEditCoachKey] = useState(null); // "date-coachId"
@@ -174,14 +174,14 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
   };
 
   const addCoach = (date) => {
-    const coach = { id: uid(), ...coachForm, cost: parseFloat(coachForm.cost) || 0 };
+    const coach = { id: uid(), ...coachForm };
     const existing = (excursions || []).find((e) => e.date === date);
     if (existing) {
       setExcursions((p) => p.map((e) => e.date === date ? { ...e, coaches: [...(e.coaches || []), coach] } : e));
     } else {
       setExcursions((p) => [...p, { id: uid(), date, destination: "", coaches: [coach], notes: "" }]);
     }
-    setCoachForm({ company: "", phone: "", cost: "", pickupTime: "", dropoffTime: "", vehicle: "Coach", notes: "", status: "Pending" });
+    setCoachForm({ company: "", phone: "", invoiceNo: "", bookingRef: "", pickupTime: "", dropoffTime: "", vehicle: "Coach", notes: "", status: "Pending" });
     setShowCoachForm(null);
   };
 
@@ -196,7 +196,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
 
   const saveCoachEdit = (date) => {
     setExcursions((p) => p.map((e) => e.date === date
-      ? { ...e, coaches: (e.coaches || []).map((c) => c.id === editCoachForm.id ? { ...editCoachForm, cost: parseFloat(editCoachForm.cost) || 0 } : c) }
+      ? { ...e, coaches: (e.coaches || []).map((c) => c.id === editCoachForm.id ? { ...editCoachForm } : c) }
       : e));
     setEditCoachKey(null);
   };
@@ -216,7 +216,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
     setEditingNotes(null);
   };
 
-  const totalCoachCost = allExcs.reduce((sum, exc) => sum + (exc.coaches || []).reduce((s, c) => s + (c.cost || 0), 0), 0);
+  const totalCoachCost = 0; // cost field removed
   const totalCoaches = allExcs.reduce((sum, exc) => sum + (exc.coaches || []).length, 0);
   const confirmedCoaches = allExcs.reduce((sum, exc) => sum + (exc.coaches || []).filter((c) => c.status === "Confirmed" || c.status === "Paid").length, 0);
 
@@ -245,12 +245,6 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
           <div style={{ background: confirmedCoaches === totalCoaches ? B.successBg : B.warningBg, border: "1px solid " + (confirmedCoaches === totalCoaches ? "#86efac" : "#fcd34d"), borderRadius: 10, padding: "8px 16px", minWidth: 80 }}>
             <div style={{ fontSize: 20, fontWeight: 800, color: confirmedCoaches === totalCoaches ? B.success : B.warning }}>{confirmedCoaches}/{totalCoaches}</div>
             <div style={{ fontSize: 9, fontWeight: 600, color: B.textMuted }}>Confirmed</div>
-          </div>
-        )}
-        {totalCoachCost > 0 && (
-          <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, padding: "8px 16px", minWidth: 80 }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: B.text }}>{"\u00a3"}{totalCoachCost.toLocaleString()}</div>
-            <div style={{ fontSize: 9, color: B.textMuted, fontWeight: 600 }}>Coach Cost</div>
           </div>
         )}
         <button onClick={autoFromProgramme}
@@ -320,7 +314,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                 {(exc.coaches || []).length > 0 && (
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, marginBottom: 6 }}>
                     <thead>
-                      <tr>{["Company", "Vehicle", "Pickup", "Dropoff", "Cost", "Status", "Notes", ""].map((h) => (
+                      <tr>{["Company", "Vehicle", "Pickup", "Dropoff", "Invoice No", "Booking Ref", "Status", "Notes", ""].map((h) => (
                         <th key={h} style={{ ...thStyle, fontSize: 9, padding: "4px 8px" }}>{h}</th>
                       ))}</tr>
                     </thead>
@@ -339,7 +333,8 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                             ) : <span style={{ background: B.bg, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{c.vehicle}</span>}</td>
                             <td style={tdStyle}>{isEd ? <input value={editCoachForm.pickupTime || ""} onChange={(e) => setEditCoachForm((p) => ({ ...p, pickupTime: e.target.value }))} style={{ ...ecFi, width: 55 }} placeholder="09:00" /> : c.pickupTime || "\u2014"}</td>
                             <td style={tdStyle}>{isEd ? <input value={editCoachForm.dropoffTime || ""} onChange={(e) => setEditCoachForm((p) => ({ ...p, dropoffTime: e.target.value }))} style={{ ...ecFi, width: 55 }} placeholder="17:00" /> : c.dropoffTime || "\u2014"}</td>
-                            <td style={{ ...tdStyle, fontWeight: 700 }}>{isEd ? <input type="number" value={editCoachForm.cost || ""} onChange={(e) => setEditCoachForm((p) => ({ ...p, cost: e.target.value }))} style={{ ...ecFi, width: 60 }} /> : c.cost ? "\u00a3" + c.cost.toLocaleString() : "\u2014"}</td>
+                            <td style={{ ...tdStyle, fontFamily: "monospace", fontSize: 9 }}>{isEd ? <input value={editCoachForm.invoiceNo || ""} onChange={(e) => setEditCoachForm((p) => ({ ...p, invoiceNo: e.target.value }))} style={{ ...ecFi, width: 80 }} placeholder="INV-001" /> : c.invoiceNo || "\u2014"}</td>
+                            <td style={{ ...tdStyle, fontFamily: "monospace", fontSize: 9 }}>{isEd ? <input value={editCoachForm.bookingRef || ""} onChange={(e) => setEditCoachForm((p) => ({ ...p, bookingRef: e.target.value }))} style={{ ...ecFi, width: 80 }} placeholder="REF-001" /> : c.bookingRef || "\u2014"}</td>
                             <td style={tdStyle}>{isEd ? (
                               <select value={editCoachForm.status || "Pending"} onChange={(e) => setEditCoachForm((p) => ({ ...p, status: e.target.value }))} style={{ ...ecFi, cursor: "pointer", width: 85 }}>
                                 {Object.keys(COACH_STATUS).map((s) => <option key={s}>{s}</option>)}
@@ -379,7 +374,8 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                     </Fld>
                     <Fld label="Pickup"><input value={coachForm.pickupTime} onChange={(e) => setCoachForm((p) => ({ ...p, pickupTime: e.target.value }))} style={{ ...fi, width: 70 }} placeholder="09:00" /></Fld>
                     <Fld label="Dropoff"><input value={coachForm.dropoffTime} onChange={(e) => setCoachForm((p) => ({ ...p, dropoffTime: e.target.value }))} style={{ ...fi, width: 70 }} placeholder="17:00" /></Fld>
-                    <Fld label="Cost (\u00a3)"><input type="number" value={coachForm.cost} onChange={(e) => setCoachForm((p) => ({ ...p, cost: e.target.value }))} style={{ ...fi, width: 70 }} /></Fld>
+                    <Fld label="Invoice No"><input value={coachForm.invoiceNo} onChange={(e) => setCoachForm((p) => ({ ...p, invoiceNo: e.target.value }))} style={{ ...fi, width: 90 }} placeholder="INV-001" /></Fld>
+                    <Fld label="Booking Ref"><input value={coachForm.bookingRef} onChange={(e) => setCoachForm((p) => ({ ...p, bookingRef: e.target.value }))} style={{ ...fi, width: 90 }} placeholder="REF-001" /></Fld>
                     <Fld label="Status">
                       <select value={coachForm.status} onChange={(e) => setCoachForm((p) => ({ ...p, status: e.target.value }))} style={{ ...fi, cursor: "pointer", width: 90 }}>
                         {Object.keys(COACH_STATUS).map((s) => <option key={s}>{s}</option>)}
