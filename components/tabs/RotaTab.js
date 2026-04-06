@@ -619,6 +619,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         <StatCard label="Days" value={dates.length} accent={B.textMuted} />
         <StatCard label="TALs" value={staff.filter((s) => s.role === "TAL").length} accent="#3b82f6" />
         <StatCard label="FTTs" value={staff.filter((s) => s.role === "FTT").length} accent="#0891b2" />
+        <StatCard label="ALs" value={staff.filter((s) => s.role === "AL").length} accent="#8b5cf6" />
+        <StatCard label="SAIs" value={staff.filter((s) => s.role === "SAI").length} accent="#ec4899" />
         {groupArrivalDate && <span style={{ fontSize: 9, color: B.textMuted }}>Students arrive: <strong style={{ color: B.text }}>{fmtDate(groupArrivalDate)}</strong></span>}
         {teacherAdequacy && teacherAdequacy.shortfall > 0 && (
           <span style={{ fontSize: 9, background: B.warningBg, color: B.warning, border: `1px solid #fcd34d`, borderRadius: 5, padding: "3px 8px", fontWeight: 700 }}>

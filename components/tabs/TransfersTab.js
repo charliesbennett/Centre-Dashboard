@@ -155,8 +155,11 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
             </select>
           ) : <StatusBadge status={t.status} map={STATUS_MAP} />}
         </td>
-        <td style={{ ...tdStyle, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis" }}>
-          {isEd ? <input value={t.notes || ""} onChange={(e) => upd(t.id, "notes", e.target.value)} style={{ ...edFi, minWidth: 100 }} placeholder="Notes..." /> : <span style={{ fontSize: 9, color: B.textMuted }}>{t.notes || ""}</span>}
+        <td style={{ ...tdStyle, maxWidth: 110 }}>
+          {isEd ? <input value={t.arrNotes || ""} onChange={(e) => upd(t.id, "arrNotes", e.target.value)} style={{ ...edFi, minWidth: 80 }} placeholder="Arr notes..." /> : <span style={{ fontSize: 9, color: B.textMuted }}>{t.arrNotes || ""}</span>}
+        </td>
+        <td style={{ ...tdStyle, maxWidth: 110 }}>
+          {isEd ? <input value={t.depNotes || ""} onChange={(e) => upd(t.id, "depNotes", e.target.value)} style={{ ...edFi, minWidth: 80 }} placeholder="Dep notes..." /> : <span style={{ fontSize: 9, color: B.textMuted }}>{t.depNotes || ""}</span>}
         </td>
         <td style={tdStyle}>
           <div style={{ display: "flex", gap: 2 }}>
@@ -220,7 +223,8 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                   <th style={{ ...thStyle, textAlign: "center", background: B.successBg, color: B.success }} colSpan={5}>{"\u2708\ufe0f"} Arrival</th>
                   <th style={{ ...thStyle, textAlign: "center", background: B.dangerBg, color: B.danger }} colSpan={5}>{"\ud83d\udeeb"} Departure</th>
                   <th style={thStyle} rowSpan={2}>Status</th>
-                  <th style={thStyle} rowSpan={2}>Notes</th>
+                  <th style={{ ...thStyle, background: B.successBg }} rowSpan={2}>Arr Notes</th>
+                  <th style={{ ...thStyle, background: B.dangerBg }} rowSpan={2}>Dep Notes</th>
                   <th style={thStyle} rowSpan={2}></th>
                 </tr>
                 <tr>
@@ -267,7 +271,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                         <td style={{ ...tdStyle, fontFamily: "monospace" }}>{isEd ? <input value={t.arrFlight} onChange={(e) => upd(t.id, "arrFlight", e.target.value)} style={edFi} /> : t.arrFlight || <span style={{color:B.textLight}}>TBC</span>}</td>
                         <td style={{ ...tdStyle, fontWeight: 700 }}>{isEd ? <input value={t.arrTime} onChange={(e) => upd(t.id, "arrTime", e.target.value)} style={{...edFi,minWidth:50}} placeholder="14:30" /> : t.arrTime || <span style={{color:B.textLight}}>TBC</span>}</td>
                         <td style={tdStyle}>{isEd ? <select value={t.status} onChange={(e) => upd(t.id, "status", e.target.value)} style={edFi}>{Object.keys(STATUS_MAP).map((s) => <option key={s}>{s}</option>)}</select> : <StatusBadge status={t.status} map={STATUS_MAP} />}</td>
-                        <td style={{ ...tdStyle, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis" }}>{isEd ? <input value={t.notes || ""} onChange={(e) => upd(t.id, "notes", e.target.value)} style={{ ...edFi, minWidth: 90 }} placeholder="Notes..." /> : <span style={{ fontSize: 9, color: B.textMuted }}>{t.notes || ""}</span>}</td>
+                        <td style={{ ...tdStyle, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis" }}>{isEd ? <input value={t.arrNotes || ""} onChange={(e) => upd(t.id, "arrNotes", e.target.value)} style={{ ...edFi, minWidth: 90 }} placeholder="Arrival notes..." /> : <span style={{ fontSize: 9, color: B.textMuted }}>{t.arrNotes || ""}</span>}</td>
                         <td style={tdStyle}>
                           <div style={{ display: "flex", gap: 2 }}>
                             <IconBtn onClick={() => setEditId(isEd ? null : t.id)}>{isEd ? <IcCheck /> : <IcEdit />}</IconBtn>
@@ -312,7 +316,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                         <td style={{ ...tdStyle, fontFamily: "monospace" }}>{isEd ? <input value={t.depFlight} onChange={(e) => upd(t.id, "depFlight", e.target.value)} style={edFi} /> : t.depFlight || <span style={{color:B.textLight}}>TBC</span>}</td>
                         <td style={{ ...tdStyle, fontWeight: 700 }}>{isEd ? <input value={t.depTime} onChange={(e) => upd(t.id, "depTime", e.target.value)} style={{...edFi,minWidth:50}} placeholder="10:00" /> : t.depTime || <span style={{color:B.textLight}}>TBC</span>}</td>
                         <td style={tdStyle}>{isEd ? <select value={t.status} onChange={(e) => upd(t.id, "status", e.target.value)} style={edFi}>{Object.keys(STATUS_MAP).map((s) => <option key={s}>{s}</option>)}</select> : <StatusBadge status={t.status} map={STATUS_MAP} />}</td>
-                        <td style={{ ...tdStyle, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis" }}>{isEd ? <input value={t.notes || ""} onChange={(e) => upd(t.id, "notes", e.target.value)} style={{ ...edFi, minWidth: 90 }} placeholder="Notes..." /> : <span style={{ fontSize: 9, color: B.textMuted }}>{t.notes || ""}</span>}</td>
+                        <td style={{ ...tdStyle, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis" }}>{isEd ? <input value={t.depNotes || ""} onChange={(e) => upd(t.id, "depNotes", e.target.value)} style={{ ...edFi, minWidth: 90 }} placeholder="Departure notes..." /> : <span style={{ fontSize: 9, color: B.textMuted }}>{t.depNotes || ""}</span>}</td>
                         <td style={tdStyle}>
                           <div style={{ display: "flex", gap: 2 }}>
                             <IconBtn onClick={() => setEditId(isEd ? null : t.id)}>{isEd ? <IcCheck /> : <IcEdit />}</IconBtn>
