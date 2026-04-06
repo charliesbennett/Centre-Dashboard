@@ -20,6 +20,7 @@ import ContactsTab from "@/components/tabs/ContactsTab";
 import RoomingTab from "@/components/tabs/RoomingTab";
 import HomeTab from "@/components/tabs/HomeTab";
 import ChatButton from "@/components/ChatButton";
+import ArchiveModal from "@/components/ArchiveModal";
 
 export default function Dashboard() {
   const { B, isDark, toggle } = useTheme();
@@ -37,6 +38,7 @@ export default function Dashboard() {
   const [manualEnd, setManualEnd] = useState("2026-08-05");
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
+  const [showArchive, setShowArchive] = useState(false);
 
   const db = useSupabase(centreId);
 
@@ -462,6 +464,13 @@ export default function Dashboard() {
             {isDark ? "☀️" : "🌙"}
           </button>
 
+          {/* Archive */}
+          {centreId && (auth.isHeadOffice || auth.userRole === "centre_manager" || auth.userRole === "course_director") && (
+            <button onClick={() => setShowArchive(true)} title="Archive & reset this programme" style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: B.yellow, borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
+              📦 Archive
+            </button>
+          )}
+
           {/* Logout */}
           <button onClick={() => { auth.logout(); try { window.localStorage.removeItem("uklc_tab"); window.localStorage.removeItem("uklc_centre_id"); window.localStorage.removeItem("uklc_centre_name"); } catch {} }} title="Sign out" style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.8)", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
             <IcLogout /> Sign out
@@ -525,6 +534,18 @@ export default function Dashboard() {
             roomingRooms: db.roomingRooms,
             roomingAssignments: db.roomingAssignments,
           }}
+        />
+      )}
+
+      {showArchive && (
+        <ArchiveModal
+          centreId={centreId}
+          centreName={centreName}
+          onArchive={db.archiveProgramme}
+          onLoadArchives={db.loadArchives}
+          onDeleteArchive={db.deleteArchive}
+          isHeadOffice={auth.isHeadOffice}
+          onClose={() => setShowArchive(false)}
         />
       )}
     </div>
