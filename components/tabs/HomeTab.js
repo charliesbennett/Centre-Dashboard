@@ -5,9 +5,15 @@ import { useB } from "@/lib/theme";
 import { StatCard, IcPlaneUp, IcPlaneDn, IcCake, IcBus, IcMountain, IcSparkles, IcBook, IcGradCap, IcUserCog, IcUsersTab, IcStar, IconBtn, IcTrash, btnPrimary, inputStyle } from "@/components/ui";
 
 // ── Helpers ────────────────────────────────────────────────
+// inBed: is someone staying the night? (arr <= date < dep — excludes dep day)
 function inBed(dateStr, arrDate, depDate) {
   if (!arrDate || !depDate) return false;
   return new Date(dateStr) >= new Date(arrDate) && new Date(dateStr) < new Date(depDate);
+}
+// isOnsiteOn: is someone on-site during this day? (arr <= date <= dep — includes dep day)
+function isOnsiteOn(dateStr, arrDate, depDate) {
+  if (!arrDate || !depDate) return false;
+  return new Date(dateStr) >= new Date(arrDate) && new Date(dateStr) <= new Date(depDate);
 }
 
 const GROUP_COLORS = [
@@ -210,14 +216,19 @@ export function openBriefingSheet(data) {
 }
 
 // ──────────────────────────────────────────────────────────
-export default function HomeTab({ groups = [], staff = [], excDays = {}, progGrid = {}, rotaGrid = {}, progStart, progEnd, excursions = [], userRole = "", centreName = "", settings = {}, saveSetting }) {
+export default function HomeTab({ groups = [], staff = [], excDays = {}, progGrid = {}, rotaGrid = {}, progStart, progEnd, excursions = [], userRole = "", userName = "", centreName = "", settings = {}, saveSetting }) {
   const B = useB();
   const today = useMemo(() => dayKey(new Date()), []);
   const todayDate = useMemo(() => new Date(today), [today]);
   const activeGroups = useMemo(() => groups.filter((g) => !g.archived), [groups]);
 
   // ── On-site numbers ────────────────────────────────────
+  // onSiteGroups: groups present during today (includes departure day)
   const onSiteGroups = useMemo(() =>
+    activeGroups.filter((g) => isOnsiteOn(today, g.arr, g.dep)), [activeGroups, today]);
+
+  // onsiteTonightGroups: groups staying overnight (excludes departure day)
+  const onsiteTonightGroups = useMemo(() =>
     activeGroups.filter((g) => inBed(today, g.arr, g.dep)), [activeGroups, today]);
 
   const onSiteStudents = useMemo(() =>
@@ -227,7 +238,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
     onSiteGroups.reduce((s, g) => s + (g.gl || 0), 0), [onSiteGroups]);
 
   const onSiteStaff = useMemo(() =>
-    staff.filter((s) => inBed(today, s.arr, s.dep)), [staff, today]);
+    staff.filter((s) => isOnsiteOn(today, s.arr, s.dep)), [staff, today]);
 
   const totalOnSite = onSiteStudents + onSiteGLs + onSiteStaff.length;
 
@@ -387,23 +398,35 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
 
   const todayStr = todayDate.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
+  // ── Greeting ──────────────────────────────────────────
+  const hour = new Date().getHours();
+  const greetingWord = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const firstName = (userName || "").split(" ")[0] || "";
+
   // ── Render ─────────────────────────────────────────────
   return (
     <div style={{ paddingBottom: 24 }}>
 
       {/* ── Hero banner ──────────────────────────────────── */}
-      <div style={{ background: B.navy, padding: "20px 24px 18px", position: "relative", overflow: "hidden" }}>
+      <div style={{ background: "linear-gradient(135deg, #1c3048 0%, #1e3a5f 50%, #162840 100%)", padding: "20px 24px 18px", position: "relative", overflow: "hidden" }}>
         {/* Subtle brand graphic */}
-        <svg aria-hidden="true" style={{ position: "absolute", right: 0, top: 0, opacity: 0.05, pointerEvents: "none" }} width="260" height="90" viewBox="0 0 260 90">
+        <svg aria-hidden="true" style={{ position: "absolute", right: 0, top: 0, opacity: 0.06, pointerEvents: "none" }} width="260" height="90" viewBox="0 0 260 90">
           <rect x="100" y="0" width="60" height="90" fill="white" />
           <rect x="0" y="30" width="260" height="30" fill="white" />
           <path d="M0 0L65 90M195 0L260 90M260 0L195 90M65 0L0 90" stroke="white" strokeWidth="22" />
         </svg>
+        {/* Radial glow */}
+        <div style={{ position: "absolute", top: -40, right: "20%", width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(236,39,59,0.15) 0%, transparent 70%)", pointerEvents: "none" }} />
         {/* Yellow accent line at bottom */}
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: B.yellow, opacity: 0.6 }} />
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 24, flexWrap: "wrap", position: "relative", zIndex: 1 }}>
           <div>
+            {firstName && (
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.9)", fontWeight: 700, marginBottom: 6, fontFamily: "'Raleway', sans-serif" }}>
+                {greetingWord}, {firstName} 👋
+              </div>
+            )}
             <div style={{ fontSize: 10, color: B.yellow, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4, fontFamily: "'Raleway', sans-serif" }}>
               Today
             </div>
@@ -643,7 +666,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
               <div style={{ width: 3, height: 16, borderRadius: 2, background: "#be185d", flexShrink: 0 }} />
               <span style={{ fontWeight: 700, fontSize: 12, color: B.text, fontFamily: "'Raleway', sans-serif", display: "flex", alignItems: "center", gap: 6 }}><IcCake /> Upcoming Birthdays</span>
             </div>
-            <span style={{ fontSize: 9, color: B.textMuted }}>Next 14 days</span>
+            <span style={{ fontSize: 9, color: B.textMuted }}>Today &amp; next 14 days</span>
           </div>
           <div style={{ padding: "4px 0", maxHeight: 280, overflowY: "auto" }}>
             {upcomingBirthdays.length === 0 ? (
@@ -688,16 +711,16 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
       </div>
 
       {/* ── Groups on-site mini-grid ─────────────────────── */}
-      {onSiteGroups.length > 0 && (
+      {onsiteTonightGroups.length > 0 && (
         <div style={{ padding: "10px 12px 0" }}>
           <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, overflow: "hidden" }}>
             <div style={{ padding: "10px 16px", borderBottom: "1px solid " + B.border, display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 3, height: 14, borderRadius: 2, background: B.navy, flexShrink: 0 }} />
               <span style={{ fontSize: 11, fontWeight: 700, color: B.text, fontFamily: "'Raleway', sans-serif" }}>Groups On-Site Tonight</span>
-              <span style={{ fontSize: 9, color: B.textMuted, marginLeft: 2 }}>{onSiteGroups.length} group{onSiteGroups.length !== 1 ? "s" : ""} &middot; {onSiteStudents} students &middot; {onSiteGLs} GLs</span>
+              <span style={{ fontSize: 9, color: B.textMuted, marginLeft: 2 }}>{onsiteTonightGroups.length} group{onsiteTonightGroups.length !== 1 ? "s" : ""} &middot; {onsiteTonightGroups.reduce((s, g) => s + (g.stu || 0), 0)} students &middot; {onsiteTonightGroups.reduce((s, g) => s + (g.gl || 0), 0)} GLs</span>
             </div>
             <div style={{ padding: "8px 14px", display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {onSiteGroups.map((g, i) => (
+              {onsiteTonightGroups.map((g, i) => (
                 <div key={g.id} style={{
                   display: "flex", alignItems: "center", gap: 6,
                   background: GROUP_COLORS[i % GROUP_COLORS.length] + "12",

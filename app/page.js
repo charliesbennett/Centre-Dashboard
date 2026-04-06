@@ -349,7 +349,7 @@ export default function Dashboard() {
     );
     const activeGroups = (db.groups || []).filter((g) => !g.archived);
     switch (tab) {
-      case "home": return <HomeTab groups={db.groups} staff={db.staff} excDays={db.excDays} progGrid={db.progGrid} rotaGrid={db.rotaGrid} progStart={progStart} progEnd={progEnd} excursions={db.excursions} userRole={auth.userRole} centreName={centreName} settings={db.settings} saveSetting={db.saveSetting} />;
+      case "home": return <HomeTab groups={db.groups} staff={db.staff} excDays={db.excDays} progGrid={db.progGrid} rotaGrid={db.rotaGrid} progStart={progStart} progEnd={progEnd} excursions={db.excursions} userRole={auth.userRole} userName={auth.userName} centreName={centreName} settings={db.settings} saveSetting={db.saveSetting} />;
       case "students": return <StudentsTab groups={db.groups} setGroups={setGroups} progStart={progStart} progEnd={progEnd} readOnly={isReadOnly} userRole={auth.userRole} roomingAssignments={db.roomingAssignments} roomingRooms={db.roomingRooms} centreName={centreName} />;
       case "rota": return <RotaTab staff={db.staff} progStart={progStart} progEnd={progEnd} excDays={db.excDays} groups={activeGroups} rotaGrid={db.rotaGrid} setRotaGrid={setRotaGrid} progGrid={db.progGrid} centreName={centreName} readOnly={isReadOnly} />;
       case "airota": return <AiRotaTab centreId={centreId} centreName={centreName} staff={db.staff} groups={activeGroups} progStart={progStart} progEnd={progEnd} progGrid={db.progGrid} rotaGrid={db.rotaGrid} setRotaGrid={setRotaGrid} readOnly={isReadOnly} />;
@@ -378,7 +378,7 @@ export default function Dashboard() {
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header style={{
-        background: B.navy,
+        background: "linear-gradient(135deg, #1c3048 0%, #1e3a5f 50%, #162840 100%)",
         position: "relative", overflow: "hidden",
         padding: "0 24px", display: "flex", alignItems: "center",
         justifyContent: "space-between", height: 68, flexShrink: 0,
