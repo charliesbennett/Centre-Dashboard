@@ -234,13 +234,13 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
                   <th style={{ ...thStyle, textAlign: "center", background: B.successBg, color: B.success }} colSpan={5}>{"\u2708\ufe0f"} Arrival</th>
                   <th style={{ ...thStyle, textAlign: "center", background: B.dangerBg, color: B.danger }} colSpan={5}>{"\ud83d\udeeb"} Departure</th>
                   <th style={thStyle} rowSpan={2}>Status</th>
-                  <th style={{ ...thStyle, background: B.successBg }} rowSpan={2}>Arr Notes</th>
-                  <th style={{ ...thStyle, background: B.dangerBg }} rowSpan={2}>Dep Notes</th>
+                  <th style={{ ...thStyle, background: B.successBg, color: B.navy }} rowSpan={2}>Arr Notes</th>
+                  <th style={{ ...thStyle, background: B.dangerBg, color: B.navy }} rowSpan={2}>Dep Notes</th>
                   <th style={thStyle} rowSpan={2}></th>
                 </tr>
                 <tr>
-                  {["Airport", "Term", "Date", "Flight", "Time"].map((h) => <th key={"a"+h} style={{ ...thStyle, fontSize: 8, background: B.successBg }}>{h}</th>)}
-                  {["Airport", "Term", "Date", "Flight", "Time"].map((h) => <th key={"d"+h} style={{ ...thStyle, fontSize: 8, background: B.dangerBg }}>{h}</th>)}
+                  {["Airport", "Term", "Date", "Flight", "Time"].map((h) => <th key={"a"+h} style={{ ...thStyle, fontSize: 8, background: B.successBg, color: B.navy }}>{h}</th>)}
+                  {["Airport", "Term", "Date", "Flight", "Time"].map((h) => <th key={"d"+h} style={{ ...thStyle, fontSize: 8, background: B.dangerBg, color: B.navy }}>{h}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -261,7 +261,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
               <thead>
                 <tr>
                   {["Agent", "Group", "Pax", "UKLC", "Airport", "Terminal", "Date", "Flight", "Time", "Status", "Notes", ""].map((h) => (
-                    <th key={h} style={{ ...thStyle, background: B.successBg }}>{h}</th>
+                    <th key={h} style={{ ...thStyle, background: B.successBg, color: B.navy }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -306,7 +306,7 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
               <thead>
                 <tr>
                   {["Agent", "Group", "Pax", "UKLC", "Airport", "Terminal", "Date", "Flight", "Time", "Status", "Notes", ""].map((h) => (
-                    <th key={h} style={{ ...thStyle, background: B.dangerBg }}>{h}</th>
+                    <th key={h} style={{ ...thStyle, background: B.dangerBg, color: B.navy }}>{h}</th>
                   ))}
                 </tr>
               </thead>

@@ -409,12 +409,6 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
 
       {/* ── Hero banner ──────────────────────────────────── */}
       <div style={{ background: "linear-gradient(135deg, #1c3048 0%, #1e3a5f 50%, #162840 100%)", padding: "20px 24px 18px", position: "relative", overflow: "hidden" }}>
-        {/* Subtle brand graphic */}
-        <svg aria-hidden="true" style={{ position: "absolute", right: 0, top: 0, opacity: 0.06, pointerEvents: "none" }} width="260" height="90" viewBox="0 0 260 90">
-          <rect x="100" y="0" width="60" height="90" fill="white" />
-          <rect x="0" y="30" width="260" height="30" fill="white" />
-          <path d="M0 0L65 90M195 0L260 90M260 0L195 90M65 0L0 90" stroke="white" strokeWidth="22" />
-        </svg>
         {/* Radial glow */}
         <div style={{ position: "absolute", top: -40, right: "20%", width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(236,39,59,0.15) 0%, transparent 70%)", pointerEvents: "none" }} />
         {/* Yellow accent line at bottom */}

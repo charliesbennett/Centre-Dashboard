@@ -383,14 +383,6 @@ export default function Dashboard() {
         padding: "0 24px", display: "flex", alignItems: "center",
         justifyContent: "space-between", height: 68, flexShrink: 0,
       }}>
-        {/* Brand graphic — subtle union jack cross pattern */}
-        <svg aria-hidden="true" style={{ position: "absolute", right: -20, top: -20, opacity: 0.055, pointerEvents: "none" }} width="320" height="110" viewBox="0 0 320 110">
-          <rect x="130" y="0" width="60" height="110" fill="white" />
-          <rect x="0" y="35" width="320" height="40" fill="white" />
-          <path d="M0 0 L80 110M240 0 L320 110" stroke="white" strokeWidth="28" />
-          <path d="M320 0 L240 110M80 0 L0 110" stroke="white" strokeWidth="28" />
-        </svg>
-
         {/* Left: logo + subtitle */}
         <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative", zIndex: 1 }}>
           <div style={{
