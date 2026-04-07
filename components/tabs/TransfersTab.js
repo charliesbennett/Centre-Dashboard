@@ -8,7 +8,7 @@ const AIRPORTS = ["Heathrow", "Gatwick", "Stansted", "Luton", "Manchester", "Bir
 const TERMINALS = ["T1", "T2", "T3", "T4", "T5", "North", "South", "N/A"];
 const UKLC_OPTIONS = ["Yes", "No", "Arr Only", "Dep Only", "TBC"];
 
-export default function TransfersTab({ groups = [], transfers = [], setTransfers, readOnly = false }) {
+export default function TransfersTab({ groups = [], transfers = [], setTransfers, saveTransfer, deleteTransfer, readOnly = false }) {
   const B = useB();
   const STATUS_MAP = {
     Pending: { color: B.warning, bg: B.warningBg },
@@ -35,12 +35,15 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
         depTime: g.depTime || "", depTerminal: "", depNotes: "",
         uklc: "Yes", status: "Pending",
       }));
-    if (newT.length) setTransfers((p) => [...p, ...newT]);
+    if (newT.length) {
+      setTransfers((p) => [...p, ...newT]);
+      newT.forEach((t) => saveTransfer?.(t));
+    }
   };
 
   // Also update existing transfers when group data changes
   const syncUpdate = () => {
-    setTransfers((prev) => prev.map((t) => {
+    const updated = transfers.map((t) => {
       const g = groups.find((gr) => gr.id === t.groupId);
       if (!g) return t;
       return {
@@ -57,7 +60,9 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
         depFlight: g.depFlight || t.depFlight,
         depTime: g.depTime || t.depTime,
       };
-    }));
+    });
+    setTransfers(updated);
+    updated.filter((t) => groups.find((g) => g.id === t.groupId)).forEach((t) => saveTransfer?.(t));
   };
 
   const upd = (id, field, value) => {
@@ -69,12 +74,16 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
         if ((missingArr || missingDep) && !window.confirm("This transfer is missing a flight number. Mark as Confirmed anyway?")) return;
       }
     }
-    setTransfers((p) => p.map((t) => t.id === id ? { ...t, [field]: value } : t));
+    const updatedList = transfers.map((t) => t.id === id ? { ...t, [field]: value } : t);
+    setTransfers(updatedList);
+    const updatedT = updatedList.find((t) => t.id === id);
+    if (updatedT) saveTransfer?.(updatedT);
   };
   const del = (id) => {
     const t = transfers.find((x) => x.id === id);
     if (window.confirm(`Delete transfer for "${t?.group || "this group"}"?`)) {
       setTransfers((p) => p.filter((x) => x.id !== id));
+      deleteTransfer?.(id);
     }
   };
 
@@ -82,7 +91,9 @@ export default function TransfersTab({ groups = [], transfers = [], setTransfers
 
   const addManual = () => {
     const id = uid();
-    setTransfers((p) => [...p, { id, groupId: null, agent: "", group: "New Transfer", pax: 0, arrAirport: "Heathrow", arrDate: "", arrFlight: "", arrTime: "", arrTerminal: "", arrNotes: "", depAirport: "Heathrow", depDate: "", depFlight: "", depTime: "", depTerminal: "", depNotes: "", uklc: "Yes", status: "Pending", notes: "" }]);
+    const newT = { id, groupId: null, agent: "", group: "New Transfer", pax: 0, arrAirport: "Heathrow", arrDate: "", arrFlight: "", arrTime: "", arrTerminal: "", arrNotes: "", depAirport: "Heathrow", depDate: "", depFlight: "", depTime: "", depTerminal: "", depNotes: "", uklc: "Yes", status: "Pending" };
+    setTransfers((p) => [...p, newT]);
+    saveTransfer?.(newT);
     setEditId(id);
   };
 
