@@ -6,6 +6,10 @@ import { Fld, TableWrap, IcWand, thStyle, tdStyle, btnPrimary, inputStyle } from
 import { getProgrammesForCentre } from "@/lib/programmeData";
 import ProgrammeTemplateModal from "@/components/ProgrammeTemplateModal";
 import MasterImportModal from "@/components/MasterImportModal";
+import ProgrammeTemplateLibraryModal from "@/components/ProgrammeTemplateLibraryModal";
+import BulkTemplateApplyModal from "@/components/BulkTemplateApplyModal";
+import GroupProgrammeImportModal from "@/components/GroupProgrammeImportModal";
+import GroupsBulkImportModal from "@/components/GroupsBulkImportModal";
 
 // Which lesson slot does this group have on this date?
 function getGroupLessonSlot(g, ds) {
@@ -17,7 +21,7 @@ function getGroupLessonSlot(g, ds) {
   return weekNum % 2 === 0 ? g.lessonSlot : (g.lessonSlot === "AM" ? "PM" : "AM");
 }
 
-export default function ProgrammesTab({ groups, progStart, progEnd, centre, excDays, setExcDays, progGrid, setProgGrid, settings, saveSetting, readOnly = false }) {
+export default function ProgrammesTab({ groups, progStart, progEnd, centre, excDays, setExcDays, progGrid, setProgGrid, settings, saveSetting, readOnly = false, isHeadOffice = false, centres = [] }) {
   const B = useB();
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
   const isLondon = LONDON_CENTRES.includes(centre);
@@ -192,6 +196,15 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
 
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showMasterModal, setShowMasterModal] = useState(false);
+  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+  const [showBulkApply, setShowBulkApply] = useState(false);
+  const [showGroupsImport, setShowGroupsImport] = useState(false);
+  const [groupImportTarget, setGroupImportTarget] = useState(null); // group being imported
+
+  // Named template library stored as "programme_templates" in settings (JSON array)
+  const namedTemplates = useMemo(() => {
+    try { return JSON.parse(settings?.programme_templates || "[]"); } catch { return []; }
+  }, [settings?.programme_templates]);
 
   const handleMasterImport = (payload) => {
     const ng = { ...grid };
@@ -263,6 +276,36 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         onImport={(payload) => { handleMasterImport(payload); setShowMasterModal(false); }}
       />
     )}
+    {showTemplateLibrary && (
+      <ProgrammeTemplateLibraryModal
+        currentJson={settings?.programme_templates || "[]"}
+        centreName={centre}
+        onSave={(json) => { if (saveSetting) saveSetting("programme_templates", json); }}
+        onClose={() => setShowTemplateLibrary(false)}
+      />
+    )}
+    {showBulkApply && (
+      <BulkTemplateApplyModal
+        groups={groups}
+        templates={namedTemplates}
+        onApply={(cells) => { setGrid((p) => ({ ...p, ...cells })); setShowBulkApply(false); }}
+        onClose={() => setShowBulkApply(false)}
+      />
+    )}
+    {showGroupsImport && (
+      <GroupsBulkImportModal
+        centres={centres}
+        onClose={() => setShowGroupsImport(false)}
+        onImported={() => {}}
+      />
+    )}
+    {groupImportTarget && (
+      <GroupProgrammeImportModal
+        group={groupImportTarget}
+        onApply={(cells) => { setGrid((p) => ({ ...p, ...cells })); setGroupImportTarget(null); }}
+        onClose={() => setGroupImportTarget(null)}
+      />
+    )}
     {groupTemplateTarget && (
       <ProgrammeTemplateModal
         mode={isMinistay ? "ministay" : "summer"}
@@ -271,24 +314,30 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         onClose={() => setGroupTemplateTarget(null)}
       />
     )}
-    <div style={{background:B.white,borderBottom:"1px solid "+B.border,padding:"10px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+    <div style={{background:B.navy,borderBottom:"1px solid "+B.border,padding:"10px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}>
       <div style={{display:"flex",gap:8,alignItems:"center"}}>
-        <span style={{fontSize:11,fontWeight:700,color:B.text}}>{dates.length} days {"\u00b7"} {groups.length} groups</span>
-        {isLondon && <span style={{background:B.cyanBg,color:B.cyan,padding:"2px 8px",borderRadius:4,fontSize:9,fontWeight:700}}>London</span>}
-        {isMinistay && <span style={{background:B.warningBg,color:B.warning,padding:"2px 8px",borderRadius:4,fontSize:9,fontWeight:700}}>Ministay</span>}
+        <span style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.85)"}}>{dates.length} days {"\u00b7"} {groups.length} groups</span>
+        {isLondon && <span style={{background:"#e6eef3",color:B.navy,padding:"2px 8px",borderRadius:4,fontSize:9,fontWeight:700}}>London</span>}
+        {isMinistay && <span style={{background:"#f0f279",color:B.navy,padding:"2px 8px",borderRadius:4,fontSize:9,fontWeight:700}}>Ministay</span>}
       </div>
       <div style={{display:"flex",gap:4}}>
-        {["all","group","template"].map(m=><button key={m} onClick={()=>setViewMode(m)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+(viewMode===m?B.navy:B.border),background:viewMode===m?B.navy:B.white,color:viewMode===m?B.white:B.textMuted}}>
+        {["all","group","template"].map(m=><button key={m} onClick={()=>setViewMode(m)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+(viewMode===m?"transparent":"rgba(255,255,255,0.3)"),background:viewMode===m?"#e6eef3":"transparent",color:viewMode===m?B.navy:"rgba(255,255,255,0.8)"}}>
           {m==="all"?"\ud83d\udc65 All Groups":m==="group"?"\ud83d\udc64 By Group":"\ud83d\udcc4 Templates"}</button>)}
-        {!readOnly && <button onClick={()=>setShowTemplateModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+B.border,background:(isMinistay?settings?.ministay_template:settings?.programme_template)?B.successBg:B.card,color:(isMinistay?settings?.ministay_template:settings?.programme_template)?B.success:B.textMuted,marginLeft:4}}>
+        {!readOnly && <button onClick={()=>setShowTemplateModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"none",background:(isMinistay?settings?.ministay_template:settings?.programme_template)?"#e6eef3":"rgba(255,255,255,0.15)",color:(isMinistay?settings?.ministay_template:settings?.programme_template)?B.navy:"rgba(255,255,255,0.6)",marginLeft:4}}>
           {"\ud83d\udcc4"} {(isMinistay ? settings?.ministay_template : settings?.programme_template) ? "Edit Template" : "Set Up Template"}</button>}
-        {!readOnly && <button onClick={() => setShowMasterModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid #0369a1",background:"#0369a1",color:"#fff",marginLeft:4}}>
+        {!readOnly && <button onClick={() => setShowMasterModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"none",background:"#fad7d8",color:B.navy,marginLeft:4}}>
           📊 Import Master</button>}
+        {isHeadOffice && <button onClick={() => setShowGroupsImport(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"none",background:"#dbeafe",color:B.navy,marginLeft:4}}>
+          ⬆ Import Groups</button>}
+        {isHeadOffice && <button onClick={() => setShowTemplateLibrary(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"none",background:"#ede9fe",color:B.navy,marginLeft:4}}>
+          📁 Templates {namedTemplates.length > 0 ? `(${namedTemplates.length})` : ""}</button>}
+        {isHeadOffice && namedTemplates.length > 0 && groups.length > 0 && <button onClick={() => setShowBulkApply(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"none",background:"#dcfce7",color:B.navy,marginLeft:4}}>
+          ⚡ Apply Templates</button>}
         {!readOnly && <button onClick={() => {
           const hasData = Object.values(progGrid).some((v) => v);
           if (hasData && !window.confirm("Auto-populate will overwrite all existing programme cells. Continue?")) return;
           autoPop();
-        }} style={{...btnPrimary,background:B.navy,marginLeft:4}}><IcWand/> Auto-Populate</button>}
+        }} style={{...btnPrimary,background:B.red,border:"none",marginLeft:4}}><IcWand/> Auto-Populate</button>}
       </div>
     </div>
 
@@ -389,7 +438,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     </div>}
 
     {viewMode==="group" && <div>
-      <div style={{padding:"10px 20px",background:B.white,borderBottom:"1px solid "+B.border,display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+      <div style={{padding:"10px 20px",background:B.card,borderBottom:"1px solid "+B.border,display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
         <span style={{fontSize:10,fontWeight:700,color:B.textMuted}}>Select group:</span>
         {groups.map(g=><button key={g.id} onClick={()=>setSelectedGroupId(g.id)} style={{padding:"4px 10px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:selectedGroupId===g.id?"2px solid "+B.navy:"1px solid "+B.border,background:selectedGroupId===g.id?B.navy:B.white,color:selectedGroupId===g.id?B.white:B.navy}}>
           {g.group} <span style={{opacity:0.6}}>({(g.stu||0)+(g.gl||0)})</span></button>)}
@@ -411,6 +460,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           {groupTemplates[selGroup.id]
             ? <button onClick={()=>{if(Object.keys(grid).some(k=>k.startsWith(selGroup.id)&&grid[k])&&!window.confirm("This will overwrite "+selGroup.group+"'s existing programme. Continue?"))return;applyGroupTemplate(selGroup);}} style={{...btnPrimary,background:B.navy,fontSize:9,marginLeft:4}}><IcWand/> Apply to {selGroup.group}</button>
             : <span style={{fontSize:9,color:B.textMuted,fontStyle:"italic"}}>Select a template above, then apply</span>}
+          {isHeadOffice && <button onClick={()=>setGroupImportTarget(selGroup)} style={{padding:"3px 10px",borderRadius:4,fontSize:9,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+B.border,background:"#ede9fe",color:B.navy,marginLeft:8}}>⬆ Import Programme Excel</button>}
         </div>}
         <TableWrap><table style={{minWidth:1200,width:"100%",borderCollapse:"collapse",fontSize:10}}>
           <thead><tr><th style={{...thStyle,width:30}}></th>

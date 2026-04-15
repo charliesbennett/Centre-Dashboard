@@ -4,10 +4,10 @@
     "description": "Brownfield — AI Rota fixes, UX/UI audit, AI Chatbox feature",
     "workflow": "brownfield-fullstack",
     "createdAt": "2026-03-24",
-    "lastSessionDate": "2026-04-01T19:42:53Z"
+    "lastSessionDate": "2026-04-07T22:13:52Z"
   },
   "currentStage": "product",
-  "nextStep": "Begin Sprint 1 — start with STORY-A1",
+  "nextStep": "Sprint 1 — STORY-A3: Full QA — Real Centre Verification",
   "documents": {
     "brief": {
       "path": "docs/prd/brief.md",
@@ -45,7 +45,7 @@
         "id": "STORY-A2",
         "title": "Fix Generate/Publish Flow — Dry Run Architecture",
         "epic": "Workstream A",
-        "status": "ready",
+        "status": "done",
         "sprint": 1,
         "path": "docs/stories/STORY-A2.md"
       },
@@ -96,6 +96,38 @@
         "status": "ready",
         "sprint": 2,
         "path": "docs/stories/STORY-B3.md"
+      },
+      {
+        "id": "STORY-G1",
+        "title": "Bulk Group Import from Groups.xlsx",
+        "epic": "Workstream G",
+        "status": "done",
+        "sprint": 4,
+        "path": "docs/stories/STORY-G1.md"
+      },
+      {
+        "id": "STORY-G2",
+        "title": "Named Programme Template Library per Centre",
+        "epic": "Workstream G",
+        "status": "done",
+        "sprint": 4,
+        "path": "docs/stories/STORY-G2.md"
+      },
+      {
+        "id": "STORY-G3",
+        "title": "Bulk Template Application to Groups",
+        "epic": "Workstream G",
+        "status": "done",
+        "sprint": 4,
+        "path": "docs/stories/STORY-G3.md"
+      },
+      {
+        "id": "STORY-G4",
+        "title": "Per-Group Bespoke Programme Excel Upload",
+        "epic": "Workstream G",
+        "status": "done",
+        "sprint": 4,
+        "path": "docs/stories/STORY-G4.md"
       }
     ]
   },
@@ -125,6 +157,16 @@
         "stories": [
           "STORY-C1",
           "STORY-C2"
+        ]
+      },
+      {
+        "number": 4,
+        "status": "planned",
+        "stories": [
+          "STORY-G1",
+          "STORY-G2",
+          "STORY-G3",
+          "STORY-G4"
         ]
       }
     ]
