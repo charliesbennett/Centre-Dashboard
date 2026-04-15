@@ -37,12 +37,6 @@ export async function POST(req) {
     dep_flight:      "",
     dep_time:        "",
     archived:        false,
-    // Store code + status + programme notes in notes JSON blob
-    notes:           JSON.stringify({
-      importCode:      g.code,
-      importStatus:    g.status,
-      programmeNotes:  g.programmeNotes || "",
-    }),
   }));
 
   const { error } = await db.from("groups").upsert(rows, { onConflict: "id" });
