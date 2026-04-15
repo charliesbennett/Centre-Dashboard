@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useB } from "@/lib/theme";
 import { parseGroupsExcel } from "@/lib/parseGroupsExcel";
 
@@ -20,8 +20,19 @@ export default function GroupsBulkImportModal({ centres = [], onClose, onImporte
   const [error, setError] = useState(null);
   const [parsed, setParsed] = useState(null); // { groups, unmatched, cancelledCount }
   const [result, setResult] = useState(null); // { imported }
-  // Manual centre overrides for unmatched groups: { groupCode: centreId }
+  // Centre assignments for unmatched groups: { groupCode: centreId }
+  // Pre-filled from bestGuess when parsed; user can change or clear to skip
   const [overrides, setOverrides] = useState({});
+
+  // Pre-fill overrides from best guesses whenever parsed data arrives
+  useEffect(() => {
+    if (!parsed?.unmatched) return;
+    const init = {};
+    parsed.unmatched.forEach((g) => {
+      if (g.bestGuessId) init[g.code] = g.bestGuessId;
+    });
+    setOverrides(init);
+  }, [parsed]);
 
   const overlay = { position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16 };
   const card    = { background:B.card,borderRadius:14,width:"100%",maxWidth:720,maxHeight:"85vh",overflow:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.25)" };
@@ -140,24 +151,33 @@ export default function GroupsBulkImportModal({ centres = [], onClose, onImporte
                 </div>
               ))}
 
-              {/* Unmatched groups */}
+              {/* Unmatched groups — pre-filled with best guess, user can correct */}
               {parsed.unmatched.length > 0 && (
                 <div style={{ marginBottom:16 }}>
-                  <div style={{ fontSize:10,fontWeight:800,fontFamily:RW,color:B.red,textTransform:"uppercase",letterSpacing:0.5,padding:"4px 0",borderBottom:`1px solid ${B.border}`,marginBottom:6 }}>
-                    ⚠ Unmatched centres — assign manually to import
+                  <div style={{ fontSize:10,fontWeight:800,fontFamily:RW,color:B.warning,textTransform:"uppercase",letterSpacing:0.5,padding:"4px 0",borderBottom:`1px solid ${B.border}`,marginBottom:4 }}>
+                    ⚠ Review centre matches — correct any wrong ones
                   </div>
-                  {parsed.unmatched.map((g) => (
-                    <div key={g.code} style={{ display:"flex",alignItems:"center",gap:8,padding:"4px 0",fontSize:11,fontFamily:OS,borderBottom:`1px solid ${B.border}` }}>
-                      <span style={{ flex:1,fontWeight:600 }}>{g.group}</span>
-                      <span style={{ color:B.textMuted,fontSize:10 }}>{g.excelCentre}</span>
-                      <select value={overrides[g.code] || ""}
-                        onChange={(e) => setOverrides((p) => ({ ...p, [g.code]: e.target.value || undefined }))}
-                        style={{ padding:"3px 6px",fontSize:10,fontFamily:"inherit",borderRadius:4,border:`1px solid ${B.border}` }}>
-                        <option value="">— Skip —</option>
-                        {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </div>
-                  ))}
+                  <div style={{ fontSize:10,fontFamily:OS,color:B.textMuted,marginBottom:8 }}>
+                    Best guess pre-filled. Change the dropdown if wrong, or set to Skip to exclude.
+                  </div>
+                  {parsed.unmatched.map((g) => {
+                    const isGuess = !!g.bestGuessId;
+                    const assigned = overrides[g.code];
+                    return (
+                      <div key={g.code} style={{ display:"flex",alignItems:"center",gap:8,padding:"5px 0",fontSize:11,fontFamily:OS,borderBottom:`1px solid ${B.border}` }}>
+                        <span style={{ flex:1,fontWeight:600 }}>{g.group}</span>
+                        <span style={{ color:B.textMuted,fontSize:10,whiteSpace:"nowrap" }}>{g.excelCentre}</span>
+                        <select value={assigned || ""}
+                          onChange={(e) => setOverrides((p) => ({ ...p, [g.code]: e.target.value || undefined }))}
+                          style={{ padding:"3px 6px",fontSize:10,fontFamily:"inherit",borderRadius:4,
+                            border:`1px solid ${assigned ? (isGuess && assigned === g.bestGuessId ? "#f59e0b" : B.success) : B.border}`,
+                            background: assigned ? (isGuess && assigned === g.bestGuessId ? "#fffbeb" : "#f0fdf4") : B.bg }}>
+                          <option value="">— Skip —</option>
+                          {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
