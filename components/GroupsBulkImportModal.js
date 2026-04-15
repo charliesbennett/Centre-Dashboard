@@ -24,12 +24,14 @@ export default function GroupsBulkImportModal({ centres = [], onClose, onImporte
   // Pre-filled from bestGuess when parsed; user can change or clear to skip
   const [overrides, setOverrides] = useState({});
 
-  // Pre-fill overrides from best guesses whenever parsed data arrives
+  // Pre-fill overrides from best guesses whenever parsed data arrives.
+  // Only pre-fill when the score is high enough to be reliable (≥ 0.5).
+  // A wrong pre-fill is worse than no pre-fill — the user might not spot it.
   useEffect(() => {
     if (!parsed?.unmatched) return;
     const init = {};
     parsed.unmatched.forEach((g) => {
-      if (g.bestGuessId) init[g.code] = g.bestGuessId;
+      if (g.bestGuessId && g.bestGuessScore >= 0.5) init[g.code] = g.bestGuessId;
     });
     setOverrides(init);
   }, [parsed]);
@@ -161,20 +163,29 @@ export default function GroupsBulkImportModal({ centres = [], onClose, onImporte
                     Best guess pre-filled. Change the dropdown if wrong, or set to Skip to exclude.
                   </div>
                   {parsed.unmatched.map((g) => {
-                    const isGuess = !!g.bestGuessId;
                     const assigned = overrides[g.code];
+                    const isPreFilled = assigned && assigned === g.bestGuessId;
                     return (
-                      <div key={g.code} style={{ display:"flex",alignItems:"center",gap:8,padding:"5px 0",fontSize:11,fontFamily:OS,borderBottom:`1px solid ${B.border}` }}>
-                        <span style={{ flex:1,fontWeight:600 }}>{g.group}</span>
-                        <span style={{ color:B.textMuted,fontSize:10,whiteSpace:"nowrap" }}>{g.excelCentre}</span>
-                        <select value={assigned || ""}
-                          onChange={(e) => setOverrides((p) => ({ ...p, [g.code]: e.target.value || undefined }))}
-                          style={{ padding:"3px 6px",fontSize:10,fontFamily:"inherit",borderRadius:4,
-                            border:`1px solid ${assigned ? (isGuess && assigned === g.bestGuessId ? "#f59e0b" : B.success) : B.border}`,
-                            background: assigned ? (isGuess && assigned === g.bestGuessId ? "#fffbeb" : "#f0fdf4") : B.bg }}>
-                          <option value="">— Skip —</option>
-                          {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
+                      <div key={g.code} style={{ padding:"6px 0",borderBottom:`1px solid ${B.border}` }}>
+                        <div style={{ display:"flex",alignItems:"center",gap:8,fontSize:11,fontFamily:OS }}>
+                          <div style={{ flex:1,minWidth:0 }}>
+                            <div style={{ fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{g.group}</div>
+                            <div style={{ fontSize:9,color:B.textMuted,marginTop:1 }}>Excel: {g.excelCentre}</div>
+                          </div>
+                          <select value={assigned || ""}
+                            onChange={(e) => setOverrides((p) => ({ ...p, [g.code]: e.target.value || undefined }))}
+                            style={{ padding:"3px 6px",fontSize:10,fontFamily:"inherit",borderRadius:4,
+                              border:`1px solid ${assigned ? (isPreFilled ? "#f59e0b" : "#16a34a") : B.border}`,
+                              background: assigned ? (isPreFilled ? "#fffbeb" : "#f0fdf4") : B.bg }}>
+                            <option value="">— Skip —</option>
+                            {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        </div>
+                        {isPreFilled && (
+                          <div style={{ fontSize:9,color:"#92400e",marginTop:2,textAlign:"right" }}>
+                            Best guess ({Math.round(g.bestGuessScore * 100)}% match) — please verify
+                          </div>
+                        )}
                       </div>
                     );
                   })}
