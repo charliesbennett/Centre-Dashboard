@@ -372,8 +372,8 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           <tr>
             <th style={{...thStyle,width:100,position:"sticky",left:0,zIndex:2,background:B.bg,color:B.textMuted,backgroundImage:"none"}}>Agent</th>
             <th style={{...thStyle,width:90,position:"sticky",left:100,zIndex:2,background:B.bg,color:B.textMuted,backgroundImage:"none"}}>Group</th>
-            <th style={{...thStyle,width:30,textAlign:"center"}}>Pax</th>
-            <th style={{...thStyle,width:30,textAlign:"center",fontSize:8}}>Wk1</th>
+            <th style={{...thStyle,width:44,textAlign:"center"}}>Pax</th>
+            <th style={{...thStyle,width:44,textAlign:"center",fontSize:8}}>Wk1</th>
             {dates.map(d=>{const s=dayKey(d),exc=excDays[s],we=isWeekend(d);return<th key={s} colSpan={slots.length} onClick={()=>toggleExc(s)} style={{...thStyle,textAlign:"center",borderLeft:"2px solid "+B.border,padding:"3px 2px",minWidth:192,cursor:"pointer",background:exc?B.pink:we?B.dangerBg:B.ice}}>
               <div style={{fontSize:7,color:B.textMuted}}>{fmtDate(d)}</div>
               <div style={{fontWeight:800,fontSize:9,color:we?B.red:B.text}}>{dayName(d)}</div>
