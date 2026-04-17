@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { getSupabaseServer } from "@/lib/supabaseServer";
 
 // Body: { toDelete: [id], toUpsert: [{id, centre_id, exc_date, destination, coaches, notes}] }

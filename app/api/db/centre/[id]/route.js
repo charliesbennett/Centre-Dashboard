@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { getSupabaseServer } from "@/lib/supabaseServer";
 
 export async function GET(_req, { params }) {

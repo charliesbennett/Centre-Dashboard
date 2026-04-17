@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { getSupabaseServer } from "@/lib/supabaseServer";
 import crypto from "crypto";
 
