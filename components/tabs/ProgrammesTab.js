@@ -21,11 +21,16 @@ function getGroupLessonSlot(g, ds) {
   return weekNum % 2 === 0 ? g.lessonSlot : (g.lessonSlot === "AM" ? "PM" : "AM");
 }
 
-export default function ProgrammesTab({ groups, progStart, progEnd, centre, excDays, setExcDays, progGrid, setProgGrid, settings, saveSetting, readOnly = false, isHeadOffice = false, centres = [] }) {
+export default function ProgrammesTab({ groups, progStart, progEnd, centre, excDays, setExcDays, excursions = [], progGrid, setProgGrid, settings, saveSetting, readOnly = false, isHeadOffice = false, centres = [] }) {
   const B = useB();
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
   const isLondon = LONDON_CENTRES.includes(centre);
   const isMinistay = /mini[\s-]?stay/i.test(centre || "");
+  // Look up excursion destination for a date string ("Full Exc" / "Half Exc" fallback)
+  const excDest = (dateStr, type) => {
+    const dest = excursions.find(e => e.date === dateStr)?.destination;
+    return dest || (type === "Full" ? "Full Exc" : "Half Exc");
+  };
   const slots = ["AM", "PM", "Eve"];
   const [viewMode, setViewMode] = useState("all");
   const [selectedGroupId, setSelectedGroupId] = useState(null);
@@ -78,8 +83,13 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         const tmplSlot = isTeachingSlot(dayData.am) ? "AM" : isTeachingSlot(dayData.pm) ? "PM" : null;
         const grpSlot = getGroupLessonSlot(g, s);
         const swap = tmplSlot && grpSlot !== tmplSlot;
-        const amV = (swap ? dayData.pm : dayData.am) || "";
-        const pmV = (swap ? dayData.am : dayData.pm) || "";
+        let amV = (swap ? dayData.pm : dayData.am) || "";
+        let pmV = (swap ? dayData.am : dayData.pm) || "";
+        // Full-day excursion: if template only has one slot, mirror to both
+        if (excDays[s] === "Full") {
+          const name = amV || pmV || excDest(s, "Full");
+          amV = amV || name; pmV = pmV || name;
+        }
         if (!/depart|arriv/i.test(amV)) set(g.id+"-"+s+"-AM", amV);
         if (!/depart|arriv/i.test(pmV)) set(g.id+"-"+s+"-PM", pmV);
       });
@@ -94,18 +104,20 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       if (!inRange(s, g.arr, g.dep)) return;
       if (g.arr && s === dayKey(new Date(g.arr))) { set(g.id+"-"+s+"-PM", "ARRIVAL"); set(g.id+"-"+s+"-Eve", "Evening Activity"); return; }
       if (g.dep && s === dayKey(new Date(g.dep))) { set(g.id+"-"+s+"-AM", "DEPARTURE"); return; }
-      if (excDays[s] === "Full") { set(g.id+"-"+s+"-AM", "Full Exc"); set(g.id+"-"+s+"-PM", "Full Exc"); set(g.id+"-"+s+"-Eve", "Evening Activity"); return; }
-      if (we) { set(g.id+"-"+s+"-AM", "Full Exc"); set(g.id+"-"+s+"-PM", "Full Exc"); set(g.id+"-"+s+"-Eve", "Evening Activity"); return; }
+      if (excDays[s] === "Full") { const d2 = excDest(s, "Full"); set(g.id+"-"+s+"-AM", d2); set(g.id+"-"+s+"-PM", d2); set(g.id+"-"+s+"-Eve", "Evening Activity"); return; }
+      if (we) { const d2 = excDest(s, "Full"); set(g.id+"-"+s+"-AM", d2); set(g.id+"-"+s+"-PM", d2); set(g.id+"-"+s+"-Eve", "Evening Activity"); return; }
       const ls = getGroupLessonSlot(g, s);
       const spec = g.prog === "Multi-Activity" ? "Multi-Activity" : g.prog === "Intensive English" ? "English+" : g.prog === "Performing Arts" ? "Perf Arts" : g.prog || "Multi-Activity";
       if (excDays[s] === "Half") {
-        if (ls === "AM") { set(g.id+"-"+s+"-AM", "Lessons"); set(g.id+"-"+s+"-PM", "Half Exc"); }
-        else { set(g.id+"-"+s+"-AM", "Half Exc"); set(g.id+"-"+s+"-PM", "Lessons"); }
+        const d2 = excDest(s, "Half");
+        if (ls === "AM") { set(g.id+"-"+s+"-AM", "Lessons"); set(g.id+"-"+s+"-PM", d2); }
+        else { set(g.id+"-"+s+"-AM", d2); set(g.id+"-"+s+"-PM", "Lessons"); }
         set(g.id+"-"+s+"-Eve", "Evening Activity"); return;
       }
       if (isLondon && (day === 1 || day === 3 || day === 5)) {
-        if (ls === "AM") { set(g.id+"-"+s+"-AM", "Lessons"); set(g.id+"-"+s+"-PM", "Half Exc"); }
-        else { set(g.id+"-"+s+"-AM", "Half Exc"); set(g.id+"-"+s+"-PM", "Lessons"); }
+        const d2 = excDest(s, "Half");
+        if (ls === "AM") { set(g.id+"-"+s+"-AM", "Lessons"); set(g.id+"-"+s+"-PM", d2); }
+        else { set(g.id+"-"+s+"-AM", d2); set(g.id+"-"+s+"-PM", "Lessons"); }
       } else {
         if (ls === "AM") { set(g.id+"-"+s+"-AM", "Lessons"); set(g.id+"-"+s+"-PM", spec); }
         else { set(g.id+"-"+s+"-AM", spec); set(g.id+"-"+s+"-PM", "Lessons"); }
