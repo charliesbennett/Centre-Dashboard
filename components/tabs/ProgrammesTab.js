@@ -195,6 +195,20 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     let defaultTmpl = null;
     if (settings?.programme_template) { try { defaultTmpl = normaliseTmpl(JSON.parse(settings.programme_template)); } catch {} }
     const ng = skipExisting ? { ...grid } : {};
+    // Pick the best-matching centre template for a group by stay length
+    const bestCentreTmpl = (g) => {
+      if (!centreProgs.length) return null;
+      if (centreProgs.length === 1) return centreProgs[0];
+      const stayNights = (g.arr && g.dep)
+        ? Math.round((new Date(g.dep) - new Date(g.arr)) / 86400000)
+        : null;
+      if (stayNights === null) return centreProgs[0];
+      return centreProgs.reduce((best, t) => {
+        const tLen = typeof t.length === "number" ? t.length : parseInt(t.length) || 0;
+        const bLen = typeof best.length === "number" ? best.length : parseInt(best.length) || 0;
+        return Math.abs(tLen - stayNights) < Math.abs(bLen - stayNights) ? t : best;
+      });
+    };
     groups.forEach((g) => {
       const config = groupTemplates[g.id];
       if (config?.type === "builtin") {
@@ -203,7 +217,10 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       } else if (config?.type === "custom" && config.template) {
         applyTmplInto(normaliseTmpl(config.template), [g], ng, skipExisting); return;
       }
-      if (defaultTmpl) { applyTmplInto(defaultTmpl, [g], ng, skipExisting); } else { defaultPopGroup(g, ng, skipExisting); }
+      const centreTmpl = bestCentreTmpl(g);
+      if (centreTmpl) { applyTmplInto(normaliseTmpl(centreTmpl), [g], ng, skipExisting); }
+      else if (defaultTmpl) { applyTmplInto(defaultTmpl, [g], ng, skipExisting); }
+      else { defaultPopGroup(g, ng, skipExisting); }
     });
     // Ensure Evening Activity for all on-site days (not departure) — fill empty or placeholders
     groups.forEach(g => {
