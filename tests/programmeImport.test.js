@@ -32,6 +32,12 @@ describe("centreMatchScore", () => {
   it("returns 0 for completely different names", () => {
     expect(centreMatchScore("Oxford University", "Manchester School")).toBe(0);
   });
+  it("matches QMU acronym to Queen Mary University of London", () => {
+    expect(centreMatchScore("QMU", "Queen Mary, University of London")).toBeGreaterThanOrEqual(0.8);
+  });
+  it("does not match QMU to Queen Anne's", () => {
+    expect(centreMatchScore("QMU", "Queen Anne's")).toBe(0);
+  });
 });
 
 describe("matchCentre", () => {
