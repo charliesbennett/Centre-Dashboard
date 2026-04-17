@@ -67,11 +67,12 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       dates.forEach(d => {
         const s = dayKey(d);
         if (!inRange(s, g.arr, g.dep)) return;
-        if (g.arr && s === g.arr) { set(g.id+"-"+s+"-PM", "ARRIVAL"); return; }
+        if (g.arr && s === g.arr) { set(g.id+"-"+s+"-PM", "ARRIVAL"); set(g.id+"-"+s+"-Eve", "Evening Activity"); return; }
         if (g.dep && s === g.dep) { set(g.id+"-"+s+"-AM", "DEPARTURE"); return; }
         const daysSince = Math.floor((d.getTime() - gArrMs) / 86400000);
         const weekIdx = Math.floor(daysSince / 7) % weekMaps.length;
         const dayData = weekMaps[weekIdx]?.[DOW[d.getDay()]];
+        set(g.id+"-"+s+"-Eve", "Evening Activity");
         if (!dayData) return;
         const isTeachingSlot = (v) => /lesson|english test|placement test/i.test(v || "");
         const tmplSlot = isTeachingSlot(dayData.am) ? "AM" : isTeachingSlot(dayData.pm) ? "PM" : null;
