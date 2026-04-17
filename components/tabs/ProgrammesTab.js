@@ -370,8 +370,8 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       <TableWrap><table style={{minWidth:1200,width:"100%",borderCollapse:"collapse",fontSize:10}}>
         <thead>
           <tr>
-            <th style={{...thStyle,width:100,position:"sticky",left:0,zIndex:2,background:B.bg,color:B.textMuted,backgroundImage:"none"}}>Agent</th>
-            <th style={{...thStyle,width:90,position:"sticky",left:100,zIndex:2,background:B.bg,color:B.textMuted,backgroundImage:"none"}}>Group</th>
+            <th style={{...thStyle,width:100,maxWidth:100,overflow:"hidden",whiteSpace:"nowrap",position:"sticky",left:0,zIndex:2,background:B.bg,color:B.textMuted,backgroundImage:"none"}}>Agent</th>
+            <th style={{...thStyle,width:90,maxWidth:90,overflow:"hidden",whiteSpace:"nowrap",position:"sticky",left:100,zIndex:2,background:B.bg,color:B.textMuted,backgroundImage:"none"}}>Group</th>
             <th style={{...thStyle,width:44,textAlign:"center"}}>Pax</th>
             <th style={{...thStyle,width:44,textAlign:"center",fontSize:8}}>Wk1</th>
             {dates.map(d=>{const s=dayKey(d),exc=excDays[s],we=isWeekend(d);return<th key={s} colSpan={slots.length} onClick={()=>toggleExc(s)} style={{...thStyle,textAlign:"center",borderLeft:"2px solid "+B.border,padding:"3px 2px",minWidth:192,cursor:"pointer",background:exc?B.pink:we?B.dangerBg:B.ice}}>
@@ -391,8 +391,8 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         <tbody>
           {groups.length===0?<tr><td colSpan={100} style={{textAlign:"center",padding:36,color:B.textLight}}>Import groups in Students tab</td></tr>:
           groups.map(g=><tr key={g.id} style={{borderBottom:"1px solid "+B.borderLight}}>
-            <td style={{...tdStyle,fontWeight:600,fontSize:9,position:"sticky",left:0,background:B.card,zIndex:1}}>{g.agent}</td>
-            <td style={{...tdStyle,fontWeight:700,color:B.text,fontSize:10,position:"sticky",left:100,background:B.card,zIndex:1}}>{g.group}</td>
+            <td style={{...tdStyle,fontWeight:600,fontSize:9,position:"sticky",left:0,background:B.card,zIndex:1,maxWidth:100,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{g.agent}</td>
+            <td style={{...tdStyle,fontWeight:700,color:B.text,fontSize:10,position:"sticky",left:100,background:B.card,zIndex:1,maxWidth:90,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{g.group}</td>
             <td style={{...tdStyle,fontWeight:800,textAlign:"center",fontSize:10}}>{(g.stu||0)+(g.gl||0)}</td>
             <td style={{...tdStyle,textAlign:"center"}}><span style={{background:g.lessonSlot==="PM"?B.pink:B.ice,color:g.lessonSlot==="PM"?B.red:B.link,padding:"2px 6px",borderRadius:3,fontSize:8,fontWeight:800}}>{g.lessonSlot||"AM"}</span></td>
             {dates.map(d=>slots.map(sl=>{const s=dayKey(d),key=g.id+"-"+s+"-"+sl,val=grid[key],on=inRange(s,g.arr,g.dep),cls=classify(val),isEd=editingCell===key,isQP=quickPickCell===key;
