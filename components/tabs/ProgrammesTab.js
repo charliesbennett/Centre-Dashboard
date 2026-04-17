@@ -62,11 +62,16 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   // - All other in-range days: template data, skipping any "depart"/"arriv" placeholder values
   //   from the template (so DEPARTURE baked into week 2 Sunday never stamps mid-stay groups)
   // - weekIdx relative to each group's arrival; swaps AM/PM when group's lesson slot differs
+  // Generic placeholder values — treated as "empty" so re-running auto-populate replaces them
+  const isPlaceholder = (v) => !v || /^(full.?day excursion|half.?day excursion|full exc|half exc|evening activity)$/i.test(v.trim());
+
   const applyTmplInto = (tmpl, targetGroups, ng, skipExisting = false) => {
     if (!tmpl?.weeks?.length) return;
     const weekMaps = tmpl.weeks.map(wk => { const m = {}; wk.days.forEach(d => { m[d.day] = d; }); return m; });
     const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-    const set = (key, val) => { if (val && (!skipExisting || !ng[key])) ng[key] = val; };
+    // skipExisting: preserve real custom values but overwrite generic placeholders
+    const set = (key, val) => { if (val && (!skipExisting || isPlaceholder(ng[key]))) ng[key] = val; };
+    const isTeachingSlot = (v) => /lesson|english test|placement test/i.test(v || "");
     targetGroups.forEach(g => {
       const gArrMs = g.arr ? new Date(g.arr).getTime() : (dates[0]?.getTime() || 0);
       dates.forEach(d => {
@@ -79,17 +84,14 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         const dayData = weekMaps[weekIdx]?.[DOW[d.getDay()]];
         set(g.id+"-"+s+"-Eve", "Evening Activity");
         if (!dayData) return;
-        const isTeachingSlot = (v) => /lesson|english test|placement test/i.test(v || "");
         const tmplSlot = isTeachingSlot(dayData.am) ? "AM" : isTeachingSlot(dayData.pm) ? "PM" : null;
         const grpSlot = getGroupLessonSlot(g, s);
         const swap = tmplSlot && grpSlot !== tmplSlot;
         let amV = (swap ? dayData.pm : dayData.am) || "";
         let pmV = (swap ? dayData.am : dayData.pm) || "";
-        // Full-day excursion: if template only has one slot, mirror to both
-        if (excDays[s] === "Full") {
-          const name = amV || pmV || excDest(s, "Full");
-          amV = amV || name; pmV = pmV || name;
-        }
+        // If one slot has a non-lesson value and the other is empty, mirror it (full-day excursion)
+        if (amV && !pmV && !isTeachingSlot(amV)) pmV = amV;
+        if (pmV && !amV && !isTeachingSlot(pmV)) amV = pmV;
         if (!/depart|arriv/i.test(amV)) set(g.id+"-"+s+"-AM", amV);
         if (!/depart|arriv/i.test(pmV)) set(g.id+"-"+s+"-PM", pmV);
       });
@@ -98,7 +100,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
 
   // Default logic (no template) for a single group into ng
   const defaultPopGroup = (g, ng, skipExisting = false) => {
-    const set = (key, val) => { if (val && (!skipExisting || !ng[key])) ng[key] = val; };
+    const set = (key, val) => { if (val && (!skipExisting || isPlaceholder(ng[key]))) ng[key] = val; };
     dates.forEach(d => {
       const s = dayKey(d), day = d.getDay(), we = isWeekend(d);
       if (!inRange(s, g.arr, g.dep)) return;
@@ -203,12 +205,12 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       }
       if (defaultTmpl) { applyTmplInto(defaultTmpl, [g], ng, skipExisting); } else { defaultPopGroup(g, ng, skipExisting); }
     });
-    // Ensure Evening Activity for all on-site days (not departure) — only fill empty
+    // Ensure Evening Activity for all on-site days (not departure) — fill empty or placeholders
     groups.forEach(g => {
       dates.forEach(d => {
         const s = dayKey(d);
         if (!inRange(s, g.arr, g.dep) || s === g.dep) return;
-        if (!ng[g.id+"-"+s+"-Eve"]) ng[g.id+"-"+s+"-Eve"] = "Evening Activity";
+        if (isPlaceholder(ng[g.id+"-"+s+"-Eve"])) ng[g.id+"-"+s+"-Eve"] = "Evening Activity";
       });
     });
     setGrid(ng);
