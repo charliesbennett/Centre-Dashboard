@@ -333,7 +333,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       mgmt.forEach((s) => {
         if (isOn(s, ds) && !ng[s.id + "-" + ds + "-AM"]) {
           ng[s.id + "-" + ds + "-AM"] = "Office";
-          ng[s.id + "-" + ds + "-PM"] = "Office";
+          // Leave PM free if this person is on Eve duty today (so they can do AM+Eve, not AM+Office+Eve)
+          if (!eveDutyMap[ds]?.has(s.id)) ng[s.id + "-" + ds + "-PM"] = "Office";
         }
       });
 
@@ -432,17 +433,49 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       });
     });
 
-    // ── Pass 4: Evening assignments (from pre-assigned eveDutyMap) ────
+    // ── Pass 4: Evening assignments ───────────────────────────────────
+    // Rule: PM slot must be empty before assigning Eve — never 3 sessions
     dates.forEach((d) => {
       const ds = dayKey(d);
-      const duty = eveDutyMap[ds];
-      if (!duty) return;
-      duty.forEach((sid) => {
-        if (!ng[sid + "-" + ds + "-Eve"]) {
+      if (!groupArrivalDate || ds < groupArrivalDate) return;
+      const stu = (groups || []).reduce((sum, g) =>
+        inRange(ds, g.arr, g.dep) && ds !== g.dep ? sum + (g.stu || 0) + (g.gl || 0) : sum, 0);
+      if (!stu) return;
+      const eveTarget = Math.max(2, Math.ceil(stu / 20));
+      let eveCount = 0;
+
+      // Stage 1: pre-assigned Eve staff (normal weekdays — PM was left free in Pass 3)
+      (eveDutyMap[ds] || new Set()).forEach((sid) => {
+        const _am = ng[sid + "-" + ds + "-AM"];
+        const _pm = ng[sid + "-" + ds + "-PM"];
+        // Only skip if BOTH AM and PM are occupied — AM+Eve and PM+Eve are both valid (max 2 slots)
+        if (!(_am && _pm) && !ng[sid + "-" + ds + "-Eve"]) {
           ng[sid + "-" + ds + "-Eve"] = "Evening Activity";
           sess[sid] = (sess[sid] || 0) + 1;
+          eveCount++;
         }
       });
+
+      // Stage 2: fallback sweep for special days (testing/FDE/arrival) where
+      // pre-assigned staff both slots were filled — find anyone with at least one free daytime slot
+      if (eveCount < eveTarget) {
+        const eligible = staff.filter((s) => !["FTT","5FTT","CM","CD","EAM"].includes(s.role));
+        const di = dates.findIndex((x) => dayKey(x) === ds);
+        const ordered = [...eligible.slice(di % eligible.length), ...eligible.slice(0, di % eligible.length)];
+        for (const s of ordered) {
+          if (eveCount >= eveTarget) break;
+          if (!isOn(s, ds)) continue;
+          const am = ng[s.id + "-" + ds + "-AM"];
+          const pm = ng[s.id + "-" + ds + "-PM"];
+          if (!am || am === "Day Off" || am === "Induction" || am === "Setup") continue;
+          if (am && pm) continue; // both slots occupied — adding Eve would make 3 (never allowed)
+          if (!ng[s.id + "-" + ds + "-Eve"] && hasRoom(s)) {
+            ng[s.id + "-" + ds + "-Eve"] = "Evening Activity";
+            sess[s.id] = (sess[s.id] || 0) + 1;
+            eveCount++;
+          }
+        }
+      }
     });
 
     setGrid(ng);
