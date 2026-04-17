@@ -254,9 +254,11 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       if (["5FTT"].includes(s.role)) return;
       const tos = parseTimeOff(s.to);
       const i = gIdx[s.id] || 0;
+      const firstOnSite = dates.map((d) => dayKey(d)).find((ds) => inRange(ds, s.arr, s.dep)) || null;
 
       const progDays = dates.map((d) => ({ date: d, ds: dayKey(d) })).filter(({ ds }) => {
         if (!inRange(ds, s.arr, s.dep)) return false;
+        if (ds === firstOnSite) return false; // never Day Off on induction day
         const am = ng[s.id + "-" + ds + "-AM"];
         return !am || (am !== "Induction" && am !== "Setup" && am !== "Airport" && am !== "Day Off");
       });
@@ -291,6 +293,31 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
 
         if (pick) SLOTS.forEach((sl) => { ng[s.id + "-" + pick.ds + "-" + sl] = "Day Off"; });
       }
+    });
+
+    // ── Pre-assign Eve duties (before Pass 3 fills daytime slots) ───
+    // Staff on Eve duty that day will only get AM in Pass 3 (AM+Eve = 2 sessions, not 3)
+    const eveDutyMap = {}; // ds → Set<staffId>
+    const eveEligible = staff.filter((s) => !["FTT","5FTT","CM","CD","EAM"].includes(s.role));
+    let eeRR = 0;
+    dates.forEach((d) => {
+      const ds = dayKey(d);
+      if (!groupArrivalDate || ds < groupArrivalDate) return;
+      const stu = (groups || []).reduce((sum, g) =>
+        inRange(ds, g.arr, g.dep) && ds !== g.dep ? sum + (g.stu || 0) + (g.gl || 0) : sum, 0);
+      if (!stu) return;
+      const eveTarget = Math.max(2, Math.ceil(stu / 20));
+      eveDutyMap[ds] = new Set();
+      let assigned = 0;
+      for (let attempt = 0; attempt < eveEligible.length * 2 && assigned < eveTarget; attempt++) {
+        const s = eveEligible[(eeRR + attempt) % eveEligible.length];
+        if (!isOn(s, ds)) continue;
+        const amNow = ng[s.id + "-" + ds + "-AM"];
+        if (amNow === "Day Off" || amNow === "Induction" || amNow === "Setup") continue;
+        eveDutyMap[ds].add(s.id);
+        assigned++;
+      }
+      eeRR = (eeRR + eveTarget) % Math.max(1, eveEligible.length);
     });
 
     // ── Pass 3: Programme sessions per day ────────────────
@@ -388,55 +415,34 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       }
 
       teachers.filter((s) => s.role === "TAL" && avail(s, ds)).forEach((s) => {
+        const onEveDuty = eveDutyMap[ds]?.has(s.id);
         const ri = gIdx[s.id] || 0;
         const prefAM = ((ri + weekNum(ds)) % 2 === 0);
         const remAM = amTN - amTD, remPM = pmTN - pmTD;
         let teachAM = remAM > 0 && remPM > 0 ? prefAM : remAM > 0 ? true : remPM > 0 ? false : prefAM;
-        if (teachAM) { put(s.id, ds, "AM", "Lessons"); put(s.id, ds, "PM", pmLbl); amTD++; }
-        else          { put(s.id, ds, "AM", amLbl);     put(s.id, ds, "PM", "Lessons"); pmTD++; }
+        if (teachAM) { put(s.id, ds, "AM", "Lessons"); if (!onEveDuty) { put(s.id, ds, "PM", pmLbl); } amTD++; }
+        else          { put(s.id, ds, "AM", amLbl);     if (!onEveDuty) { put(s.id, ds, "PM", "Lessons"); pmTD++; } }
       });
 
       actStaff.filter((s) => avail(s, ds)).forEach((s) => {
-        if      (s.role === "FOOTBALL") { put(s.id, ds, "AM", p.AM.hasExc ? amLbl : "Activities"); put(s.id, ds, "PM", "Football"); }
-        else if (s.role === "DRAMA")    { put(s.id, ds, "AM", "Drama");                             put(s.id, ds, "PM", p.PM.hasExc ? pmLbl : "Activities"); }
-        else                            { put(s.id, ds, "AM", p.AM.hasExc ? amLbl : "Activities"); put(s.id, ds, "PM", p.PM.hasExc ? pmLbl : "Activities"); }
+        const onEveDuty = eveDutyMap[ds]?.has(s.id);
+        if      (s.role === "FOOTBALL") { put(s.id, ds, "AM", p.AM.hasExc ? amLbl : "Activities"); if (!onEveDuty) put(s.id, ds, "PM", "Football"); }
+        else if (s.role === "DRAMA")    { put(s.id, ds, "AM", "Drama");                             if (!onEveDuty) put(s.id, ds, "PM", p.PM.hasExc ? pmLbl : "Activities"); }
+        else                            { put(s.id, ds, "AM", p.AM.hasExc ? amLbl : "Activities"); if (!onEveDuty) put(s.id, ds, "PM", p.PM.hasExc ? pmLbl : "Activities"); }
       });
     });
 
-    // ── Pass 4: Evening sweep ─────────────────────────────
-    let eveNameIdx = 0;
+    // ── Pass 4: Evening assignments (from pre-assigned eveDutyMap) ────
     dates.forEach((d) => {
       const ds = dayKey(d);
-      if (!groupArrivalDate || ds < groupArrivalDate) return;
-      const stu = (groups || []).reduce((sum, g) =>
-        inRange(ds, g.arr, g.dep) && ds !== g.dep ? sum + (g.stu || 0) + (g.gl || 0) : sum, 0);
-      if (!stu) return;
-      const eveTarget = Math.max(2, Math.ceil(stu / 20));
-      // Always use "Evening Activity" — EAM decides the specific activity
-      const eventName = "Evening Activity";
-
-      let eveCount = staff.filter((s) => { const v = ng[s.id+"-"+ds+"-Eve"]; return v && v !== "Day Off"; }).length;
-
-      if (eveCount < eveTarget) {
-        const di = dates.findIndex((x) => dayKey(x) === ds);
-        const eligible = staff.filter((s) => !["FTT","5FTT","CM","CD","EAM"].includes(s.role));
-        const ordered = [...eligible.slice(di % eligible.length), ...eligible.slice(0, di % eligible.length)];
-        for (const s of ordered) {
-          if (eveCount >= eveTarget) break;
-          if (!isOn(s, ds)) continue;
-          const am = ng[s.id+"-"+ds+"-AM"];
-          const pm = ng[s.id+"-"+ds+"-PM"];
-          const eve = ng[s.id+"-"+ds+"-Eve"];
-          if (!am || am === "Day Off" || am === "Induction" || am === "Setup" || am === "Pickup") continue;
-          if (pm && !NO_SESSION.has(pm)) continue; // already working AM+PM — max 2 sessions per day
-          if (!eve && hasRoom(s)) {
-            ng[s.id+"-"+ds+"-Eve"] = eventName;
-            sess[s.id] = (sess[s.id] || 0) + 1;
-            eveCount++;
-          }
+      const duty = eveDutyMap[ds];
+      if (!duty) return;
+      duty.forEach((sid) => {
+        if (!ng[sid + "-" + ds + "-Eve"]) {
+          ng[sid + "-" + ds + "-Eve"] = "Evening Activity";
+          sess[sid] = (sess[sid] || 0) + 1;
         }
-      }
-      eveNameIdx++;
+      });
     });
 
     setGrid(ng);
