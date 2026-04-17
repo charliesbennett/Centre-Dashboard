@@ -51,5 +51,5 @@ export async function GET(_req, { params }) {
     roomingHouses: roomingHouses || [],
     roomingRooms: roomingRooms || [],
     roomingAssignments: roomingAssignments || [],
-  });
+  }, { headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } });
 }
