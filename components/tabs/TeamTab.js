@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ROLES, uid, fmtDate } from "@/lib/constants";
 import { useB } from "@/lib/theme";
 import { Fld, StatCard, TableWrap, IconBtn, IcPlus, IcTrash, IcEdit, inputStyle, thStyle, tdStyle, btnPrimary } from "@/components/ui";
+import TeamBulkImportModal from "@/components/TeamBulkImportModal";
 
 const EMPTY = { name: "", role: "TAL", acc: "Residential", arr: "", dep: "", to: "", email: "", phone: "", dbs: "", dbsExpiry: "", contract: "", notes: "" };
 const CONTRACT_TYPES = ["", "Full-time", "Part-time", "Sessional", "Volunteer"];
@@ -32,9 +33,10 @@ function StaffForm({ value, onChange, onSave, onCancel, saveLabel = "Save" }) {
   );
 }
 
-export default function TeamTab({ staff, setStaff, readOnly = false }) {
+export default function TeamTab({ staff, setStaff, readOnly = false, isHeadOffice = false, centres = [] }) {
   const B = useB();
   const [showAdd, setShowAdd] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [n, setN] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState(EMPTY);
@@ -60,7 +62,10 @@ export default function TeamTab({ staff, setStaff, readOnly = false }) {
       </div>
       <div style={{ background: B.card, borderBottom: `1px solid ${B.border}`, padding: "8px 20px", display: "flex", justifyContent: "space-between" }}>
         <span style={{ fontSize: 10, color: B.success, fontWeight: 600 }}>✓ Staff flow to Rota + Catering</span>
-        {!readOnly && <button onClick={() => { setShowAdd(!showAdd); setEditId(null); }} style={btnPrimary}><IcPlus /> Add Staff</button>}
+        <div style={{ display:"flex", gap:6 }}>
+          {isHeadOffice && <button onClick={() => setShowImport(true)} style={{ ...btnPrimary, background:"#dbeafe", color:"#1e40af", border:"none" }}>⬆ Import Team</button>}
+          {!readOnly && <button onClick={() => { setShowAdd(!showAdd); setEditId(null); }} style={btnPrimary}><IcPlus /> Add Staff</button>}
+        </div>
       </div>
 
       {showAdd && (
@@ -134,6 +139,14 @@ export default function TeamTab({ staff, setStaff, readOnly = false }) {
           </table>
         </TableWrap>
       </div>
+
+      {showImport && (
+        <TeamBulkImportModal
+          centres={centres}
+          onClose={() => setShowImport(false)}
+          onImported={() => window.location.reload()}
+        />
+      )}
     </div>
   );
 }
