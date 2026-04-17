@@ -328,12 +328,11 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         {isMinistay && <span style={{background:"#f0f279",color:B.navy,padding:"2px 8px",borderRadius:4,fontSize:9,fontWeight:700}}>Ministay</span>}
       </div>
       <div style={{display:"flex",gap:4}}>
-        {["all","group","template"].map(m=><button key={m} onClick={()=>setViewMode(m)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+(viewMode===m?"transparent":"rgba(255,255,255,0.3)"),background:viewMode===m?"#e6eef3":"transparent",color:viewMode===m?B.navy:"rgba(255,255,255,0.8)"}}>
-          {m==="all"?"\ud83d\udc65 All Groups":m==="group"?"\ud83d\udc64 By Group":"\ud83d\udcc4 Templates"}</button>)}
-        {!readOnly && <button onClick={()=>setShowTemplateModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"none",background:(isMinistay?settings?.ministay_template:settings?.programme_template)?"#e6eef3":"rgba(255,255,255,0.15)",color:(isMinistay?settings?.ministay_template:settings?.programme_template)?B.navy:"rgba(255,255,255,0.6)",marginLeft:4}}>
-          {"\ud83d\udcc4"} {(isMinistay ? settings?.ministay_template : settings?.programme_template) ? "Edit Template" : "Set Up Template"}</button>}
-        {!readOnly && <button onClick={() => setShowMasterModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"none",background:"#fad7d8",color:B.navy,marginLeft:4}}>
-          📊 Import Master</button>}
+        {["all","group"].map(m=><button key={m} onClick={()=>setViewMode(m)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"1px solid "+(viewMode===m?"transparent":"rgba(255,255,255,0.3)"),background:viewMode===m?"#e6eef3":"transparent",color:viewMode===m?B.navy:"rgba(255,255,255,0.8)"}}>
+          {m==="all"?"\ud83d\udc65 All Groups":"\ud83d\udc64 By Group"}</button>)}
+        {/* Set Up Template kept for ministay only — non-ministay uses named template library */}
+        {!readOnly && isMinistay && <button onClick={()=>setShowTemplateModal(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"none",background:settings?.ministay_template?"#e6eef3":"rgba(255,255,255,0.15)",color:settings?.ministay_template?B.navy:"rgba(255,255,255,0.6)",marginLeft:4}}>
+          {"\ud83d\udcc4"} {settings?.ministay_template ? "Edit Template" : "Set Up Template"}</button>}
         {isHeadOffice && <button onClick={() => setShowGroupsImport(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"none",background:"#dbeafe",color:B.navy,marginLeft:4}}>
           ⬆ Import Groups</button>}
         {isHeadOffice && <button onClick={() => setShowTemplateLibrary(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"none",background:"#ede9fe",color:B.navy,marginLeft:4}}>
@@ -353,9 +352,9 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         <span style={{fontWeight:700,color:B.cyan}}>{"\ud83d\udcda"} Lesson slots:</span>
         {groups.map(g => <span key={g.id}><strong>{g.group}</strong>: Wk1 {g.lessonSlot || "AM"} / Wk2 {(g.lessonSlot||"AM")==="AM"?"PM":"AM"}</span>)}
         <span style={{color:"#64748b"}}>{"\u00b7"} Toggle in Students tab</span>
-        {settings?.programme_template
-          ? <span style={{color:"#16a34a",fontWeight:600,marginLeft:8}}>{"\u2713"} Custom template saved {"\u00b7"} Auto-Populate will use it</span>
-          : centreProgs.length === 0 && <span style={{color:"#92400e",fontWeight:600,marginLeft:8}}>No template yet {"\u00b7"} Click <strong>Set Up Template</strong> to define a weekly pattern</span>}
+        {namedTemplates.length > 0
+          ? <span style={{color:"#16a34a",fontWeight:600,marginLeft:8}}>{"\u2713"} {namedTemplates.length} template{namedTemplates.length!==1?"s":""} ready {"\u00b7"} Use <strong>Apply Templates</strong> to populate groups</span>
+          : <span style={{color:"#92400e",fontWeight:600,marginLeft:8}}>No templates yet {"\u00b7"} Use <strong>Templates</strong> to upload a programme Excel</span>}
       </div>
     )}
     {groups.length > 0 && isMinistay && (
@@ -371,8 +370,8 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       <TableWrap><table style={{minWidth:1200,width:"100%",borderCollapse:"collapse",fontSize:10}}>
         <thead>
           <tr>
-            <th style={{...thStyle,width:100,position:"sticky",left:0,zIndex:2,background:B.bg}}>Agent</th>
-            <th style={{...thStyle,width:90,position:"sticky",left:100,zIndex:2,background:B.bg}}>Group</th>
+            <th style={{...thStyle,width:100,position:"sticky",left:0,zIndex:2,background:B.bg,color:B.textMuted,backgroundImage:"none"}}>Agent</th>
+            <th style={{...thStyle,width:90,position:"sticky",left:100,zIndex:2,background:B.bg,color:B.textMuted,backgroundImage:"none"}}>Group</th>
             <th style={{...thStyle,width:30,textAlign:"center"}}>Pax</th>
             <th style={{...thStyle,width:30,textAlign:"center",fontSize:8}}>Wk1</th>
             {dates.map(d=>{const s=dayKey(d),exc=excDays[s],we=isWeekend(d);return<th key={s} colSpan={slots.length} onClick={()=>toggleExc(s)} style={{...thStyle,textAlign:"center",borderLeft:"2px solid "+B.border,padding:"3px 2px",minWidth:192,cursor:"pointer",background:exc?B.pink:we?B.dangerBg:B.ice}}>
@@ -382,8 +381,8 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
             </th>;})}
           </tr>
           <tr>
-            <th style={{...thStyle,position:"sticky",left:0,zIndex:2,background:B.bg}}></th>
-            <th style={{...thStyle,position:"sticky",left:100,zIndex:2,background:B.bg}}></th>
+            <th style={{...thStyle,position:"sticky",left:0,zIndex:2,background:B.bg,backgroundImage:"none"}}></th>
+            <th style={{...thStyle,position:"sticky",left:100,zIndex:2,background:B.bg,backgroundImage:"none"}}></th>
             <th style={thStyle}></th>
             <th style={thStyle}></th>
             {dates.map(d=>slots.map(sl=><th key={dayKey(d)+"-"+sl} style={{...thStyle,textAlign:"center",fontSize:8,padding:"3px 1px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,minWidth:isMinistay?64:64}}>{sl}</th>))}
