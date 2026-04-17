@@ -428,6 +428,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
           const pm = ng[s.id+"-"+ds+"-PM"];
           const eve = ng[s.id+"-"+ds+"-Eve"];
           if (!am || am === "Day Off" || am === "Induction" || am === "Setup" || am === "Pickup") continue;
+          if (pm && !NO_SESSION.has(pm)) continue; // already working AM+PM — max 2 sessions per day
           if (!eve && hasRoom(s)) {
             ng[s.id+"-"+ds+"-Eve"] = eventName;
             sess[s.id] = (sess[s.id] || 0) + 1;
