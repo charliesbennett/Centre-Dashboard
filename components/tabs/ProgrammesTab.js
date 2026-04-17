@@ -57,19 +57,18 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   // - All other in-range days: template data, skipping any "depart"/"arriv" placeholder values
   //   from the template (so DEPARTURE baked into week 2 Sunday never stamps mid-stay groups)
   // - weekIdx relative to each group's arrival; swaps AM/PM when group's lesson slot differs
-  const applyTmplInto = (tmpl, targetGroups, ng) => {
+  const applyTmplInto = (tmpl, targetGroups, ng, skipExisting = false) => {
     if (!tmpl?.weeks?.length) return;
     const weekMaps = tmpl.weeks.map(wk => { const m = {}; wk.days.forEach(d => { m[d.day] = d; }); return m; });
     const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const set = (key, val) => { if (val && (!skipExisting || !ng[key])) ng[key] = val; };
     targetGroups.forEach(g => {
       const gArrMs = g.arr ? new Date(g.arr).getTime() : (dates[0]?.getTime() || 0);
       dates.forEach(d => {
         const s = dayKey(d);
         if (!inRange(s, g.arr, g.dep)) return;
-        // Arrival / departure days: fixed markers, no template data
-        if (g.arr && s === g.arr) { ng[g.id+"-"+s+"-PM"] = "ARRIVAL"; return; }
-        if (g.dep && s === g.dep) { ng[g.id+"-"+s+"-AM"] = "DEPARTURE"; return; }
-        // Inner days: apply template, but ignore any depart/arrival placeholder values
+        if (g.arr && s === g.arr) { set(g.id+"-"+s+"-PM", "ARRIVAL"); return; }
+        if (g.dep && s === g.dep) { set(g.id+"-"+s+"-AM", "DEPARTURE"); return; }
         const daysSince = Math.floor((d.getTime() - gArrMs) / 86400000);
         const weekIdx = Math.floor(daysSince / 7) % weekMaps.length;
         const dayData = weekMaps[weekIdx]?.[DOW[d.getDay()]];
@@ -80,44 +79,45 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         const swap = tmplSlot && grpSlot !== tmplSlot;
         const amV = (swap ? dayData.pm : dayData.am) || "";
         const pmV = (swap ? dayData.am : dayData.pm) || "";
-        if (amV && !/depart|arriv/i.test(amV)) ng[g.id+"-"+s+"-AM"] = amV;
-        if (pmV && !/depart|arriv/i.test(pmV)) ng[g.id+"-"+s+"-PM"] = pmV;
+        if (!/depart|arriv/i.test(amV)) set(g.id+"-"+s+"-AM", amV);
+        if (!/depart|arriv/i.test(pmV)) set(g.id+"-"+s+"-PM", pmV);
       });
     });
   };
 
   // Default logic (no template) for a single group into ng
-  const defaultPopGroup = (g, ng) => {
+  const defaultPopGroup = (g, ng, skipExisting = false) => {
+    const set = (key, val) => { if (val && (!skipExisting || !ng[key])) ng[key] = val; };
     dates.forEach(d => {
       const s = dayKey(d), day = d.getDay(), we = isWeekend(d);
       if (!inRange(s, g.arr, g.dep)) return;
-      if (g.arr && s === dayKey(new Date(g.arr))) { ng[g.id+"-"+s+"-PM"] = "ARRIVAL"; ng[g.id+"-"+s+"-Eve"] = "Evening Activity"; return; }
-      if (g.dep && s === dayKey(new Date(g.dep))) { ng[g.id+"-"+s+"-AM"] = "DEPARTURE"; return; }
-      if (excDays[s] === "Full") { ng[g.id+"-"+s+"-AM"] = "Full Exc"; ng[g.id+"-"+s+"-PM"] = "Full Exc"; ng[g.id+"-"+s+"-Eve"] = "Evening Activity"; return; }
-      if (we) { ng[g.id+"-"+s+"-AM"] = "Full Exc"; ng[g.id+"-"+s+"-PM"] = "Full Exc"; ng[g.id+"-"+s+"-Eve"] = "Evening Activity"; return; }
+      if (g.arr && s === dayKey(new Date(g.arr))) { set(g.id+"-"+s+"-PM", "ARRIVAL"); set(g.id+"-"+s+"-Eve", "Evening Activity"); return; }
+      if (g.dep && s === dayKey(new Date(g.dep))) { set(g.id+"-"+s+"-AM", "DEPARTURE"); return; }
+      if (excDays[s] === "Full") { set(g.id+"-"+s+"-AM", "Full Exc"); set(g.id+"-"+s+"-PM", "Full Exc"); set(g.id+"-"+s+"-Eve", "Evening Activity"); return; }
+      if (we) { set(g.id+"-"+s+"-AM", "Full Exc"); set(g.id+"-"+s+"-PM", "Full Exc"); set(g.id+"-"+s+"-Eve", "Evening Activity"); return; }
       const ls = getGroupLessonSlot(g, s);
       const spec = g.prog === "Multi-Activity" ? "Multi-Activity" : g.prog === "Intensive English" ? "English+" : g.prog === "Performing Arts" ? "Perf Arts" : g.prog || "Multi-Activity";
       if (excDays[s] === "Half") {
-        if (ls === "AM") { ng[g.id+"-"+s+"-AM"] = "Lessons"; ng[g.id+"-"+s+"-PM"] = "Half Exc"; }
-        else { ng[g.id+"-"+s+"-AM"] = "Half Exc"; ng[g.id+"-"+s+"-PM"] = "Lessons"; }
-        ng[g.id+"-"+s+"-Eve"] = "Evening Activity"; return;
+        if (ls === "AM") { set(g.id+"-"+s+"-AM", "Lessons"); set(g.id+"-"+s+"-PM", "Half Exc"); }
+        else { set(g.id+"-"+s+"-AM", "Half Exc"); set(g.id+"-"+s+"-PM", "Lessons"); }
+        set(g.id+"-"+s+"-Eve", "Evening Activity"); return;
       }
       if (isLondon && (day === 1 || day === 3 || day === 5)) {
-        if (ls === "AM") { ng[g.id+"-"+s+"-AM"] = "Lessons"; ng[g.id+"-"+s+"-PM"] = "Half Exc"; }
-        else { ng[g.id+"-"+s+"-AM"] = "Half Exc"; ng[g.id+"-"+s+"-PM"] = "Lessons"; }
+        if (ls === "AM") { set(g.id+"-"+s+"-AM", "Lessons"); set(g.id+"-"+s+"-PM", "Half Exc"); }
+        else { set(g.id+"-"+s+"-AM", "Half Exc"); set(g.id+"-"+s+"-PM", "Lessons"); }
       } else {
-        if (ls === "AM") { ng[g.id+"-"+s+"-AM"] = "Lessons"; ng[g.id+"-"+s+"-PM"] = spec; }
-        else { ng[g.id+"-"+s+"-AM"] = spec; ng[g.id+"-"+s+"-PM"] = "Lessons"; }
+        if (ls === "AM") { set(g.id+"-"+s+"-AM", "Lessons"); set(g.id+"-"+s+"-PM", spec); }
+        else { set(g.id+"-"+s+"-AM", spec); set(g.id+"-"+s+"-PM", "Lessons"); }
       }
-      ng[g.id+"-"+s+"-Eve"] = "Evening Activity";
+      set(g.id+"-"+s+"-Eve", "Evening Activity");
     });
   };
 
   // Explicit "Apply to all/specific group" from template view or by-group toolbar
   const autoPopFromTemplate = (tmpl, targetGroup = null) => {
     const targetGroups = targetGroup ? [targetGroup] : groups;
-    const ng = targetGroup ? { ...grid } : {};
-    applyTmplInto(normaliseTmpl(tmpl), targetGroups, ng);
+    const ng = { ...grid }; // always start from existing — never wipe
+    applyTmplInto(normaliseTmpl(tmpl), targetGroups, ng, true);
     setGrid(ng);
   };
 
@@ -136,29 +136,37 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     }
   };
 
-  // Auto-Populate button: respects per-group templates, correct lesson slot swap, week calc from arrival
-  const autoPop = () => {
+  // Auto-Populate: fills empty cells only by default (skipExisting=true).
+  // Pass skipExisting=false to overwrite everything (used by "Reset & Fill" if ever needed).
+  const autoPop = (skipExisting = true) => {
     if (isMinistay) {
       let template = null;
       if (settings?.ministay_template) { try { template = JSON.parse(settings.ministay_template); } catch {} }
       if (!template) { setShowTemplateModal(true); return; }
       const isRelative = Object.keys(template).some((k) => /^\d+$/.test(k));
-      const ng = {};
-      const newExcDays = {};
+      // Start from existing grid so populated cells are preserved
+      const ng = skipExisting ? { ...grid } : {};
+      const newExcDays = skipExisting ? { ...excDays } : {};
       const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
       groups.forEach((g) => {
         const arrTime = g.arr ? new Date(g.arr + "T00:00:00").getTime() : null;
         dates.forEach((d) => {
           const s = dayKey(d);
           if (!inRange(s, g.arr, g.dep)) return;
-          if (g.arr && s === dayKey(new Date(g.arr))) { ng[g.id+"-"+s+"-PM"] = "ARRIVAL"; return; }
-          if (g.dep && s === dayKey(new Date(g.dep))) { ng[g.id+"-"+s+"-AM"] = "DEPARTURE"; return; }
+          if (g.arr && s === dayKey(new Date(g.arr))) {
+            if (!skipExisting || !ng[g.id+"-"+s+"-PM"]) ng[g.id+"-"+s+"-PM"] = "ARRIVAL";
+            return;
+          }
+          if (g.dep && s === dayKey(new Date(g.dep))) {
+            if (!skipExisting || !ng[g.id+"-"+s+"-AM"]) ng[g.id+"-"+s+"-AM"] = "DEPARTURE";
+            return;
+          }
           const dayNum = isRelative && arrTime ? Math.round((d.getTime() - arrTime) / 86400000) + 1 : null;
           const day = dayNum ? template[String(dayNum)] : template[DOW[d.getDay()]];
           if (day) {
-            if (day.am) ng[g.id+"-"+s+"-AM"] = day.am;
-            if (day.pm) ng[g.id+"-"+s+"-PM"] = day.pm;
-            if (day.eve) ng[g.id+"-"+s+"-Eve"] = day.eve;
+            if (day.am  && (!skipExisting || !ng[g.id+"-"+s+"-AM"]))  ng[g.id+"-"+s+"-AM"]  = day.am;
+            if (day.pm  && (!skipExisting || !ng[g.id+"-"+s+"-PM"]))  ng[g.id+"-"+s+"-PM"]  = day.pm;
+            if (day.eve && (!skipExisting || !ng[g.id+"-"+s+"-Eve"])) ng[g.id+"-"+s+"-Eve"] = day.eve;
             if (day.exc === "Full") newExcDays[s] = "Full";
             else if (day.exc === "Half" && !newExcDays[s]) newExcDays[s] = "Half";
           }
@@ -168,22 +176,21 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       setGrid(ng);
       return;
     }
-    // Non-ministay: build ng per-group, using per-group template if set, else default template, else built-in logic
+    // Non-ministay: start from existing grid, only fill empty cells
     let defaultTmpl = null;
     if (settings?.programme_template) { try { defaultTmpl = normaliseTmpl(JSON.parse(settings.programme_template)); } catch {} }
-    const ng = {};
+    const ng = skipExisting ? { ...grid } : {};
     groups.forEach((g) => {
       const config = groupTemplates[g.id];
       if (config?.type === "builtin") {
         const tmpl = centreProgs[config.templateIndex];
-        if (tmpl) { applyTmplInto(normaliseTmpl(tmpl), [g], ng); return; }
+        if (tmpl) { applyTmplInto(normaliseTmpl(tmpl), [g], ng, skipExisting); return; }
       } else if (config?.type === "custom" && config.template) {
-        applyTmplInto(normaliseTmpl(config.template), [g], ng); return;
+        applyTmplInto(normaliseTmpl(config.template), [g], ng, skipExisting); return;
       }
-      // No per-group template: use default template or built-in logic
-      if (defaultTmpl) { applyTmplInto(defaultTmpl, [g], ng); } else { defaultPopGroup(g, ng); }
+      if (defaultTmpl) { applyTmplInto(defaultTmpl, [g], ng, skipExisting); } else { defaultPopGroup(g, ng, skipExisting); }
     });
-    // Ensure Evening Activity is set for all on-site days (not departure day)
+    // Ensure Evening Activity for all on-site days (not departure) — only fill empty
     groups.forEach(g => {
       dates.forEach(d => {
         const s = dayKey(d);
@@ -333,11 +340,10 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           📁 Templates {namedTemplates.length > 0 ? `(${namedTemplates.length})` : ""}</button>}
         {isHeadOffice && namedTemplates.length > 0 && groups.length > 0 && <button onClick={() => setShowBulkApply(true)} style={{padding:"5px 12px",borderRadius:5,fontSize:10,fontWeight:700,fontFamily:"inherit",cursor:"pointer",border:"none",background:"#dcfce7",color:B.navy,marginLeft:4}}>
           ⚡ Apply Templates</button>}
-        {!readOnly && <button onClick={() => {
-          const hasData = Object.values(progGrid).some((v) => v);
-          if (hasData && !window.confirm("Auto-populate will overwrite all existing programme cells. Continue?")) return;
-          autoPop();
-        }} style={{...btnPrimary,background:B.red,border:"none",marginLeft:4}}><IcWand/> Auto-Populate</button>}
+        {!readOnly && <button onClick={() => autoPop(true)}
+          style={{...btnPrimary,background:B.red,border:"none",marginLeft:4}}
+          title="Fills empty cells only — existing programme data is kept">
+          <IcWand/> Auto-Populate</button>}
       </div>
     </div>
 
@@ -500,10 +506,10 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       {activeTemplate && <div style={{padding:"0 12px 16px"}}>
         <div style={{padding:"8px 8px 4px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
           <span style={{fontSize:10,color:B.textMuted}}>{activeTemplate.centre} {"\u00b7"} {activeTemplate.nights} {"\u00b7"} {activeTemplate.period}</span>
-          {!readOnly && groups.length > 0 && <button onClick={()=>{
-            if (Object.values(progGrid).some(v=>v) && !window.confirm("Auto-populate will overwrite all existing programme cells. Continue?")) return;
-            autoPopFromTemplate(activeTemplate);
-          }} style={{...btnPrimary,background:B.navy,fontSize:10}}><IcWand/> Apply to All Groups</button>}
+          {!readOnly && groups.length > 0 && <button onClick={()=> autoPopFromTemplate(activeTemplate)}
+            style={{...btnPrimary,background:B.navy,fontSize:10}}
+            title="Fills empty cells only — existing programme data is kept">
+            <IcWand/> Apply to All Groups</button>}
         </div>
         {activeTemplate.weeks.map(wk=><div key={wk.week} style={{marginBottom:12}}>
           <div style={{padding:"6px 8px",fontWeight:800,fontSize:11,color:B.text}}>Week {wk.week}</div>
