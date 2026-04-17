@@ -281,12 +281,12 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
             const cand = wk.find(({ date, ds }) => {
               if (date.getDay() !== pd) return false;
               if (isFullDayOff(tos, ds)) return false;
-              if (ACTIVITY.includes(s.role) && (profiles[ds]?.isFDE || ds === groupArrivalDate)) return false;
+              if (profiles[ds]?.isFDE || ds === groupArrivalDate) return false;
               return true;
             });
             if (cand) { pick = cand; break; }
           }
-          if (!pick) pick = wk.find(({ ds }) => !isFullDayOff(tos, ds)) || null;
+          if (!pick) pick = wk.find(({ ds }) => !isFullDayOff(tos, ds) && ds !== groupArrivalDate) || null;
         }
 
         if (pick) SLOTS.forEach((sl) => { ng[s.id + "-" + pick.ds + "-" + sl] = "Day Off"; });
@@ -312,8 +312,9 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
 
       // ── First arrival day ────────────────────────────────
       if (p.isFirstArrival) {
+        // FTT/5FTT help with Setup and Welcome on arrival day — never Day Off (students are arriving)
         teachers.filter((s) => ["FTT","5FTT"].includes(s.role) && isOn(s, ds) && !ng[s.id+"-"+ds+"-AM"])
-          .forEach((s) => SLOTS.forEach((sl) => { ng[s.id+"-"+ds+"-"+sl] = "Day Off"; }));
+          .forEach((s) => { put(s.id, ds, "AM", "Setup"); put(s.id, ds, "PM", "Welcome"); });
 
         // 1 TAL/activity staff per arriving group
         const numGroups = arrGroups[ds] || 1;
