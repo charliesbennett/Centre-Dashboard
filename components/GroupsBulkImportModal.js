@@ -220,7 +220,7 @@ export default function GroupsBulkImportModal({ centres = [], onClose, onImporte
                 {result.imported} group{result.imported !== 1 ? "s" : ""} added or updated.
                 {result.removed > 0 && <span style={{ color:B.red }}> {result.removed} group{result.removed !== 1 ? "s" : ""} removed (no longer in file).</span>}
               </div>
-              <button style={{ ...btnBase,background:B.navy,color:"#fff" }} onClick={onClose}>Done</button>
+              <button style={{ ...btnBase,background:B.navy,color:"#fff" }} onClick={() => window.location.reload()}>Done</button>
             </div>
           )}
         </div>
