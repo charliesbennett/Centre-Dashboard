@@ -50,22 +50,26 @@ export async function POST(req) {
   const affectedCentres = [...new Set(rows.map((r) => r.centre_id))];
 
   let removed = 0;
+  const syncErrors = [];
   for (const centreId of affectedCentres) {
     const centreImportedIds = rows.filter((r) => r.centre_id === centreId).map((r) => r.id);
-    const { data: stale } = await db
+    const { data: stale, error: staleErr } = await db
       .from("groups")
-      .select("id")
+      .select("id,group_name")
       .eq("centre_id", centreId)
       .not("id", "in", `(${centreImportedIds.join(",")})`);
 
+    if (staleErr) { syncErrors.push(`stale query: ${staleErr.message}`); continue; }
+
     for (const g of stale || []) {
+      const { error: delErr } = await db.from("groups").delete().eq("id", g.id);
+      if (delErr) { syncErrors.push(`delete ${g.group_name}: ${delErr.message}`); continue; }
       await db.from("students").delete().eq("group_id", g.id);
       await db.from("programme_cells").delete().eq("group_id", g.id);
       await db.from("transfers").delete().eq("group_id", g.id);
-      await db.from("groups").delete().eq("id", g.id);
       removed++;
     }
   }
 
-  return Response.json({ ok: true, imported: rows.length, removed });
+  return Response.json({ ok: true, imported: rows.length, removed, syncErrors: syncErrors.length ? syncErrors : undefined });
 }

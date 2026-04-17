@@ -23,6 +23,7 @@ export default function GroupsBulkImportModal({ centres = [], onClose, onImporte
   // Centre assignments for unmatched groups: { groupCode: centreId }
   // Pre-filled from bestGuess when parsed; user can change or clear to skip
   const [overrides, setOverrides] = useState({});
+  const [fileName, setFileName] = useState(null);
 
   // Pre-fill overrides from best guesses whenever parsed data arrives.
   // Only pre-fill when the score is high enough to be reliable (≥ 0.5).
@@ -44,6 +45,7 @@ export default function GroupsBulkImportModal({ centres = [], onClose, onImporte
   const handleFile = async (file) => {
     if (!file) return;
     setLoading(true); setError(null);
+    setFileName(file.name);
     try {
       const result = await parseGroupsExcel(file, centres);
       if (!result.ok) { setError(result.error); setLoading(false); return; }
@@ -75,7 +77,7 @@ export default function GroupsBulkImportModal({ centres = [], onClose, onImporte
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Import failed");
-      setResult({ imported: json.imported, removed: json.removed || 0 });
+      setResult({ imported: json.imported, removed: json.removed || 0, syncErrors: json.syncErrors });
       setStage("done");
       if (onImported) onImported(json.imported);
     } catch (e) {
@@ -128,6 +130,13 @@ export default function GroupsBulkImportModal({ centres = [], onClose, onImporte
           {/* ── Stage: Preview ── */}
           {stage === "preview" && parsed && (
             <>
+              {/* File name banner */}
+              {fileName && (
+                <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:10,padding:"6px 12px",background:"#f0fdf4",border:"1px solid #86efac",borderRadius:6,fontSize:11,fontFamily:OS }}>
+                  <span style={{ fontSize:13 }}>📄</span>
+                  <span style={{ color:"#166534",fontWeight:600 }}>File loaded: {fileName}</span>
+                </div>
+              )}
               {/* Summary bar */}
               <div style={{ display:"flex",gap:8,flexWrap:"wrap",marginBottom:16,padding:"10px 14px",background:B.bg,borderRadius:8,fontSize:11,fontFamily:OS }}>
                 <span><strong style={{ color:B.success }}>{parsed.groups.length}</strong> groups matched</span>
@@ -220,6 +229,12 @@ export default function GroupsBulkImportModal({ centres = [], onClose, onImporte
                 {result.imported} group{result.imported !== 1 ? "s" : ""} added or updated.
                 {result.removed > 0 && <span style={{ color:B.red }}> {result.removed} group{result.removed !== 1 ? "s" : ""} removed (no longer in file).</span>}
               </div>
+              {result.syncErrors?.length > 0 && (
+                <div style={{ background:"#fee2e2",color:"#991b1b",padding:"8px 12px",borderRadius:6,fontSize:10,fontFamily:OS,marginBottom:16,textAlign:"left" }}>
+                  <strong>Sync errors (some groups may not have been removed):</strong>
+                  {result.syncErrors.map((e, i) => <div key={i}>• {e}</div>)}
+                </div>
+              )}
               <button style={{ ...btnBase,background:B.navy,color:"#fff" }} onClick={() => window.location.reload()}>Done</button>
             </div>
           )}
