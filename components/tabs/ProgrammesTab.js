@@ -303,7 +303,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       <GroupsBulkImportModal
         centres={centres}
         onClose={() => setShowGroupsImport(false)}
-        onImported={() => {}}
+        onImported={() => window.location.reload()}
       />
     )}
     {groupImportTarget && (

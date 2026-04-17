@@ -97,8 +97,13 @@ export default function GroupsBulkImportModal({ centres = [], onClose, onImporte
   const totalToImport = (parsed?.groups?.length || 0) +
     (parsed?.unmatched || []).filter((g) => overrides[g.code]).length;
 
+  const handleClose = () => {
+    if (result) { window.location.reload(); return; }
+    onClose();
+  };
+
   return (
-    <div style={overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div style={overlay} onClick={(e) => e.target === e.currentTarget && handleClose()}>
       <div style={card}>
         {/* Header */}
         <div style={header}>
@@ -106,7 +111,7 @@ export default function GroupsBulkImportModal({ centres = [], onClose, onImporte
             <div style={{ fontSize:14,fontWeight:800,fontFamily:RW,color:"#fff" }}>Import Groups</div>
             <div style={{ fontSize:10,color:"rgba(255,255,255,0.6)",fontFamily:OS,marginTop:2 }}>Upload Groups.xlsx to populate all centres</div>
           </div>
-          <button onClick={onClose} style={{ background:"none",border:"none",color:"rgba(255,255,255,0.7)",fontSize:18,cursor:"pointer",lineHeight:1 }}>✕</button>
+          <button onClick={handleClose} style={{ background:"none",border:"none",color:"rgba(255,255,255,0.7)",fontSize:18,cursor:"pointer",lineHeight:1 }}>✕</button>
         </div>
 
         <div style={{ padding:20 }}>
