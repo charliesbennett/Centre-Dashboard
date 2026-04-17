@@ -42,5 +42,29 @@ export async function POST(req) {
   const { error } = await db.from("groups").upsert(rows, { onConflict: "id" });
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  return Response.json({ ok: true, imported: rows.length });
+  // Sync: for every centre included in this import, remove any groups that were
+  // NOT in the file (i.e. groups deleted or moved out of this centre since last import).
+  // Only affects centres that appear in this import — other centres are untouched.
+  const importedIds    = rows.map((r) => r.id);
+  const affectedCentres = [...new Set(rows.map((r) => r.centre_id))];
+
+  let removed = 0;
+  for (const centreId of affectedCentres) {
+    const centreImportedIds = rows.filter((r) => r.centre_id === centreId).map((r) => r.id);
+    const { data: stale } = await db
+      .from("groups")
+      .select("id")
+      .eq("centre_id", centreId)
+      .not("id", "in", `(${centreImportedIds.join(",")})`);
+
+    for (const g of stale || []) {
+      await db.from("students").delete().eq("group_id", g.id);
+      await db.from("programme_cells").delete().eq("group_id", g.id);
+      await db.from("transfers").delete().eq("group_id", g.id);
+      await db.from("groups").delete().eq("id", g.id);
+      removed++;
+    }
+  }
+
+  return Response.json({ ok: true, imported: rows.length, removed });
 }

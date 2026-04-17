@@ -75,7 +75,7 @@ export default function GroupsBulkImportModal({ centres = [], onClose, onImporte
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Import failed");
-      setResult({ imported: json.imported });
+      setResult({ imported: json.imported, removed: json.removed || 0 });
       setStage("done");
       if (onImported) onImported(json.imported);
     } catch (e) {
@@ -217,8 +217,8 @@ export default function GroupsBulkImportModal({ centres = [], onClose, onImporte
                 {result.imported} group{result.imported !== 1 ? "s" : ""} imported
               </div>
               <div style={{ fontSize:11,fontFamily:OS,color:B.textMuted,marginBottom:24 }}>
-                {(parsed?.groups || []).filter((g) => g.programmeNotes).length} groups flagged for programme review.
-                Switch to each centre and use Apply Templates or Import Programme to set up their programme grids.
+                {result.imported} group{result.imported !== 1 ? "s" : ""} added or updated.
+                {result.removed > 0 && <span style={{ color:B.red }}> {result.removed} group{result.removed !== 1 ? "s" : ""} removed (no longer in file).</span>}
               </div>
               <button style={{ ...btnBase,background:B.navy,color:"#fff" }} onClick={onClose}>Done</button>
             </div>
