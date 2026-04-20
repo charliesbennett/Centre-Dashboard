@@ -300,11 +300,12 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
         const satFirst = si % 2 === 0;
         const wkend1 = satFirst ? 6 : 0;
         const wkend2 = satFirst ? 0 : 6;
+        // TALs and activity staff must never get Day Off on FDE days — they go on the excursion
         pick = pickBest([
           ...wk.filter(({ date, ds }) => date.getDay() === wkend1 && !profileMap[ds]?.isFDE),
           ...wk.filter(({ date, ds }) => date.getDay() === wkend2 && !profileMap[ds]?.isFDE),
           ...wk.filter(({ ds }) => !isWeekend(new Date(ds)) && !profileMap[ds]?.isFDE && ds !== groupArrivalDate),
-          ...wk,
+          ...wk.filter(({ ds }) => !profileMap[ds]?.isFDE),
         ]);
       }
 
@@ -495,13 +496,17 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
     const ds = dayKey(d);
     if (!groupArrivalDate || ds < groupArrivalDate) return;
 
-    const hasProgEve = (groups || []).some(g => {
+    const groupsOnSite = (groups || []).filter(g =>
+      inRange(ds, g.arr, g.dep) && ds !== g.dep
+    );
+    const hasProgEve = groupsOnSite.some(g => {
       const val = progGrid?.[`${g.id}-${ds}-Eve`];
       return val && val !== "Day Off" && val !== "";
     });
-    const eveningStu = (groups || []).reduce((sum, g) =>
-      inRange(ds, g.arr, g.dep) && ds !== g.dep ? sum + (g.stu || 0) + (g.gl || 0) : sum, 0);
-    if (!hasProgEve && !eveningStu) return;
+    const eveningStu = groupsOnSite.reduce((sum, g) =>
+      sum + (g.stu || 0) + (g.gl || 0), 0);
+    // Assign Eve Activity if any groups are on site — student count may not be set
+    if (!hasProgEve && !groupsOnSite.length) return;
 
     const eveNeed = Math.max(2, Math.ceil(Math.max(eveningStu, 1) / 20));
 
@@ -552,10 +557,10 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
       if (!EVE_ELIGIBLE.has(s.role)) return;
       if (!hasDailyCapacity(s.id, ds)) return;
 
-      const eveningStu = (groups || []).reduce((sum, g) =>
-        inRange(ds, g.arr, g.dep) && ds !== g.dep ? sum + (g.stu || 0) + (g.gl || 0) : sum, 0
+      const anyGroupOnSite = (groups || []).some(g =>
+        inRange(ds, g.arr, g.dep) && ds !== g.dep
       );
-      if (!eveningStu) return;
+      if (!anyGroupOnSite) return;
 
       put(s.id, ds, "Eve", EVE_LABEL);
     });
