@@ -174,13 +174,9 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
   // Can this staff member take on another session today? (hard cap = 2 per day)
   const hasDailyCapacity = (sid, ds) => dailyCount(sid, ds) < 2;
 
-  // Reserve 2 sessions for Eve-eligible staff so daytime pass doesn't saturate their cap
-  const EVE_RESERVE = 2;
   const hasCapacityForDaytime = s => {
     const t = SESSION_TARGET(s.role);
-    if (t === 0) return true;
-    const reserve = EVE_ELIGIBLE.has(s.role) ? EVE_RESERVE : 0;
-    return (sess[s.id] || 0) < (t - reserve);
+    return t === 0 || (sess[s.id] || 0) < t;
   };
 
   // Would giving this teacher a day off on ds leave enough coverage?
@@ -331,7 +327,7 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
     if (!groupsOnSiteEve.length) return;
 
     const eveningStu = groupsOnSiteEve.reduce((sum, g) => sum + (g.stu || 0) + (g.gl || 0), 0);
-    const eveNeed = Math.max(2, Math.ceil(Math.max(eveningStu, 1) / 20));
+    const eveNeed = 2;
 
     const eligible = staffIndex
       .filter(s => EVE_ELIGIBLE.has(s.role) && onSite(s, ds))
