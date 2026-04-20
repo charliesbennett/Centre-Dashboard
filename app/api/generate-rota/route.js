@@ -313,6 +313,40 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
     }
   });
 
+  // ── Pre-Pass 3: Eve duty pre-assignment ──────────────────────────────────
+  // Decide which staff cover Eve Activity BEFORE daytime sessions are assigned.
+  // Eve-duty staff only receive one daytime slot in Pass 3 (AM + Eve = 2 sessions).
+  const eveCount = {};
+  staffIndex.forEach(s => { eveCount[s.id] = 0; });
+  const eveDutyMap = {}; // ds → Set<staffId>
+
+  dates.forEach(d => {
+    const ds = dayKey(d);
+    if (!groupArrivalDate || ds < groupArrivalDate) return;
+    const p = profileMap[ds];
+
+    const groupsOnSiteEve = (groups || []).filter(g =>
+      inRange(ds, g.arr, g.dep) && ds !== g.dep
+    );
+    if (!groupsOnSiteEve.length) return;
+
+    const eveningStu = groupsOnSiteEve.reduce((sum, g) => sum + (g.stu || 0) + (g.gl || 0), 0);
+    const eveNeed = Math.max(2, Math.ceil(Math.max(eveningStu, 1) / 20));
+
+    const eligible = staffIndex
+      .filter(s => EVE_ELIGIBLE.has(s.role) && onSite(s, ds))
+      .filter(s => ng[`${s.id}-${ds}-AM`] !== "Day Off")
+      // FTTs get Day Off on FDE in Pass 3 — exclude them from Eve duty on FDE days
+      .filter(s => !p?.isFDE || !["FTT","5FTT"].includes(s.role));
+
+    const sorted = eligible.slice().sort((a, b) =>
+      (eveCount[a.id] || 0) - (eveCount[b.id] || 0)
+    );
+    const dutyStaff = sorted.slice(0, eveNeed);
+    eveDutyMap[ds] = new Set(dutyStaff.map(s => s.id));
+    dutyStaff.forEach(s => { eveCount[s.id] = (eveCount[s.id] || 0) + 1; });
+  });
+
   // ── Pass 3: Programme sessions day by day ─────────────────────────────────
   dates.forEach((d, di) => {
     const ds = dayKey(d);
@@ -372,13 +406,13 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
           // If quota exhausted, leave blank — they float
         });
 
-      // TALs + activity staff → excursion AM + PM (2 sessions — within daily cap)
+      // TALs + activity staff → excursion AM + (PM if not on Eve duty)
       [...teachers.filter(s => s.role === "TAL"), ...actStaff]
         .filter(s => onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
         .forEach(s => {
           if (!hasCapacityForDaytime(s)) return;
           put(s.id, ds, "AM", lbl);
-          put(s.id, ds, "PM", lbl);
+          if (!eveDutyMap[ds]?.has(s.id)) put(s.id, ds, "PM", lbl);
         });
       return;
     }
@@ -391,8 +425,7 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
           if (!hasCapacity(s)) return;
           if (!hasDailyCapacity(s.id, ds)) return;
           put(s.id, ds, "AM", "English Test");
-          // Only assign PM if daily cap allows (2 sessions max)
-          if (hasDailyCapacity(s.id, ds)) put(s.id, ds, "PM", "English Test");
+          if (!eveDutyMap[ds]?.has(s.id) && hasDailyCapacity(s.id, ds)) put(s.id, ds, "PM", "English Test");
         });
 
       actStaff.filter(s => onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
@@ -400,7 +433,7 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
           if (!hasCapacityForDaytime(s)) return;
           if (!hasDailyCapacity(s.id, ds)) return;
           put(s.id, ds, "AM", "Activities");
-          if (hasDailyCapacity(s.id, ds)) put(s.id, ds, "PM", "Activities");
+          if (!eveDutyMap[ds]?.has(s.id) && hasDailyCapacity(s.id, ds)) put(s.id, ds, "PM", "Activities");
         });
       return;
     }
@@ -418,14 +451,8 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
       teachers.filter(s => s.role === "FTT" && onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
         .forEach(s => {
           if (!hasCapacity(s)) return;
-          if (amNeed > 0 && hasDailyCapacity(s.id, ds)) {
-            put(s.id, ds, "AM", "Lessons");
-            amCovered++;
-          }
-          if (pmNeed > 0 && hasDailyCapacity(s.id, ds)) {
-            put(s.id, ds, "PM", "Lessons");
-            pmCovered++;
-          }
+          if (amNeed > 0 && hasDailyCapacity(s.id, ds)) { put(s.id, ds, "AM", "Lessons"); amCovered++; }
+          if (!eveDutyMap[ds]?.has(s.id) && pmNeed > 0 && hasDailyCapacity(s.id, ds)) { put(s.id, ds, "PM", "Lessons"); pmCovered++; }
         });
     }
 
@@ -435,7 +462,7 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
         .forEach(s => {
           if (!hasCapacity(s)) return;
           if (amNeed > 0 && hasDailyCapacity(s.id, ds)) { put(s.id, ds, "AM", "Lessons"); amCovered++; }
-          if (pmNeed > 0 && hasDailyCapacity(s.id, ds)) { put(s.id, ds, "PM", "Lessons"); pmCovered++; }
+          if (!eveDutyMap[ds]?.has(s.id) && pmNeed > 0 && hasDailyCapacity(s.id, ds)) { put(s.id, ds, "PM", "Lessons"); pmCovered++; }
         });
     }
 
@@ -469,14 +496,14 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
           teachAM = prefAM;
         }
 
+        const onEveDuty = eveDutyMap[ds]?.has(s.id);
         if (teachAM) {
           put(s.id, ds, "AM", remAM > 0 ? "Lessons" : amLbl);
-          // Second slot: activities or excursion (never lessons for TAL)
-          if (hasDailyCapacity(s.id, ds)) put(s.id, ds, "PM", pmLbl);
+          if (!onEveDuty && hasDailyCapacity(s.id, ds)) put(s.id, ds, "PM", pmLbl);
           if (remAM > 0) amCovered++;
         } else {
           put(s.id, ds, "AM", amLbl);
-          if (hasDailyCapacity(s.id, ds)) put(s.id, ds, "PM", remPM > 0 ? "Lessons" : pmLbl);
+          if (!onEveDuty && hasDailyCapacity(s.id, ds)) put(s.id, ds, "PM", remPM > 0 ? "Lessons" : pmLbl);
           if (remPM > 0) pmCovered++;
         }
       });
@@ -487,52 +514,18 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
         if (!hasCapacityForDaytime(s)) return;
         if (!hasDailyCapacity(s.id, ds)) return;
         put(s.id, ds, "AM", amLbl);
-        if (hasDailyCapacity(s.id, ds)) put(s.id, ds, "PM", pmLbl);
+        if (!eveDutyMap[ds]?.has(s.id) && hasDailyCapacity(s.id, ds)) put(s.id, ds, "PM", pmLbl);
       });
   });
 
   // ── Pass 4: Eve Activity ──────────────────────────────────────────────────
-  dates.forEach((d, di) => {
+  // Eve-duty staff were pre-assigned before Pass 3 and only got one daytime slot,
+  // so AM + Eve = 2 sessions exactly.
+  dates.forEach(d => {
     const ds = dayKey(d);
-    if (!groupArrivalDate || ds < groupArrivalDate) return;
-
-    const groupsOnSite = (groups || []).filter(g =>
-      inRange(ds, g.arr, g.dep) && ds !== g.dep
-    );
-    const hasProgEve = groupsOnSite.some(g => {
-      const val = progGrid?.[`${g.id}-${ds}-Eve`];
-      return val && val !== "Day Off" && val !== "";
-    });
-    const eveningStu = groupsOnSite.reduce((sum, g) =>
-      sum + (g.stu || 0) + (g.gl || 0), 0);
-    // Assign Eve Activity if any groups are on site — student count may not be set
-    if (!hasProgEve && !groupsOnSite.length) return;
-
-    const eveNeed = Math.max(2, Math.ceil(Math.max(eveningStu, 1) / 20));
-
-    const eligible = staffIndex
-      .filter(s => EVE_ELIGIBLE.has(s.role) && onSite(s, ds))
-      .filter(s => ng[`${s.id}-${ds}-AM`] !== "Day Off")
-      .filter(s => !ng[`${s.id}-${ds}-Eve`])
-      .filter(s => hasCapacity(s))
-      // Hard cap: only assign Eve if staff have fewer than 2 sessions today
-      .filter(s => hasDailyCapacity(s.id, ds));
-
-    // Sort by fewest Eve Activity sessions so far (fairness), then rotate
-    const sorted = eligible.slice().sort((a, b) => {
-      const aEve = dates.filter(x => ng[`${a.id}-${dayKey(x)}-Eve`] === EVE_LABEL).length;
-      const bEve = dates.filter(x => ng[`${b.id}-${dayKey(x)}-Eve`] === EVE_LABEL).length;
-      return aEve - bEve;
-    });
-    const offset  = di % Math.max(1, sorted.length);
-    const rotated = [...sorted.slice(offset), ...sorted.slice(0, offset)];
-
-    let eveAssigned = 0;
-    for (const s of rotated) {
-      if (eveAssigned >= eveNeed) break;
-      ng[`${s.id}-${ds}-Eve`] = EVE_LABEL;
-      eveAssigned++;
-    }
+    const dutySet = eveDutyMap[ds];
+    if (!dutySet?.size) return;
+    dutySet.forEach(sid => put(sid, ds, "Eve", EVE_LABEL));
   });
 
   // ── Pass 5: Session top-up for teaching staff below target ──────────────────
