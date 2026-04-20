@@ -428,7 +428,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       actStaff.filter((s) => avail(s, ds)).forEach((s) => {
         const onEveDuty = eveDutyMap[ds]?.has(s.id);
         if      (s.role === "FOOTBALL") { put(s.id, ds, "AM", p.AM.hasExc ? amLbl : "Activities"); if (!onEveDuty) put(s.id, ds, "PM", "Football"); }
-        else if (s.role === "DRAMA")    { put(s.id, ds, "AM", "Drama");                             if (!onEveDuty) put(s.id, ds, "PM", p.PM.hasExc ? pmLbl : "Activities"); }
+        else if (s.role === "PA")       { put(s.id, ds, "AM", "Performing Arts");                    if (!onEveDuty) put(s.id, ds, "PM", p.PM.hasExc ? pmLbl : "Activities"); }
         else                            { put(s.id, ds, "AM", p.AM.hasExc ? amLbl : "Activities"); if (!onEveDuty) put(s.id, ds, "PM", p.PM.hasExc ? pmLbl : "Activities"); }
       });
     });
@@ -450,7 +450,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         const _pm = ng[sid + "-" + ds + "-PM"];
         // Only skip if BOTH AM and PM are occupied — AM+Eve and PM+Eve are both valid (max 2 slots)
         if (!(_am && _pm) && !ng[sid + "-" + ds + "-Eve"]) {
-          ng[sid + "-" + ds + "-Eve"] = "Evening Activity";
+          ng[sid + "-" + ds + "-Eve"] = "Eve Activity";
           sess[sid] = (sess[sid] || 0) + 1;
           eveCount++;
         }
@@ -470,7 +470,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
           if (!am || am === "Day Off" || am === "Induction" || am === "Setup") continue;
           if (am && pm) continue; // both slots occupied — adding Eve would make 3 (never allowed)
           if (!ng[s.id + "-" + ds + "-Eve"] && hasRoom(s)) {
-            ng[s.id + "-" + ds + "-Eve"] = "Evening Activity";
+            ng[s.id + "-" + ds + "-Eve"] = "Eve Activity";
             sess[s.id] = (sess[s.id] || 0) + 1;
             eveCount++;
           }
@@ -637,14 +637,14 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     if (SESSION_TYPES[v]) return SESSION_TYPES[v];
     const vl = v.toLowerCase();
     if (vl.includes("lesson") || vl.includes("english test") || vl.includes("testing") || vl.includes("int english") || vl.includes("int eng")) return SESSION_TYPES["Lessons"];
-    if (vl.includes("evening activity") || vl.includes("eve ent") || vl.includes("disco") || vl.includes("bbq") || vl.includes("quiz") || vl.includes("karaoke") || vl.includes("film") || vl.includes("talent") || vl.includes("scav")) return SESSION_TYPES["Eve Ents"];
+    if (vl.includes("eve activity") || vl.includes("evening activity") || vl.includes("eve ent") || vl.includes("disco") || vl.includes("bbq") || vl.includes("quiz") || vl.includes("karaoke") || vl.includes("film") || vl.includes("talent") || vl.includes("scav")) return SESSION_TYPES["Eve Ents"];
     if (vl.includes("excursion")) return SESSION_TYPES["Excursion"];
     if (vl.includes("act") || vl.includes("multi")) return SESSION_TYPES["Activities"];
     if (vl.includes("half exc")) return SESSION_TYPES["Half Exc"];
     if (vl === "office") return "#94a3b8";
     if (vl === "pickup" || vl === "welcome" || vl === "setup" || vl === "departure duty") return SESSION_TYPES["Setup"];
     if (vl === "football") return "#16a34a";
-    if (vl === "drama" || vl === "dance") return "#9333ea";
+    if (vl === "performing arts" || vl === "pa" || vl === "drama" || vl === "dance") return "#9333ea";
     return slot === "Eve" ? SESSION_TYPES["Eve Ents"] : SESSION_TYPES["Excursion"];
   };
 

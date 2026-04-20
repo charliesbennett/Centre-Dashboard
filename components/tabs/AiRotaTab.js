@@ -52,12 +52,13 @@ export function buildDraftRotaGrid(draftRota, staff) {
 }
 
 // ── Cell colour for rota values ───────────────────────────────────────────
-function cellBg(val, B) {
+function cellBg(val) {
   if (!val) return "transparent";
-  if (val === "Day Off") return B.ice;
-  if (/^(lessons?|testing|english test|int english)$/i.test(val)) return B.pink;
-  if (val === "Induction" || val === "Setup" || val === "Office") return "#f0f4f8";
-  if (/welcome|pickup|dinner/i.test(val)) return "#f0f4f8";
+  if (val === "Day Off") return "#fee2e2";
+  if (/^(lessons?|testing|english test|int english)$/i.test(val)) return "#fce7f3";
+  if (/^(induction|setup|office)$/i.test(val)) return "#f0f4f8";
+  if (/welcome|pickup/i.test(val)) return "#f0f4f8";
+  if (/eve activity/i.test(val)) return "#fef9c3";
   return "#f0fdf4";
 }
 
@@ -110,13 +111,15 @@ function Stepper({ currentStep }) {
 }
 
 // ── Step 1: Programme ─────────────────────────────────────────────────────
-function ProgrammeStep({ progStart, progEnd, groups, staff, fortnights, fortIdx, setFortIdx, onNext }) {
+function ProgrammeStep({ progStart, progEnd, groups, staff, fortnights, fortIdx, setFortIdx, isZZ, setIsZZ, onNext }) {
   const B = useB();
   const selectedFortnight = fortnights[fortIdx] || { start: progStart, end: progEnd };
   const fortnightStaffCount = staff?.filter((s) =>
     s.arr <= selectedFortnight.end && s.dep >= selectedFortnight.start
   ).length ?? 0;
   const hasData = selectedFortnight.start && selectedFortnight.end && fortnightStaffCount > 0;
+  const canContinue = hasData && isZZ !== null;
+
   return (
     <div>
       <h3 style={{ fontSize: 15, fontWeight: 700, fontFamily: RW, color: B.text, marginBottom: 12 }}>Programme Summary</h3>
@@ -135,6 +138,41 @@ function ProgrammeStep({ progStart, progEnd, groups, staff, fortnights, fortIdx,
           ))}
         </div>
       </div>
+
+      {/* Programme type selector — required */}
+      <div style={{ background: B.card, border: `1px solid ${isZZ === null ? B.red : B.border}`, borderLeft: `4px solid ${isZZ === null ? B.red : B.navy}`, borderRadius: 8, padding: "16px 20px", marginBottom: 16 }}>
+        <div style={{ fontSize: 9, fontWeight: 800, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: RW, marginBottom: 8 }}>
+          Programme Type <span style={{ color: B.red }}>*</span>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {[
+            { val: true,  label: "Zig-Zag (ZZ)", desc: "Lessons in both AM and PM for different cohorts — FTTs + TALs" },
+            { val: false, label: "Non Zig-Zag (NZZ)", desc: "Lessons in AM only — TALs only, no FTTs" },
+          ].map(({ val, label, desc }) => (
+            <button
+              key={String(val)}
+              data-testid={val ? "zztype-zz" : "zztype-nzz"}
+              onClick={() => setIsZZ(val)}
+              style={{
+                flex: 1, padding: "12px 16px", borderRadius: 8, cursor: "pointer",
+                border: `2px solid ${isZZ === val ? B.navy : B.border}`,
+                background: isZZ === val ? B.navy : B.white,
+                color: isZZ === val ? B.white : B.text,
+                textAlign: "left", fontFamily: "inherit",
+              }}
+            >
+              <div style={{ fontSize: 12, fontWeight: 700, fontFamily: RW }}>{label}</div>
+              <div style={{ fontSize: 10, fontFamily: OS, marginTop: 4, opacity: 0.75, lineHeight: 1.4 }}>{desc}</div>
+            </button>
+          ))}
+        </div>
+        {isZZ === null && (
+          <div style={{ fontSize: 10, color: B.red, fontFamily: OS, marginTop: 8 }}>
+            You must select a programme type before continuing.
+          </div>
+        )}
+      </div>
+
       {fortnights.length > 1 && (
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 16 }}>
           {fortnights.map((fn, i) => (
@@ -159,7 +197,7 @@ function ProgrammeStep({ progStart, progEnd, groups, staff, fortnights, fortIdx,
           {staff?.length === 0 ? "Set a programme start/end date and add staff before generating a rota." : "No staff on site during this fortnight."}
         </div>
       )}
-      <button style={{ ...btnPrimary, opacity: hasData ? 1 : 0.5, cursor: hasData ? "pointer" : "not-allowed" }} disabled={!hasData} onClick={onNext}>
+      <button style={{ ...btnPrimary, opacity: canContinue ? 1 : 0.5, cursor: canContinue ? "pointer" : "not-allowed" }} disabled={!canContinue} onClick={onNext}>
         Continue to Generate
       </button>
     </div>
@@ -226,6 +264,10 @@ function ReviewStep({ draftRota, staff, progStart, progEnd, fortnightLabel, onPu
         )}
       </div>
 
+      <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderLeft: "4px solid #f59e0b", borderRadius: 8, padding: "12px 16px", marginBottom: 16, fontFamily: OS, fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>
+        <strong style={{ fontFamily: RW }}>This rota is AI-generated and needs your review.</strong> Check every allocation before publishing — in particular: day-off coverage, excursion staffing, session counts, and any staff arriving late or leaving early. Adjust cells directly in the Rota tab after publishing.
+      </div>
+
       {draftRota?.grid ? (
         <TableWrap>
           <table style={{ borderCollapse: "collapse", fontSize: 9, fontFamily: OS, minWidth: "100%" }}>
@@ -253,7 +295,7 @@ function ReviewStep({ draftRota, staff, progStart, progEnd, fortnightLabel, onPu
                     return (
                       <td key={dk} style={{ ...tdStyle, padding: "2px 2px", verticalAlign: "top" }}>
                         {["AM", "PM", "Eve"].map((slot) => cell[slot] ? (
-                          <div key={slot} style={{ fontSize: 8, padding: "1px 2px", borderRadius: 3, marginBottom: 1, background: cellBg(cell[slot], B), color: B.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 40 }} title={`${slot}: ${cell[slot]}`}>
+                          <div key={slot} style={{ fontSize: 8, padding: "1px 2px", borderRadius: 3, marginBottom: 1, background: cellBg(cell[slot]), color: B.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 40 }} title={`${slot}: ${cell[slot]}`}>
                             <span style={{ color: B.textMuted, marginRight: 2 }}>{slot[0]}</span>{cell[slot]}
                           </div>
                         ) : null)}
@@ -295,6 +337,7 @@ export default function AiRotaTab({ staff = [], progStart, progEnd, groups = [],
   const [genStep, setGenStep] = useState(null);
   const [genError, setGenError] = useState(null);
   const [published, setPublished] = useState(false);
+  const [isZZ, setIsZZ] = useState(null);
 
   const fortnights = useMemo(() => getFortnights(progStart, progEnd), [progStart, progEnd]);
   const [fortIdx, setFortIdx] = useState(0);
@@ -317,7 +360,7 @@ export default function AiRotaTab({ staff = [], progStart, progEnd, groups = [],
           }),
           progStart: (fortnights[fortIdx] || { start: progStart }).start,
           progEnd: (fortnights[fortIdx] || { end: progEnd }).end,
-          groups, progGrid, centreName,
+          groups, progGrid, centreName, isZZ: !!isZZ,
         }),
       });
       if (!res.ok) throw new Error(`Server error ${res.status}`);
@@ -372,6 +415,7 @@ export default function AiRotaTab({ staff = [], progStart, progEnd, groups = [],
     setDraftRota(null);
     setGenError(null);
     setPublished(false);
+    setIsZZ(null);
   };
 
   return (
@@ -409,7 +453,7 @@ export default function AiRotaTab({ staff = [], progStart, progEnd, groups = [],
       {!published && (
         <>
           {currentStep === 1 && (
-            <ProgrammeStep progStart={progStart} progEnd={progEnd} groups={groups} staff={staff} fortnights={fortnights} fortIdx={fortIdx} setFortIdx={setFortIdx} onNext={() => setCurrentStep(2)} />
+            <ProgrammeStep progStart={progStart} progEnd={progEnd} groups={groups} staff={staff} fortnights={fortnights} fortIdx={fortIdx} setFortIdx={setFortIdx} isZZ={isZZ} setIsZZ={setIsZZ} onNext={() => setCurrentStep(2)} />
           )}
           {currentStep === 2 && (
             <GenerateStep generating={generating} genStep={genStep} onGenerate={handleGenerate} onBack={() => setCurrentStep(1)} />
