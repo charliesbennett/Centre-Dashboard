@@ -180,11 +180,10 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
   };
 
   // Would giving this teacher a day off on ds leave enough coverage?
-  // Prefer days where coverage is maintained; fall back to any day if unavoidable.
   const teacherCoverageOk = (s, ds) => {
     if (!TEACHING_ROLES.includes(s.role)) return true;
     const p = profileMap[ds];
-    if (!p || p.isFDE) return true; // FDE: no lessons, so no coverage needed
+    if (!p || p.isFDE) return true;
     const needed = Math.max(p.AM?.teachersNeeded || 0, p.PM?.teachersNeeded || 0);
     if (needed === 0) return true;
     const stillAvail = teachers.filter(t =>
@@ -193,7 +192,8 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
       ng[`${t.id}-${ds}-AM`] !== "Day Off" &&
       !["Induction","Setup"].includes(ng[`${t.id}-${ds}-AM`] || "")
     ).length;
-    return stillAvail >= needed;
+    // Require at least needed + 1 to avoid bare-minimum coverage
+    return stillAvail >= needed + 1;
   };
 
   const profileMap = {};
@@ -253,6 +253,9 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
     return Math.max(1, Math.floor(programmeDays / 7));
   };
 
+  // Track how many staff already have day off on each date — used to spread day-offs evenly
+  const dayOffPerDay = {};
+
   staffIndex.forEach((s, si) => {
     const available = dates.map(d => ({ date: d, ds: dayKey(d) })).filter(({ ds }) =>
       onSite(s, ds) && groupArrivalDate && ds >= groupArrivalDate && !ng[`${s.id}-${ds}-AM`]
@@ -266,15 +269,19 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
       const wk = available.slice(w * 7, w * 7 + 7);
       if (!wk.length) continue;
 
-      let pick = null;
+      // Sort candidates so days with fewer existing day-offs come first — prevents pile-ups
+      const sortBySpread = (candidates) =>
+        [...candidates].sort((a, b) => (dayOffPerDay[a.ds] || 0) - (dayOffPerDay[b.ds] || 0));
 
       const pickBest = (candidates) => {
-        // Prefer days where teaching coverage is still adequate after the day off
         const free = ({ ds }) => !ng[`${s.id}-${ds}-AM`];
-        return candidates.find(c => free(c) && teacherCoverageOk(s, c.ds))
-            || candidates.find(c => free(c))
+        const spread = sortBySpread(candidates);
+        return spread.find(c => free(c) && teacherCoverageOk(s, c.ds))
+            || spread.find(c => free(c))
             || null;
       };
+
+      let pick = null;
 
       if (s.role === "FTT") {
         const satFirst = si % 2 === 0;
@@ -296,7 +303,6 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
         const satFirst = si % 2 === 0;
         const wkend1 = satFirst ? 6 : 0;
         const wkend2 = satFirst ? 0 : 6;
-        // TALs and activity staff must never get Day Off on FDE days — they go on the excursion
         pick = pickBest([
           ...wk.filter(({ date, ds }) => date.getDay() === wkend1 && !profileMap[ds]?.isFDE),
           ...wk.filter(({ date, ds }) => date.getDay() === wkend2 && !profileMap[ds]?.isFDE),
@@ -305,7 +311,11 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
         ]);
       }
 
-      if (pick) { setDayOff(s.id, pick.ds); assigned++; }
+      if (pick) {
+        setDayOff(s.id, pick.ds);
+        assigned++;
+        dayOffPerDay[pick.ds] = (dayOffPerDay[pick.ds] || 0) + 1;
+      }
     }
   });
 
@@ -326,14 +336,14 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
     );
     if (!groupsOnSiteEve.length) return;
 
-    const eveningStu = groupsOnSiteEve.reduce((sum, g) => sum + (g.stu || 0) + (g.gl || 0), 0);
-    const eveNeed = 2;
-
     const eligible = staffIndex
       .filter(s => EVE_ELIGIBLE.has(s.role) && onSite(s, ds))
       .filter(s => ng[`${s.id}-${ds}-AM`] !== "Day Off")
       // FTTs get Day Off on FDE in Pass 3 — exclude them from Eve duty on FDE days
       .filter(s => !p?.isFDE || !["FTT","5FTT"].includes(s.role));
+
+    // Never assign more than eligible-1 to Eve duty — always leave at least 1 for PM
+    const eveNeed = Math.min(2, Math.max(0, eligible.length - 1));
 
     const sorted = eligible.slice().sort((a, b) =>
       (eveCount[a.id] || 0) - (eveCount[b.id] || 0)
