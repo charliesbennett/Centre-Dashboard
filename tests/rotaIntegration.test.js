@@ -173,6 +173,48 @@ describe("rota pipeline — session cap enforced end-to-end", () => {
   });
 });
 
+describe("rota pipeline — no Day Off on testing days or lessons days", () => {
+  it("TAL Day Off never lands on an English Test day when quieter days exist in week", () => {
+    // Week: Mon-Tue testing, Wed FDE, Thu-Fri lessons, Sat-Sun FDE pair.
+    // Thu/Fri teaching should BEAT Mon/Tue testing as day-off candidates.
+    const staff = [
+      mkStaff("t1", "TAL"), mkStaff("t2", "TAL"),
+      mkStaff("t3", "TAL"), mkStaff("t4", "TAL"),
+    ];
+    const groups = [mkGroup("g1", 30)];
+    const progGrid = {
+      "g1-2026-07-06-AM": "English Test", "g1-2026-07-06-PM": "English Test",
+      "g1-2026-07-07-AM": "Placement Test", "g1-2026-07-07-PM": "Placement Test",
+      "g1-2026-07-08-AM": "Stonehenge", "g1-2026-07-08-PM": "Stonehenge",
+    };
+    const { grid } = runPipeline({ staff, groups, progGrid });
+    const testingDates = ["2026-07-06", "2026-07-07"];
+    testingDates.forEach((ds) => {
+      ["t1","t2","t3","t4"].forEach((sid) => {
+        expect(grid[`${sid}-${ds}-AM`]).not.toBe("Day Off");
+      });
+    });
+  });
+});
+
+describe("rota pipeline — Eve filled on FDE days", () => {
+  it("Eve Activity has >= 2 staff on a weekday FDE", () => {
+    const staff = [
+      mkStaff("t1", "TAL"), mkStaff("t2", "TAL"),
+      mkStaff("t3", "TAL"), mkStaff("t4", "TAL"),
+      mkStaff("a1", "LAL"), mkStaff("a2", "SAI"), mkStaff("a3", "EAL"),
+    ];
+    const groups = [mkGroup("g1", 30)];
+    const progGrid = {
+      "g1-2026-07-08-AM": "Manchester", "g1-2026-07-08-PM": "Manchester",
+    };
+    const { grid } = runPipeline({ staff, groups, progGrid });
+    const eveCount = ["t1","t2","t3","t4","a1","a2","a3"]
+      .filter((sid) => grid[`${sid}-2026-07-08-Eve`] === "Eve Activity").length;
+    expect(eveCount).toBeGreaterThanOrEqual(2);
+  });
+});
+
 describe("rota pipeline — shortfalls when staff inadequate", () => {
   it("records shortfall if not enough teachers for lesson demand", () => {
     const staff = [mkStaff("a1", "SAI")]; // no teachers at all
