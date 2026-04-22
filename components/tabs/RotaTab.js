@@ -10,6 +10,7 @@ import { buildDemand } from "@/lib/rotaDemand";
 import { bindTals } from "@/lib/rotaBinding";
 import { placeDayOffs } from "@/lib/rotaDayOff";
 import { allocateRota } from "@/lib/rotaAllocator";
+import { getInductionDate } from "@/lib/rotaInduction";
 
 const SLOTS = ["AM", "PM", "Eve"];
 const CELL_W = 88;
@@ -46,16 +47,18 @@ function onSiteDateStrs(s, dates) {
   return dates.map((d) => dayKey(d)).filter((ds) => inRange(ds, s.arr, s.dep) && ds !== s.dep);
 }
 
-function applyFixedForStaff(fixed, s, dates, groupArrivalDate, tos, isFullDayOff) {
+function applyFixedForStaff(fixed, s, dates, groupArrivalDate, tos, isFullDayOff, inductionDs) {
   const onSite = onSiteDateStrs(s, dates);
   if (!onSite.length) return;
-  fixed[`${s.id}-${onSite[0]}-PM`] = "Induction";
-  for (let i = 1; i < onSite.length; i++) {
-    const ds = onSite[i];
-    if (groupArrivalDate && ds >= groupArrivalDate) break;
+  const inductDs = inductionDs && onSite.includes(inductionDs) ? inductionDs : onSite[0];
+  fixed[`${s.id}-${inductDs}-AM`] = "Induction";
+  fixed[`${s.id}-${inductDs}-PM`] = "Induction";
+  onSite.forEach((ds) => {
+    if (ds === inductDs) return;
+    if (groupArrivalDate && ds >= groupArrivalDate) return;
     fixed[`${s.id}-${ds}-AM`] = "Setup";
     fixed[`${s.id}-${ds}-PM`] = "Setup";
-  }
+  });
   if (s.dep) {
     const depDs = dayKey(new Date(s.dep));
     if (!fixed[`${s.id}-${depDs}-AM`]) fixed[`${s.id}-${depDs}-AM`] = "Airport";
@@ -65,9 +68,12 @@ function applyFixedForStaff(fixed, s, dates, groupArrivalDate, tos, isFullDayOff
   });
 }
 
-function buildFixedGrid(staff, dates, groupArrivalDate, parseTimeOff, isFullDayOff) {
+function buildFixedGrid(staff, dates, groupArrivalDate, parseTimeOff, isFullDayOff, centreName) {
   const fixed = {};
-  staff.forEach((s) => applyFixedForStaff(fixed, s, dates, groupArrivalDate, parseTimeOff(s.to), isFullDayOff));
+  staff.forEach((s) => {
+    const inductionDs = getInductionDate(centreName, s.arr);
+    applyFixedForStaff(fixed, s, dates, groupArrivalDate, parseTimeOff(s.to), isFullDayOff, inductionDs);
+  });
   return fixed;
 }
 
@@ -211,7 +217,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     const start = selectedFortnight.start || progStart;
     const end = selectedFortnight.end || progEnd;
     const dateStrs = dates.map((d) => dayKey(d));
-    const fixedGrid = buildFixedGrid(staff, dates, groupArrivalDate, parseTimeOff, isFullDayOff);
+    const fixedGrid = buildFixedGrid(staff, dates, groupArrivalDate, parseTimeOff, isFullDayOff, centreName);
     const bindings = bindTals({ staff, groups });
     const { demand, profiles } = buildDemand({ groups, progGrid, progStart: start, progEnd: end });
     const { dayOffGrid } = placeDayOffs({ staff, profiles, fixedGrid, progStart: start, progEnd: end });
