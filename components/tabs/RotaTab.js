@@ -140,7 +140,6 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
   const [reviewerCorrections, setReviewerCorrections] = useState(null);
   const [reviewerDismissed, setReviewerDismissed] = useState(false);
   const [allocShortfalls, setAllocShortfalls] = useState([]);
-  const grid = rotaGrid;
   const setGrid = setRotaGrid;
 
   // Rota grid starts from induction day (before contracted staff arrival).
@@ -166,7 +165,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
 
   const groupArrivalDate = useMemo(() => {
     if (!groups || !groups.length) return null;
-    return groups.map((g) => g.arr).filter(Boolean).sort()[0] || null;
+    return groups.map((g) => g.arr ? String(g.arr).slice(0, 10) : null).filter(Boolean).sort()[0] || null;
   }, [groups]);
 
   const allArrivalDates = useMemo(() => new Set(groups ? groups.map((g) => g.arr).filter(Boolean) : []), [groups]);
@@ -190,6 +189,22 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     }
     return false;
   };
+
+  // fixedGrid overlays structural cells (Induction/Setup/Airport/Day Off) onto the saved rota,
+  // so stale Supabase data for pre-contract dates is always corrected in the display.
+  const fixedGrid = useMemo(
+    () => buildFixedGrid(staff, dates, groupArrivalDate, parseTimeOff, isFullDayOff, centreName),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [staff, dates, groupArrivalDate, centreName]
+  );
+  const grid = useMemo(() => {
+    const merged = { ...rotaGrid };
+    // Remove stale Induction cells that fixedGrid doesn't confirm (e.g. old wrong dates in Supabase)
+    Object.keys(merged).forEach((k) => {
+      if (merged[k] === "Induction" && fixedGrid[k] !== "Induction") delete merged[k];
+    });
+    return Object.assign(merged, fixedGrid);
+  }, [rotaGrid, fixedGrid]);
 
   // ── Lesson demand per slot per day ────────────────────
   const lessonDemand = useMemo(() => {
