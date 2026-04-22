@@ -140,6 +140,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
   const [reviewerCorrections, setReviewerCorrections] = useState(null);
   const [reviewerDismissed, setReviewerDismissed] = useState(false);
   const [allocShortfalls, setAllocShortfalls] = useState([]);
+  const [clearedCells, setClearedCells] = useState(new Set());
   const setGrid = setRotaGrid;
 
   // Rota grid starts from induction day (before contracted staff arrival).
@@ -199,12 +200,16 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
   );
   const grid = useMemo(() => {
     const merged = { ...rotaGrid };
-    // Remove stale Induction cells that fixedGrid doesn't confirm (e.g. old wrong dates in Supabase)
+    // Remove stale Induction cells not confirmed by fixedGrid (e.g. old wrong dates in Supabase)
     Object.keys(merged).forEach((k) => {
       if (merged[k] === "Induction" && fixedGrid[k] !== "Induction") delete merged[k];
     });
-    return Object.assign(merged, fixedGrid);
-  }, [rotaGrid, fixedGrid]);
+    // Apply fixedGrid but skip cells the user has explicitly cleared this session
+    Object.entries(fixedGrid).forEach(([k, v]) => {
+      if (!clearedCells.has(k)) merged[k] = v;
+    });
+    return merged;
+  }, [rotaGrid, fixedGrid, clearedCells]);
 
   // ── Lesson demand per slot per day ────────────────────
   const lessonDemand = useMemo(() => {
@@ -332,13 +337,17 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     const k = editingCell;
     const nv = editValue.trim();
     setEditingCell(null);
-    setGrid((prev) => {
-      if (!nv) { const n = { ...prev }; delete n[k]; return n; }
-      return { ...prev, [k]: nv };
-    });
+    if (!nv) {
+      setClearedCells((prev) => new Set([...prev, k]));
+      setGrid((prev) => { const n = { ...prev }; delete n[k]; return n; });
+    } else {
+      setClearedCells((prev) => { const s = new Set(prev); s.delete(k); return s; });
+      setGrid((prev) => ({ ...prev, [k]: nv }));
+    }
   };
   const cancelEdit = () => { setEditingCell(null); setEditValue(""); };
   const clearCell = (key) => {
+    setClearedCells((prev) => new Set([...prev, key]));
     setGrid((prev) => { const n = { ...prev }; delete n[key]; return n; });
   };
 
