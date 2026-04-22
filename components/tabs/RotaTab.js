@@ -127,7 +127,12 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
   const grid = rotaGrid;
   const setGrid = setRotaGrid;
 
-  const fortnights = useMemo(() => getFortnights(progStart, progEnd), [progStart, progEnd]);
+  // Rota grid starts from earliest staff arrival (induction day), not group arrival.
+  const rotaStart = useMemo(() => {
+    const arrivals = staff.map((s) => s.arr).filter(Boolean).sort();
+    return arrivals[0] || progStart;
+  }, [staff, progStart]);
+  const fortnights = useMemo(() => getFortnights(rotaStart, progEnd), [rotaStart, progEnd]);
   const [fortIdx, setFortIdx] = useState(0);
   useEffect(() => {
     setFortIdx(getTodayFortnight(fortnights, dayKey(new Date())));
