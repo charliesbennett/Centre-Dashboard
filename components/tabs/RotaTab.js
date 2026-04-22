@@ -204,9 +204,11 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     Object.keys(merged).forEach((k) => {
       if (merged[k] === "Induction" && fixedGrid[k] !== "Induction") delete merged[k];
     });
-    // Apply fixedGrid but skip cells the user has explicitly cleared this session
+    // Apply fixedGrid: Induction always forces; Setup/Airport/DayOff only fill empty cells
+    // (so user-typed values in rotaGrid are never overwritten by soft defaults)
     Object.entries(fixedGrid).forEach(([k, v]) => {
-      if (!clearedCells.has(k)) merged[k] = v;
+      if (clearedCells.has(k)) return;
+      if (v === "Induction" || !merged[k]) merged[k] = v;
     });
     return merged;
   }, [rotaGrid, fixedGrid, clearedCells]);
