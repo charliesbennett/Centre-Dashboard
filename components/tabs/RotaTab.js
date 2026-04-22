@@ -200,9 +200,11 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
   );
   const grid = useMemo(() => {
     const merged = { ...rotaGrid };
-    // Remove stale Induction cells not confirmed by fixedGrid (e.g. old wrong dates in Supabase)
+    // Remove stale Induction cells on programme dates where fixedGrid has no entry at all
+    // (e.g. old July 6 Induction in Supabase). Don't remove where fixedGrid has Setup etc —
+    // that means the user intentionally typed Induction into a pre-contract slot.
     Object.keys(merged).forEach((k) => {
-      if (merged[k] === "Induction" && fixedGrid[k] !== "Induction") delete merged[k];
+      if (merged[k] === "Induction" && !fixedGrid[k]) delete merged[k];
     });
     // Apply fixedGrid: Induction always forces; Setup/Airport/DayOff only fill empty cells
     // (so user-typed values in rotaGrid are never overwritten by soft defaults)
