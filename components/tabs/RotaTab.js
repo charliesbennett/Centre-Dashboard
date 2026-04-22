@@ -283,30 +283,21 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     }
   };
 
-  // ── Double-click to edit ──────────────────────────────
+  // ── Click / double-click to edit ──────────────────────
   const startEdit = (key, val) => { setEditingCell(key); setEditValue(val || ""); };
   const commitEdit = () => {
-    if (editingCell) {
-      setGrid((prev) => {
-        const nv = editValue.trim();
-        if (!nv) { const n = {...prev}; delete n[editingCell]; return n; }
-        return { ...prev, [editingCell]: nv };
-      });
-      setEditingCell(null);
-    }
-  };
-
-  // Single click cycle
-  const allTypes = [...Object.keys(SESSION_TYPES), "Day Off"];
-  const cycleCell = (sid, ds, sl) => {
-    const key = sid+"-"+ds+"-"+sl;
+    if (!editingCell) return;
+    const k = editingCell;
+    const nv = editValue.trim();
+    setEditingCell(null);
     setGrid((prev) => {
-      const cur = prev[key];
-      if (!cur) return { ...prev, [key]: allTypes[0] };
-      const idx = allTypes.indexOf(cur);
-      if (idx >= allTypes.length - 1) { const n = { ...prev }; delete n[key]; return n; }
-      return { ...prev, [key]: allTypes[idx + 1] };
+      if (!nv) { const n = { ...prev }; delete n[k]; return n; }
+      return { ...prev, [k]: nv };
     });
+  };
+  const cancelEdit = () => { setEditingCell(null); setEditValue(""); };
+  const clearCell = (key) => {
+    setGrid((prev) => { const n = { ...prev }; delete n[key]; return n; });
   };
 
   // ── Session + day-off stats ───────────────────────────
@@ -647,8 +638,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                       const isEd = editingCell === key;
                       return (
                         <td key={key}
-                          onClick={() => !readOnly && on && !isEd && cycleCell(s.id, ds, sl)}
-                          onDoubleClick={(e) => { e.preventDefault(); if (!readOnly && on) startEdit(key, v); }}
+                          onClick={() => !readOnly && on && !isEd && startEdit(key, v)}
+                          onContextMenu={(e) => { if (readOnly || !on || !v) return; e.preventDefault(); clearCell(key); }}
                           style={{
                             padding: "1px", borderLeft: sl === "AM" ? "2px solid "+B.border : "1px solid "+B.borderLight,
                             textAlign: "center", cursor: on ? "pointer" : "default",
@@ -656,10 +647,14 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                           }}>
                           {isEd ? (
                             <input autoFocus value={editValue} onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={commitEdit} onKeyDown={(e) => e.key === "Enter" && commitEdit()}
+                              onBlur={commitEdit}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") { e.preventDefault(); commitEdit(); }
+                                else if (e.key === "Escape") { e.preventDefault(); cancelEdit(); }
+                              }}
                               style={{ width: "100%", fontSize: 10, padding: "4px", border: "1px solid "+B.navy, borderRadius: 3, fontFamily: "inherit", height: CELL_H }} />
                           ) : col ? (
-                            <div style={{ background: col+"25", color: col, borderRadius: 4, fontSize: 10, fontWeight: 800, height: CELL_H, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", textAlign: "center", lineHeight: 1.2 }} title={v}>
+                            <div style={{ background: col+"25", color: col, borderRadius: 4, fontSize: 10, fontWeight: 800, height: CELL_H, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", textAlign: "center", lineHeight: 1.2 }} title={v + " — right-click to clear"}>
                               {off ? "Day Off" : v}
                             </div>
                           ) : on ? <div style={{ height: CELL_H }} /> : <div style={{ height: CELL_H, background: "#f0f0f0", borderRadius: 3 }} />}
