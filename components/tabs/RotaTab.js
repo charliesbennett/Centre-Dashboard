@@ -689,7 +689,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                   <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700, fontSize: 12, position: "sticky", left: 236, background: B.card, zIndex: 1, color: st.offs > 0 ? "#f59e0b" : B.textLight }}>{st.offs}</td>
                   {dates.map((d) => {
                     const ds = dayKey(d);
-                    const on = inRange(ds, s.arr, s.dep) || SLOTS.some((sl) => grid[s.id+"-"+ds+"-"+sl]);
+                    const on = inRange(ds, s.arr, s.dep) || SLOTS.some((sl) => fixedGrid[s.id+"-"+ds+"-"+sl]);
                     return SLOTS.map((sl) => {
                       const key = s.id+"-"+ds+"-"+sl;
                       const v = grid[key];
