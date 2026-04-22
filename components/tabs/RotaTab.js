@@ -48,17 +48,33 @@ function onSiteDateStrs(s, dates) {
 }
 
 function applyFixedForStaff(fixed, s, dates, groupArrivalDate, tos, isFullDayOff, inductionDs) {
+  const allDs = dates.map((d) => dayKey(d));
   const onSite = onSiteDateStrs(s, dates);
-  if (!onSite.length) return;
-  const inductDs = inductionDs && onSite.includes(inductionDs) ? inductionDs : onSite[0];
-  fixed[`${s.id}-${inductDs}-AM`] = "Induction";
-  fixed[`${s.id}-${inductDs}-PM`] = "Induction";
-  onSite.forEach((ds) => {
-    if (ds === inductDs) return;
-    if (groupArrivalDate && ds >= groupArrivalDate) return;
+  const arrDs = s.arr ? String(s.arr).slice(0, 10) : null;
+
+  // Induction: use the centre induction date, even if before contracted arrival.
+  const inductDs = (inductionDs && allDs.includes(inductionDs)) ? inductionDs : (onSite[0] || null);
+  if (inductDs) {
+    fixed[`${s.id}-${inductDs}-AM`] = "Induction";
+    fixed[`${s.id}-${inductDs}-PM`] = "Induction";
+  }
+
+  // Setup for pre-contract days between induction and contracted arrival.
+  allDs.forEach((ds) => {
+    if (!inductDs || ds <= inductDs) return;
+    if (!arrDs || ds >= arrDs) return;
     fixed[`${s.id}-${ds}-AM`] = "Setup";
     fixed[`${s.id}-${ds}-PM`] = "Setup";
   });
+
+  // Setup for contracted days from arrival up to group arrival.
+  onSite.forEach((ds) => {
+    if (ds === inductDs) return;
+    if (groupArrivalDate && ds >= groupArrivalDate) return;
+    if (!fixed[`${s.id}-${ds}-AM`]) fixed[`${s.id}-${ds}-AM`] = "Setup";
+    if (!fixed[`${s.id}-${ds}-PM`]) fixed[`${s.id}-${ds}-PM`] = "Setup";
+  });
+
   if (s.dep) {
     const depDs = dayKey(new Date(s.dep));
     if (!fixed[`${s.id}-${depDs}-AM`]) fixed[`${s.id}-${depDs}-AM`] = "Airport";
@@ -127,11 +143,11 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
   const grid = rotaGrid;
   const setGrid = setRotaGrid;
 
-  // Rota grid starts from earliest staff arrival (induction day), not group arrival.
+  // Rota grid starts from induction day (before contracted staff arrival).
   const rotaStart = useMemo(() => {
-    const arrivals = staff.map((s) => s.arr).filter(Boolean).sort();
-    return arrivals[0] || progStart;
-  }, [staff, progStart]);
+    const inductionDates = getAllInductionDates(centreName);
+    return inductionDates[0] || progStart;
+  }, [centreName, progStart]);
   const fortnights = useMemo(() => getFortnights(rotaStart, progEnd), [rotaStart, progEnd]);
   const [fortIdx, setFortIdx] = useState(0);
   useEffect(() => {
@@ -648,7 +664,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                   </td>
                   <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700, fontSize: 12, position: "sticky", left: 236, background: B.card, zIndex: 1, color: st.offs > 0 ? "#f59e0b" : B.textLight }}>{st.offs}</td>
                   {dates.map((d) => {
-                    const ds = dayKey(d); const on = inRange(ds, s.arr, s.dep);
+                    const ds = dayKey(d);
+                    const on = inRange(ds, s.arr, s.dep) || grid[s.id+"-"+ds+"-AM"] === "Induction";
                     return SLOTS.map((sl) => {
                       const key = s.id+"-"+ds+"-"+sl;
                       const v = grid[key];
