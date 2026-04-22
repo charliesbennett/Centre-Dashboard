@@ -10,7 +10,7 @@ import { buildDemand } from "@/lib/rotaDemand";
 import { bindTals } from "@/lib/rotaBinding";
 import { placeDayOffs } from "@/lib/rotaDayOff";
 import { allocateRota } from "@/lib/rotaAllocator";
-import { getInductionDate } from "@/lib/rotaInduction";
+import { getInductionDate, getAllInductionDates, getMatchedCentreName } from "@/lib/rotaInduction";
 
 const SLOTS = ["AM", "PM", "Eve"];
 const CELL_W = 88;
@@ -479,6 +479,14 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
           })()}
         </div>
       )}
+
+      {/* ── Induction date indicator ─────────────────────── */}
+      {(() => {
+        const matched = getMatchedCentreName(centreName);
+        const inDates = getAllInductionDates(centreName);
+        if (!matched) return <div style={{ flexShrink: 0, padding: "4px 16px", background: "#fef9c3", borderBottom: `1px solid #fbbf24`, fontSize: 9, color: "#92400e" }}>⚠ Centre not recognised for induction lookup — using staff arrival date. Centre name: &quot;{centreName}&quot;</div>;
+        return <div style={{ flexShrink: 0, padding: "4px 16px", background: "#f0fdf4", borderBottom: `1px solid #bbf7d0`, fontSize: 9, color: "#166534" }}>Induction: {matched} — {inDates.join(", ")}</div>;
+      })()}
 
       {/* ── Allocator shortfalls (from last Auto-Generate) ── */}
       {allocShortfalls.length > 0 && (
