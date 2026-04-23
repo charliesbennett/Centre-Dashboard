@@ -87,7 +87,7 @@ function applyFixedForStaff(fixed, s, dates, groupArrivalDate, tos, isFullDayOff
 function buildFixedGrid(staff, dates, groupArrivalDate, parseTimeOff, isFullDayOff, centreName) {
   const fixed = {};
   staff.forEach((s) => {
-    const inductionDs = getInductionDate(centreName, s.arr);
+    const inductionDs = getInductionDate(centreName, s.arr, groupArrivalDate);
     applyFixedForStaff(fixed, s, dates, groupArrivalDate, parseTimeOff(s.to), isFullDayOff, inductionDs);
   });
   return fixed;
