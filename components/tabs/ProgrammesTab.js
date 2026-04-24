@@ -65,33 +65,46 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   // Generic placeholder values — treated as "empty" so re-running auto-populate replaces them
   const isPlaceholder = (v) => !v || /^(full.?day excursion|half.?day excursion|full exc|half exc|evening activity)$/i.test(v.trim()) || /^depart/i.test(v.trim()) || /^arriv/i.test(v.trim());
 
-  const applyTmplInto = (tmpl, targetGroups, ng, skipExisting = false) => {
+  const applyTmplInto = (tmpl, targetGroups, ng, skipExisting = false, alignArrDs = null) => {
     if (!tmpl?.weeks?.length) return;
     const weekMaps = tmpl.weeks.map(wk => { const m = {}; wk.days.forEach(d => { m[d.day] = d; }); return m; });
     const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-    // skipExisting: preserve real custom values but overwrite generic placeholders
     const set = (key, val) => { if (val && (!skipExisting || isPlaceholder(ng[key]))) ng[key] = val; };
     const isTeachingSlot = (v) => /lesson|english test|placement test/i.test(v || "");
     targetGroups.forEach(g => {
       const arrDs = g.arr ? String(g.arr).slice(0, 10) : null;
       const depDs = g.dep ? String(g.dep).slice(0, 10) : null;
       const gArrMs = arrDs ? new Date(arrDs).getTime() : (dates[0]?.getTime() || 0);
+      // Use programme start for lesson-slot week cycle so mid-programme arrivals align with earlier groups
+      const slotRefArr = (alignArrDs && alignArrDs < (arrDs || "z")) ? alignArrDs : (arrDs || alignArrDs);
+      const slotG = slotRefArr !== arrDs ? { ...g, arr: slotRefArr } : g;
       dates.forEach(d => {
         const s = dayKey(d);
         if (!inRange(s, g.arr, g.dep)) return;
         if (arrDs && s === arrDs) { set(g.id+"-"+s+"-PM", "ARRIVAL"); set(g.id+"-"+s+"-Eve", "Evening Activity"); return; }
-        if (depDs && s === depDs) { set(g.id+"-"+s+"-AM", "DEPARTURE"); return; }
         const daysSince = Math.floor((d.getTime() - gArrMs) / 86400000);
         const weekIdx = Math.floor(daysSince / 7) % weekMaps.length;
-        const dayData = weekMaps[weekIdx]?.[DOW[d.getDay()]];
+        const dow = DOW[d.getDay()];
+        if (depDs && s === depDs) {
+          // Departure day: AM = template content (lessons/activity), PM = DEPARTURE
+          const depData = weekMaps[weekIdx]?.[dow] || weekMaps.find(wm => wm[dow])?.[dow];
+          if (depData) {
+            const lessonV = isTeachingSlot(depData.am) ? depData.am : isTeachingSlot(depData.pm) ? depData.pm : null;
+            const actV = (!isTeachingSlot(depData.am) && depData.am && !/depart|arriv/i.test(depData.am)) ? depData.am : null;
+            const amVal = lessonV || actV;
+            if (amVal) { set(g.id+"-"+s+"-AM", amVal); set(g.id+"-"+s+"-PM", "DEPARTURE"); return; }
+          }
+          set(g.id+"-"+s+"-AM", "DEPARTURE");
+          return;
+        }
+        const dayData = weekMaps[weekIdx]?.[dow];
         set(g.id+"-"+s+"-Eve", "Evening Activity");
         if (!dayData) return;
         const tmplSlot = isTeachingSlot(dayData.am) ? "AM" : isTeachingSlot(dayData.pm) ? "PM" : null;
-        const grpSlot = getGroupLessonSlot(g, s);
+        const grpSlot = getGroupLessonSlot(slotG, s);
         const swap = tmplSlot && grpSlot !== tmplSlot;
         let amV = (swap ? dayData.pm : dayData.am) || "";
         let pmV = (swap ? dayData.am : dayData.pm) || "";
-        // If one slot has a non-lesson value and the other is empty, mirror it (full-day excursion)
         if (amV && !pmV && !isTeachingSlot(amV)) pmV = amV;
         if (pmV && !amV && !isTeachingSlot(pmV)) amV = pmV;
         if (!/depart|arriv/i.test(amV)) set(g.id+"-"+s+"-AM", amV);
@@ -196,10 +209,14 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     // Non-ministay: rebuild programme from template, preserving only cells outside any group's stay
     let defaultTmpl = null;
     if (settings?.programme_template) { try { defaultTmpl = normaliseTmpl(JSON.parse(settings.programme_template)); } catch {} }
-    // Keep cells that don't belong to any group's stay range (e.g. header/meta cells)
+    // Earliest group arrival = reference point for lesson-slot week cycle across all groups
+    const progStartDs = groups.reduce((min, g) => {
+      const ds = g.arr ? String(g.arr).slice(0, 10) : null;
+      return (!min || (ds && ds < min)) ? ds : min;
+    }, null);
+    // Keep cells that don't belong to any group's stay range
     const ng = {};
     Object.entries(grid).forEach(([k, v]) => {
-      const match = k.match(/^([^-]+-[^-]+-[^-]+-[^-]+)-(\d{4}-\d{2}-\d{2})-/);
       const inAnyStay = groups.some(g => {
         const groupIdLen = g.id.length;
         return k.startsWith(g.id + "-") && inRange(k.slice(groupIdLen + 1, groupIdLen + 11), g.arr, g.dep);
@@ -224,13 +241,13 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       const config = groupTemplates[g.id];
       if (config?.type === "builtin") {
         const tmpl = centreProgs[config.templateIndex];
-        if (tmpl) { applyTmplInto(normaliseTmpl(tmpl), [g], ng, false); return; }
+        if (tmpl) { applyTmplInto(normaliseTmpl(tmpl), [g], ng, false, progStartDs); return; }
       } else if (config?.type === "custom" && config.template) {
-        applyTmplInto(normaliseTmpl(config.template), [g], ng, false); return;
+        applyTmplInto(normaliseTmpl(config.template), [g], ng, false, progStartDs); return;
       }
       const centreTmpl = bestCentreTmpl(g);
-      if (centreTmpl) { applyTmplInto(normaliseTmpl(centreTmpl), [g], ng, false); }
-      else if (defaultTmpl) { applyTmplInto(defaultTmpl, [g], ng, false); }
+      if (centreTmpl) { applyTmplInto(normaliseTmpl(centreTmpl), [g], ng, false, progStartDs); }
+      else if (defaultTmpl) { applyTmplInto(defaultTmpl, [g], ng, false, progStartDs); }
       else { defaultPopGroup(g, ng, false); }
     });
     // Ensure Evening Activity for all on-site days (not departure)
