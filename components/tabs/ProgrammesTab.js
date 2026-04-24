@@ -193,12 +193,19 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       setGrid(ng);
       return;
     }
-    // Non-ministay: start from existing grid, only fill empty cells
+    // Non-ministay: rebuild programme from template, preserving only cells outside any group's stay
     let defaultTmpl = null;
     if (settings?.programme_template) { try { defaultTmpl = normaliseTmpl(JSON.parse(settings.programme_template)); } catch {} }
-    const ng = skipExisting ? { ...grid } : {};
-    const before = JSON.stringify(ng);
-    console.log("[autoPop] groups:", groups.length, "dates:", dates.length, "centreProgs:", centreProgs.length, "isMinistay:", isMinistay);
+    // Keep cells that don't belong to any group's stay range (e.g. header/meta cells)
+    const ng = {};
+    Object.entries(grid).forEach(([k, v]) => {
+      const match = k.match(/^([^-]+-[^-]+-[^-]+-[^-]+)-(\d{4}-\d{2}-\d{2})-/);
+      const inAnyStay = groups.some(g => {
+        const groupIdLen = g.id.length;
+        return k.startsWith(g.id + "-") && inRange(k.slice(groupIdLen + 1, groupIdLen + 11), g.arr, g.dep);
+      });
+      if (!inAnyStay) ng[k] = v;
+    });
     // Pick the best-matching centre template for a group by stay length
     const bestCentreTmpl = (g) => {
       if (!centreProgs.length) return null;
@@ -215,29 +222,25 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     };
     groups.forEach((g) => {
       const config = groupTemplates[g.id];
-      console.log("[autoPop] group:", g.id, g.group, "arr:", g.arr, "dep:", g.dep, "config:", config?.type);
       if (config?.type === "builtin") {
         const tmpl = centreProgs[config.templateIndex];
-        if (tmpl) { applyTmplInto(normaliseTmpl(tmpl), [g], ng, skipExisting); return; }
+        if (tmpl) { applyTmplInto(normaliseTmpl(tmpl), [g], ng, false); return; }
       } else if (config?.type === "custom" && config.template) {
-        applyTmplInto(normaliseTmpl(config.template), [g], ng, skipExisting); return;
+        applyTmplInto(normaliseTmpl(config.template), [g], ng, false); return;
       }
       const centreTmpl = bestCentreTmpl(g);
-      console.log("[autoPop] centreTmpl:", centreTmpl ? centreTmpl.centre : "none", "defaultTmpl:", !!defaultTmpl);
-      if (centreTmpl) { applyTmplInto(normaliseTmpl(centreTmpl), [g], ng, skipExisting); }
-      else if (defaultTmpl) { applyTmplInto(defaultTmpl, [g], ng, skipExisting); }
-      else { defaultPopGroup(g, ng, skipExisting); }
+      if (centreTmpl) { applyTmplInto(normaliseTmpl(centreTmpl), [g], ng, false); }
+      else if (defaultTmpl) { applyTmplInto(defaultTmpl, [g], ng, false); }
+      else { defaultPopGroup(g, ng, false); }
     });
-    // Ensure Evening Activity for all on-site days (not departure) — fill empty or placeholders
+    // Ensure Evening Activity for all on-site days (not departure)
     groups.forEach(g => {
       dates.forEach(d => {
         const s = dayKey(d);
-        if (!inRange(s, g.arr, g.dep) || s === g.dep) return;
-        if (isPlaceholder(ng[g.id+"-"+s+"-Eve"])) ng[g.id+"-"+s+"-Eve"] = "Evening Activity";
+        if (!inRange(s, g.arr, g.dep) || s === String(g.dep).slice(0, 10)) return;
+        if (!ng[g.id+"-"+s+"-Eve"]) ng[g.id+"-"+s+"-Eve"] = "Evening Activity";
       });
     });
-    const changed = Object.keys(ng).filter(k => ng[k] !== JSON.parse(before)[k]).length;
-    console.log("[autoPop] cells changed:", changed, "total cells:", Object.keys(ng).length);
     setGrid(ng);
   };
 
