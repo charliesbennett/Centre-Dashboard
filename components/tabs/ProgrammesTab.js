@@ -63,7 +63,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   //   from the template (so DEPARTURE baked into week 2 Sunday never stamps mid-stay groups)
   // - weekIdx relative to each group's arrival; swaps AM/PM when group's lesson slot differs
   // Generic placeholder values — treated as "empty" so re-running auto-populate replaces them
-  const isPlaceholder = (v) => !v || /^(full.?day excursion|half.?day excursion|full exc|half exc|evening activity)$/i.test(v.trim());
+  const isPlaceholder = (v) => !v || /^(full.?day excursion|half.?day excursion|full exc|half exc|evening activity|departure|arrival)$/i.test(v.trim());
 
   const applyTmplInto = (tmpl, targetGroups, ng, skipExisting = false) => {
     if (!tmpl?.weeks?.length) return;
