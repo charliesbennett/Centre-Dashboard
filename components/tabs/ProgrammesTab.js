@@ -73,12 +73,14 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
     const set = (key, val) => { if (val && (!skipExisting || isPlaceholder(ng[key]))) ng[key] = val; };
     const isTeachingSlot = (v) => /lesson|english test|placement test/i.test(v || "");
     targetGroups.forEach(g => {
-      const gArrMs = g.arr ? new Date(g.arr).getTime() : (dates[0]?.getTime() || 0);
+      const arrDs = g.arr ? String(g.arr).slice(0, 10) : null;
+      const depDs = g.dep ? String(g.dep).slice(0, 10) : null;
+      const gArrMs = arrDs ? new Date(arrDs + "T12:00:00").getTime() : (dates[0]?.getTime() || 0);
       dates.forEach(d => {
         const s = dayKey(d);
         if (!inRange(s, g.arr, g.dep)) return;
-        if (g.arr && s === g.arr) { set(g.id+"-"+s+"-PM", "ARRIVAL"); set(g.id+"-"+s+"-Eve", "Evening Activity"); return; }
-        if (g.dep && s === g.dep) { set(g.id+"-"+s+"-AM", "DEPARTURE"); return; }
+        if (arrDs && s === arrDs) { set(g.id+"-"+s+"-PM", "ARRIVAL"); set(g.id+"-"+s+"-Eve", "Evening Activity"); return; }
+        if (depDs && s === depDs) { set(g.id+"-"+s+"-AM", "DEPARTURE"); return; }
         const daysSince = Math.floor((d.getTime() - gArrMs) / 86400000);
         const weekIdx = Math.floor(daysSince / 7) % weekMaps.length;
         const dayData = weekMaps[weekIdx]?.[DOW[d.getDay()]];
