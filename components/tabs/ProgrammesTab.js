@@ -76,32 +76,32 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       const depDs = g.dep ? String(g.dep).slice(0, 10) : null;
       const gArrMs = arrDs ? new Date(arrDs).getTime() : (dates[0]?.getTime() || 0);
       // Use programme start for lesson-slot week cycle so mid-programme arrivals align with earlier groups
-      const slotRefArr = (alignArrDs && alignArrDs < (arrDs || "z")) ? alignArrDs : (arrDs || alignArrDs);
-      const slotG = slotRefArr !== arrDs ? { ...g, arr: slotRefArr } : g;
+      const slotRefMs = (alignArrDs && alignArrDs < (arrDs || "z"))
+        ? new Date(alignArrDs).getTime() : gArrMs;
       dates.forEach(d => {
         const s = dayKey(d);
         if (!inRange(s, g.arr, g.dep)) return;
         if (arrDs && s === arrDs) { set(g.id+"-"+s+"-PM", "ARRIVAL"); set(g.id+"-"+s+"-Eve", "Evening Activity"); return; }
         const daysSince = Math.floor((d.getTime() - gArrMs) / 86400000);
-        const weekIdx = Math.floor(daysSince / 7) % weekMaps.length;
+        const weekIdx = Math.floor(Math.max(0, daysSince - 1) / 7) % weekMaps.length;
         const dow = DOW[d.getDay()];
-        if (depDs && s === depDs) {
-          // Departure day: AM = template content (lessons/activity), PM = DEPARTURE
-          const depData = weekMaps[weekIdx]?.[dow] || weekMaps.find(wm => wm[dow])?.[dow];
-          if (depData) {
-            const lessonV = isTeachingSlot(depData.am) ? depData.am : isTeachingSlot(depData.pm) ? depData.pm : null;
-            const actV = (!isTeachingSlot(depData.am) && depData.am && !/depart|arriv/i.test(depData.am)) ? depData.am : null;
-            const amVal = lessonV || actV;
-            if (amVal) { set(g.id+"-"+s+"-AM", amVal); set(g.id+"-"+s+"-PM", "DEPARTURE"); return; }
-          }
-          set(g.id+"-"+s+"-AM", "DEPARTURE");
-          return;
-        }
+        const isDepDay = depDs && s === depDs;
         const dayData = weekMaps[weekIdx]?.[dow];
-        set(g.id+"-"+s+"-Eve", "Evening Activity");
+        if (!isDepDay) set(g.id+"-"+s+"-Eve", "Evening Activity");
         if (!dayData) return;
         const tmplSlot = isTeachingSlot(dayData.am) ? "AM" : isTeachingSlot(dayData.pm) ? "PM" : null;
-        const grpSlot = getGroupLessonSlot(slotG, s);
+        if (isDepDay) {
+          // Departure day: use template content as-is, no lesson-slot swap, no DEPARTURE marker
+          const amV = dayData.am || "";
+          const pmV = dayData.pm || "";
+          if (amV && !/depart|arriv/i.test(amV)) set(g.id+"-"+s+"-AM", amV);
+          if (pmV && !/depart|arriv/i.test(pmV)) set(g.id+"-"+s+"-PM", pmV);
+          return;
+        }
+        const daysSinceRef = Math.floor((d.getTime() - slotRefMs) / 86400000);
+        const weekNumSlot = Math.floor(Math.max(0, daysSinceRef - 1) / 7);
+        const baseSlot = g.lessonSlot || "AM";
+        const grpSlot = weekNumSlot % 2 === 0 ? baseSlot : (baseSlot === "AM" ? "PM" : "AM");
         const swap = tmplSlot && grpSlot !== tmplSlot;
         let amV = (swap ? dayData.pm : dayData.am) || "";
         let pmV = (swap ? dayData.am : dayData.pm) || "";
