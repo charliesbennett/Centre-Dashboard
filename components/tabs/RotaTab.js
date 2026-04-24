@@ -44,7 +44,8 @@ function isSession(value) {
 }
 
 function onSiteDateStrs(s, dates) {
-  return dates.map((d) => dayKey(d)).filter((ds) => inRange(ds, s.arr, s.dep) && ds !== s.dep);
+  const depDs = s.dep ? String(s.dep).slice(0, 10) : null;
+  return dates.map((d) => dayKey(d)).filter((ds) => inRange(ds, s.arr, s.dep) && ds !== depDs);
 }
 
 function applyFixedForStaff(fixed, s, dates, groupArrivalDate, tos, isFullDayOff, inductionDs) {
@@ -52,8 +53,9 @@ function applyFixedForStaff(fixed, s, dates, groupArrivalDate, tos, isFullDayOff
   const onSite = onSiteDateStrs(s, dates);
   const arrDs = s.arr ? String(s.arr).slice(0, 10) : null;
 
-  // Induction: use the centre induction date, even if before contracted arrival.
-  const inductDs = (inductionDs && allDs.includes(inductionDs)) ? inductionDs : (onSite[0] || null);
+  // Induction: use centre date if staff can attend (on or after arrival); else use first on-site day.
+  const canAttendInduction = inductionDs && allDs.includes(inductionDs) && (!arrDs || inductionDs >= arrDs);
+  const inductDs = canAttendInduction ? inductionDs : (onSite[0] || null);
   if (inductDs) {
     fixed[`${s.id}-${inductDs}-AM`] = "Induction";
     fixed[`${s.id}-${inductDs}-PM`] = "Induction";
