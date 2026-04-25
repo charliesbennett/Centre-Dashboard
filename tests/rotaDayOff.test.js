@@ -58,13 +58,12 @@ describe("placeDayOffs — FTT on FDE", () => {
     expect(dayOffGrid[`f1-${SUN}-AM`]).toBe("Day Off");
   });
 
-  it("FTT with no FDE in a week gets a weekly Day Off", () => {
+  it("FTT with no FDE in a week gets no day off (only FDE days off)", () => {
     const staff = [mkStaff("f1", "FTT")];
     const profiles = profilesWhere();
     const { dayOffGrid } = placeDayOffs({ staff, profiles, progStart: PROG_START, progEnd: PROG_END });
-    const wk1 = ["2026-07-07", "2026-07-08", "2026-07-09", "2026-07-10", SAT, SUN];
-    const hasOffWk1 = wk1.some((ds) => dayOffGrid[`f1-${ds}-AM`] === "Day Off");
-    expect(hasOffWk1).toBe(true);
+    const allKeys = Object.keys(dayOffGrid).filter((k) => k.startsWith("f1-"));
+    expect(allKeys).toHaveLength(0);
   });
 });
 
@@ -81,13 +80,12 @@ describe("placeDayOffs — TAL cohort split", () => {
     expect(dayOffGrid[`t2-${SAT}-AM`]).toBeUndefined();
   });
 
-  it("no cohort split when weekend is not FDE", () => {
+  it("no cohort split when weekend is not FDE — TAL gets no day off", () => {
     const staff = [mkStaff("t1", "TAL"), mkStaff("t2", "TAL")];
     const profiles = profilesWhere();
     const { dayOffGrid } = placeDayOffs({ staff, profiles, progStart: PROG_START, progEnd: PROG_END });
-    // Should still have weekly Day Off, but not necessarily on Sat/Sun
     const t1Offs = Object.keys(dayOffGrid).filter((k) => k.startsWith("t1-") && k.endsWith("-AM"));
-    expect(t1Offs.length).toBeGreaterThanOrEqual(1);
+    expect(t1Offs).toHaveLength(0);
   });
 });
 

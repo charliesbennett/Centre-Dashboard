@@ -48,22 +48,23 @@ function onSiteDateStrs(s, dates) {
   return dates.map((d) => dayKey(d)).filter((ds) => inRange(ds, s.arr, s.dep) && ds !== depDs);
 }
 
-function applyFixedForStaff(fixed, s, dates, groupArrivalDate, tos, isFullDayOff, inductionDs) {
+function applyFixedForStaff(fixed, s, dates, groupArrivalDate, tos, isFullDayOff, inductionDates) {
   const allDs = dates.map((d) => dayKey(d));
   const onSite = onSiteDateStrs(s, dates);
   const arrDs = s.arr ? String(s.arr).slice(0, 10) : null;
 
-  // Induction: use centre date if staff can attend (on or after arrival); else use first on-site day.
-  const canAttendInduction = inductionDs && allDs.includes(inductionDs) && (!arrDs || inductionDs >= arrDs);
-  const inductDs = canAttendInduction ? inductionDs : (onSite[0] || null);
-  if (inductDs) {
-    fixed[`${s.id}-${inductDs}-AM`] = "Induction";
-    fixed[`${s.id}-${inductDs}-PM`] = "Induction";
-  }
+  // Induction: all centre induction dates on or after staff arrival; fallback to first on-site day.
+  const eligible = (inductionDates || []).filter((ds) => allDs.includes(ds) && (!arrDs || ds >= arrDs));
+  const inductSet = new Set(eligible.length ? eligible : (onSite[0] ? [onSite[0]] : []));
+  const lastInductDs = [...inductSet].sort().pop() || null;
+  inductSet.forEach((ds) => {
+    fixed[`${s.id}-${ds}-AM`] = "Induction";
+    fixed[`${s.id}-${ds}-PM`] = "Induction";
+  });
 
-  // Setup for pre-contract days between induction and contracted arrival.
+  // Setup for pre-contract days between last induction and contracted arrival.
   allDs.forEach((ds) => {
-    if (!inductDs || ds <= inductDs) return;
+    if (!lastInductDs || ds <= lastInductDs) return;
     if (!arrDs || ds >= arrDs) return;
     fixed[`${s.id}-${ds}-AM`] = "Setup";
     fixed[`${s.id}-${ds}-PM`] = "Setup";
@@ -71,7 +72,7 @@ function applyFixedForStaff(fixed, s, dates, groupArrivalDate, tos, isFullDayOff
 
   // Setup for contracted days from arrival up to group arrival.
   onSite.forEach((ds) => {
-    if (ds === inductDs) return;
+    if (inductSet.has(ds)) return;
     if (groupArrivalDate && ds >= groupArrivalDate) return;
     if (!fixed[`${s.id}-${ds}-AM`]) fixed[`${s.id}-${ds}-AM`] = "Setup";
     if (!fixed[`${s.id}-${ds}-PM`]) fixed[`${s.id}-${ds}-PM`] = "Setup";
@@ -88,9 +89,9 @@ function applyFixedForStaff(fixed, s, dates, groupArrivalDate, tos, isFullDayOff
 
 function buildFixedGrid(staff, dates, groupArrivalDate, parseTimeOff, isFullDayOff, centreName) {
   const fixed = {};
+  const inductionDates = getAllInductionDates(centreName);
   staff.forEach((s) => {
-    const inductionDs = getInductionDate(centreName, s.arr, groupArrivalDate);
-    applyFixedForStaff(fixed, s, dates, groupArrivalDate, parseTimeOff(s.to), isFullDayOff, inductionDs);
+    applyFixedForStaff(fixed, s, dates, groupArrivalDate, parseTimeOff(s.to), isFullDayOff, inductionDates);
   });
   return fixed;
 }
