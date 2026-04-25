@@ -29,11 +29,21 @@ describe("placeDayOffs — guards", () => {
     expect(dayOffGrid).toEqual({});
   });
 
-  it("skips 5FTT / CM / CD / EAM / SWC", () => {
-    const staff = [mkStaff("a", "5FTT"), mkStaff("b", "CM"), mkStaff("c", "CD"), mkStaff("d", "EAM"), mkStaff("e", "SWC")];
+  it("skips CM / CD / EAM / SWC (no day-offs placed)", () => {
+    const staff = [mkStaff("b", "CM"), mkStaff("c", "CD"), mkStaff("d", "EAM"), mkStaff("e", "SWC")];
     const profiles = profilesWhere();
     const { dayOffGrid } = placeDayOffs({ staff, profiles, progStart: PROG_START, progEnd: PROG_END });
     expect(Object.keys(dayOffGrid)).toHaveLength(0);
+  });
+
+  it("5FTT gets Day Off on all weekends", () => {
+    const staff = [mkStaff("a", "5FTT")];
+    const profiles = profilesWhere();
+    const { dayOffGrid } = placeDayOffs({ staff, profiles, progStart: PROG_START, progEnd: PROG_END });
+    expect(dayOffGrid[`a-${SAT}-AM`]).toBe("Day Off");
+    expect(dayOffGrid[`a-${SAT}-PM`]).toBe("Day Off");
+    expect(dayOffGrid[`a-${SUN}-AM`]).toBe("Day Off");
+    expect(dayOffGrid[`a-${SUN}-PM`]).toBe("Day Off");
   });
 });
 
