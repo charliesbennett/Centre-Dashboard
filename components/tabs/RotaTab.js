@@ -53,10 +53,17 @@ function applyFixedForStaff(fixed, s, dates, groupArrivalDate, tos, isFullDayOff
   const onSite = onSiteDateStrs(s, dates);
   const arrDs = s.arr ? String(s.arr).slice(0, 10) : null;
 
-  // Induction: all centre induction dates on or after staff arrival; fallback to first on-site day.
-  const eligible = (inductionDates || []).filter((ds) => allDs.includes(ds) && (!arrDs || ds >= arrDs));
-  const inductSet = new Set(eligible.length ? eligible : (onSite[0] ? [onSite[0]] : []));
-  const lastInductDs = [...inductSet].sort().pop() || null;
+  // Induction: place only the dates that fall in this fortnight AND staff can attend.
+  // Don't fallback to onSite[0] if induction dates exist but are in another fortnight.
+  const attendable = (inductionDates || []).filter((ds) => !arrDs || ds >= arrDs);
+  const inFortnight = attendable.filter((ds) => allDs.includes(ds));
+  const inductSet = inFortnight.length > 0
+    ? new Set(inFortnight)
+    : attendable.length > 0
+      ? new Set() // induction dates exist but not in this fortnight — don't misplace
+      : new Set(onSite[0] ? [onSite[0]] : []); // no induction dates for centre: fallback
+  const lastAttendableInductDs = attendable.length > 0 ? attendable[attendable.length - 1] : ([...inductSet].sort().pop() || null);
+  const lastInductDs = lastAttendableInductDs;
   inductSet.forEach((ds) => {
     fixed[`${s.id}-${ds}-AM`] = "Induction";
     fixed[`${s.id}-${ds}-PM`] = "Induction";
