@@ -58,12 +58,15 @@ describe("placeDayOffs — FTT on FDE", () => {
     expect(dayOffGrid[`f1-${SUN}-AM`]).toBe("Day Off");
   });
 
-  it("FTT with no FDE in a week gets no day off (only FDE days off)", () => {
+  it("FTT gets Day Off on ALL weekends (not just FDE days)", () => {
     const staff = [mkStaff("f1", "FTT")];
-    const profiles = profilesWhere();
+    const profiles = profilesWhere(); // no FDE days
     const { dayOffGrid } = placeDayOffs({ staff, profiles, progStart: PROG_START, progEnd: PROG_END });
-    const allKeys = Object.keys(dayOffGrid).filter((k) => k.startsWith("f1-"));
-    expect(allKeys).toHaveLength(0);
+    expect(dayOffGrid[`f1-${SAT}-AM`]).toBe("Day Off");
+    expect(dayOffGrid[`f1-${SUN}-AM`]).toBe("Day Off");
+    // No weekday Day Offs
+    expect(dayOffGrid[`f1-2026-07-07-AM`]).toBeUndefined();
+    expect(dayOffGrid[`f1-2026-07-08-AM`]).toBeUndefined();
   });
 });
 
@@ -80,12 +83,19 @@ describe("placeDayOffs — TAL cohort split", () => {
     expect(dayOffGrid[`t2-${SAT}-AM`]).toBeUndefined();
   });
 
-  it("no cohort split when weekend is not FDE — TAL gets no day off", () => {
+  it("TAL gets one weekend Day Off per week even when no FDE — never a weekday", () => {
     const staff = [mkStaff("t1", "TAL"), mkStaff("t2", "TAL")];
-    const profiles = profilesWhere();
+    const profiles = profilesWhere(); // no FDE days
     const { dayOffGrid } = placeDayOffs({ staff, profiles, progStart: PROG_START, progEnd: PROG_END });
+    // Must have at least one day off somewhere (on a weekend)
     const t1Offs = Object.keys(dayOffGrid).filter((k) => k.startsWith("t1-") && k.endsWith("-AM"));
-    expect(t1Offs).toHaveLength(0);
+    expect(t1Offs.length).toBeGreaterThanOrEqual(1);
+    // None of those day-offs are on a weekday
+    t1Offs.forEach((k) => {
+      const ds = k.split("-").slice(1, 4).join("-"); // extract YYYY-MM-DD
+      const dow = new Date(ds).getDay();
+      expect(dow === 0 || dow === 6).toBe(true);
+    });
   });
 });
 

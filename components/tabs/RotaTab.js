@@ -10,7 +10,8 @@ import { buildDemand } from "@/lib/rotaDemand";
 import { bindTals } from "@/lib/rotaBinding";
 import { placeDayOffs } from "@/lib/rotaDayOff";
 import { allocateRota } from "@/lib/rotaAllocator";
-import { getInductionDate, getAllInductionDates, getMatchedCentreName } from "@/lib/rotaInduction";
+import { getAllInductionDates, getMatchedCentreName } from "@/lib/rotaInduction";
+import { buildFixedGrid as buildFixedGridPure } from "@/lib/rotaFixed";
 
 const SLOTS = ["AM", "PM", "Eve"];
 const CELL_W = 88;
@@ -48,59 +49,10 @@ function onSiteDateStrs(s, dates) {
   return dates.map((d) => dayKey(d)).filter((ds) => inRange(ds, s.arr, s.dep) && ds !== depDs);
 }
 
-function applyFixedForStaff(fixed, s, dates, groupArrivalDate, tos, isFullDayOff, inductionDates) {
-  const allDs = dates.map((d) => dayKey(d));
-  const onSite = onSiteDateStrs(s, dates);
-  const arrDs = s.arr ? String(s.arr).slice(0, 10) : null;
-
-  // Induction: place only the dates that fall in this fortnight AND staff can attend.
-  // Don't fallback to onSite[0] if induction dates exist but are in another fortnight.
-  const attendable = (inductionDates || []).filter((ds) => !arrDs || ds >= arrDs);
-  const inFortnight = attendable.filter((ds) => allDs.includes(ds));
-  const inductSet = inFortnight.length > 0
-    ? new Set(inFortnight)
-    : attendable.length > 0
-      ? new Set() // induction dates exist but not in this fortnight — don't misplace
-      : new Set(onSite[0] ? [onSite[0]] : []); // no induction dates for centre: fallback
-  const lastAttendableInductDs = attendable.length > 0 ? attendable[attendable.length - 1] : ([...inductSet].sort().pop() || null);
-  const lastInductDs = lastAttendableInductDs;
-  inductSet.forEach((ds) => {
-    fixed[`${s.id}-${ds}-AM`] = "Induction";
-    fixed[`${s.id}-${ds}-PM`] = "Induction";
-  });
-
-  // Setup for pre-contract days between last induction and contracted arrival.
-  allDs.forEach((ds) => {
-    if (!lastInductDs || ds <= lastInductDs) return;
-    if (!arrDs || ds >= arrDs) return;
-    fixed[`${s.id}-${ds}-AM`] = "Setup";
-    fixed[`${s.id}-${ds}-PM`] = "Setup";
-  });
-
-  // Setup for contracted days from arrival up to group arrival.
-  onSite.forEach((ds) => {
-    if (inductSet.has(ds)) return;
-    if (groupArrivalDate && ds >= groupArrivalDate) return;
-    if (!fixed[`${s.id}-${ds}-AM`]) fixed[`${s.id}-${ds}-AM`] = "Setup";
-    if (!fixed[`${s.id}-${ds}-PM`]) fixed[`${s.id}-${ds}-PM`] = "Setup";
-  });
-
-  if (s.dep) {
-    const depDs = dayKey(new Date(s.dep));
-    if (!fixed[`${s.id}-${depDs}-AM`]) fixed[`${s.id}-${depDs}-AM`] = "Airport";
-  }
-  onSite.forEach((ds) => {
-    if (isFullDayOff(tos, ds)) SLOTS.forEach((sl) => { fixed[`${s.id}-${ds}-${sl}`] = "Day Off"; });
-  });
-}
-
-function buildFixedGrid(staff, dates, groupArrivalDate, parseTimeOff, isFullDayOff, centreName) {
-  const fixed = {};
-  const inductionDates = getAllInductionDates(centreName);
-  staff.forEach((s) => {
-    applyFixedForStaff(fixed, s, dates, groupArrivalDate, parseTimeOff(s.to), isFullDayOff, inductionDates);
-  });
-  return fixed;
+function buildFixedGrid(staff, dates, groupArrivalDate, progStart, centreName) {
+  const progYear = progStart ? new Date(progStart).getFullYear() : new Date().getFullYear();
+  const dateStrs = dates.map((d) => dayKey(d));
+  return buildFixedGridPure(staff, dateStrs, groupArrivalDate, progYear, centreName);
 }
 
 function canFillArrivalDefault(role) {
@@ -181,32 +133,12 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
 
   const allArrivalDates = useMemo(() => new Set(groups ? groups.map((g) => g.arr).filter(Boolean) : []), [groups]);
 
-  const parseTimeOff = (toStr) => {
-    if (!toStr) return [];
-    const yr = new Date(progStart).getFullYear();
-    return toStr.split(",").map((p) => p.trim()).filter(Boolean).map((p) => {
-      const rm = p.match(/(\d{1,2})\/(\d{1,2})\s*-\s*(\d{1,2})\/(\d{1,2})/);
-      if (rm) return { start: yr+"-"+rm[2].padStart(2,"0")+"-"+rm[1].padStart(2,"0"), end: yr+"-"+rm[4].padStart(2,"0")+"-"+rm[3].padStart(2,"0") };
-      const sm = p.match(/(\d{1,2})\/(\d{1,2})\s*(am|pm|eve)?/i);
-      if (sm) return { date: yr+"-"+sm[2].padStart(2,"0")+"-"+sm[1].padStart(2,"0"), slot: sm[3] || null };
-      return null;
-    }).filter(Boolean);
-  };
-
-  const isFullDayOff = (tos, ds) => {
-    for (const to of tos) {
-      if (to.start && to.end && ds >= to.start && ds <= to.end) return true;
-      if (to.date === ds && !to.slot) return true;
-    }
-    return false;
-  };
-
   // fixedGrid overlays structural cells (Induction/Setup/Airport/Day Off) onto the saved rota,
   // so stale Supabase data for pre-contract dates is always corrected in the display.
   const fixedGrid = useMemo(
-    () => buildFixedGrid(staff, dates, groupArrivalDate, parseTimeOff, isFullDayOff, centreName),
+    () => buildFixedGrid(staff, dates, groupArrivalDate, progStart, centreName),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [staff, dates, groupArrivalDate, centreName]
+    [staff, dates, groupArrivalDate, progStart, centreName]
   );
   const grid = useMemo(() => {
     const merged = { ...rotaGrid };
@@ -272,7 +204,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     const start = selectedFortnight.start || progStart;
     const end = selectedFortnight.end || progEnd;
     const dateStrs = dates.map((d) => dayKey(d));
-    const fixedGrid = buildFixedGrid(staff, dates, groupArrivalDate, parseTimeOff, isFullDayOff, centreName);
+    const fixedGrid = buildFixedGrid(staff, dates, groupArrivalDate, progStart, centreName);
     const bindings = bindTals({ staff, groups });
     const { demand, profiles } = buildDemand({ groups, progGrid, progStart: start, progEnd: end });
     const { dayOffGrid } = placeDayOffs({ staff, profiles, fixedGrid, progStart: start, progEnd: end });
