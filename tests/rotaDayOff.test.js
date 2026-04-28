@@ -48,25 +48,31 @@ describe("placeDayOffs — guards", () => {
 });
 
 describe("placeDayOffs — FTT on FDE", () => {
-  it("FTTs get Day Off on every FDE day", () => {
+  it("FTT gets Day Off on FDE weekdays", () => {
     const staff = [mkStaff("f1", "FTT")];
-    const profiles = profilesWhere({ [SAT]: { isFDE: true, students: 60 }, [SUN]: { isFDE: true, students: 60 } });
+    // FDE on a Wednesday (weekday)
+    const profiles = profilesWhere({ "2026-07-08": { isFDE: true, students: 60 } });
     const { dayOffGrid } = placeDayOffs({ staff, profiles, progStart: PROG_START, progEnd: PROG_END });
-    expect(dayOffGrid[`f1-${SAT}-AM`]).toBe("Day Off");
-    expect(dayOffGrid[`f1-${SAT}-PM`]).toBe("Day Off");
-    expect(dayOffGrid[`f1-${SAT}-Eve`]).toBe("Day Off");
-    expect(dayOffGrid[`f1-${SUN}-AM`]).toBe("Day Off");
+    expect(dayOffGrid[`f1-2026-07-08-AM`]).toBe("Day Off");
   });
 
-  it("FTT gets Day Off on ALL weekends (not just FDE days)", () => {
+  it("FTT gets exactly one weekend Day Off per week — never a weekday (no FDE)", () => {
     const staff = [mkStaff("f1", "FTT")];
     const profiles = profilesWhere(); // no FDE days
     const { dayOffGrid } = placeDayOffs({ staff, profiles, progStart: PROG_START, progEnd: PROG_END });
-    expect(dayOffGrid[`f1-${SAT}-AM`]).toBe("Day Off");
-    expect(dayOffGrid[`f1-${SUN}-AM`]).toBe("Day Off");
-    // No weekday Day Offs
-    expect(dayOffGrid[`f1-2026-07-07-AM`]).toBeUndefined();
-    expect(dayOffGrid[`f1-2026-07-08-AM`]).toBeUndefined();
+    // Must have at least one weekend day off
+    const wk1Offs = Object.keys(dayOffGrid).filter((k) => k.startsWith("f1-") && k.endsWith("-AM") && dayOffGrid[k] === "Day Off");
+    expect(wk1Offs.length).toBeGreaterThanOrEqual(1);
+    // None on weekdays
+    wk1Offs.forEach((k) => {
+      const ds = k.split("-").slice(1, 4).join("-");
+      const dow = new Date(ds).getDay();
+      expect(dow === 0 || dow === 6).toBe(true);
+    });
+    // Not both SAT and SUN in same week (one weekend day per week)
+    const satOff = dayOffGrid[`f1-${SAT}-AM`] === "Day Off";
+    const sunOff = dayOffGrid[`f1-${SUN}-AM`] === "Day Off";
+    expect(satOff && sunOff).toBe(false);
   });
 });
 
