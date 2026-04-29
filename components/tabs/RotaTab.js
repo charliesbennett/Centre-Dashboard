@@ -59,16 +59,14 @@ function canFillArrivalDefault(role) {
   return role === "TAL" || role === "FTT" || role === "5FTT" || ACTIVITY_ROLES.has(role);
 }
 
-function applyArrivalDefaults(grid, staff, arrivalDates) {
+function applyArrivalDefaults(grid, staff, groupArrivalDate) {
+  if (!groupArrivalDate) return grid;
   const out = { ...grid };
   staff.filter((s) => canFillArrivalDefault(s.role)).forEach((s) => {
-    arrivalDates.forEach((ds) => {
-      if (!inRange(ds, s.arr, s.dep) || ds === s.dep) return;
-      const amK = `${s.id}-${ds}-AM`;
-      const pmK = `${s.id}-${ds}-PM`;
-      if (!out[amK]) out[amK] = "Setup";
-      if (!out[pmK]) out[pmK] = "Welcome";
-    });
+    const ds = groupArrivalDate;
+    if (!inRange(ds, s.arr, s.dep) || ds === s.dep) return;
+    const amK = `${s.id}-${ds}-AM`;
+    if (!out[amK]) out[amK] = "Setup";
   });
   return out;
 }
@@ -209,8 +207,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     const { demand, profiles } = buildDemand({ groups, progGrid, progStart: start, progEnd: end });
     const { dayOffGrid } = placeDayOffs({ staff, profiles, fixedGrid, progStart: start, progEnd: end });
     const merged = { ...fixedGrid, ...dayOffGrid };
-    const { grid, shortfalls } = allocateRota({ staff, demand, bindings, fixedGrid: merged, dates: dateStrs });
-    const finalGrid = applyArrivalDefaults(grid, staff, allArrivalDates);
+    const { grid, shortfalls } = allocateRota({ staff, demand, bindings, fixedGrid: merged, dates: dateStrs, profiles });
+    const finalGrid = applyArrivalDefaults(grid, staff, groupArrivalDate);
     setGrid(finalGrid);
     setAllocShortfalls(shortfalls || []);
   };

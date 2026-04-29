@@ -45,7 +45,7 @@ function runPipeline({ staff, groups, progGrid = {} }) {
   const { dayOffGrid } = placeDayOffs({ staff, profiles, fixedGrid, progStart: PROG_START, progEnd: PROG_END });
   const merged = { ...fixedGrid, ...dayOffGrid };
   const dates = Object.keys(demand).sort();
-  const { grid, shortfalls } = allocateRota({ staff, demand, bindings, fixedGrid: merged, dates });
+  const { grid, shortfalls } = allocateRota({ staff, demand, bindings, fixedGrid: merged, dates, profiles });
   return { grid, shortfalls, profiles };
 }
 
