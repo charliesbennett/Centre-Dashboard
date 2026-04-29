@@ -30,9 +30,10 @@ function getGroupLessonSlot(group, dateStr) {
   return weekNum % 2 === 0 ? group.lessonSlot : (group.lessonSlot === "AM" ? "PM" : "AM");
 }
 
-// Get session limit for a role from ROLE_RULES
+const ROLE_DISPLAY = { FOOTBALL: "Football Specialist", PA: "Performing Arts Specialist", Drama: "Performing Arts Specialist" };
+
 function getSessionLimit(role) {
-  const rule = ROLE_RULES[role];
+  const rule = ROLE_RULES[role === "Drama" ? "PA" : role];
   if (!rule) return 24;
   if (rule.salaried) return Infinity; // management uncapped
   return rule.target || 24;
@@ -627,7 +628,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                 return (
                   <tr key={s.id} style={{ borderBottom: "1px solid "+B.borderLight }}>
                     <td style={{ ...tdStyle, position: "sticky", left: 0, background: B.card, zIndex: 1 }}>
-                      <span style={{ background: B.cyanBg, color: B.link, padding: "3px 7px", borderRadius: 4, fontSize: 10, fontWeight: 800 }}>{s.role}</span>
+                      <span style={{ background: B.cyanBg, color: B.link, padding: "3px 7px", borderRadius: 4, fontSize: 10, fontWeight: 800 }}>{ROLE_DISPLAY[s.role] || s.role}</span>
                     </td>
                     <td style={{ ...tdStyle, fontWeight: 700, color: B.text, fontSize: 12, position: "sticky", left: 52, background: B.card, zIndex: 1, whiteSpace: "nowrap" }}>{s.name}</td>
                     <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, fontSize: 12, position: "sticky", left: 192, background: B.card, zIndex: 1, color: over ? B.danger : B.text }}>
