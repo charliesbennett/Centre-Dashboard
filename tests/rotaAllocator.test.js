@@ -101,7 +101,7 @@ describe("allocateRota — session cap", () => {
       });
       days.forEach((ds) => {
         const slots = ["AM", "PM", "Eve"].map((sl) => grid[`${s.id}-${ds}-${sl}`]).filter(Boolean);
-        const counted = slots.filter((v) => !["Day Off", "Office", "Induction"].includes(v));
+        const counted = slots.filter((v) => !["Day Off", "Induction"].includes(v));
         if (counted.length > 2) over.push({ sid: s.id, ds, counted });
       });
     });

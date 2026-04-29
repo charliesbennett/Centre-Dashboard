@@ -159,7 +159,7 @@ describe("rota pipeline — Issue 6: HDE adequately staffed", () => {
 describe("rota pipeline — session cap enforced end-to-end", () => {
   it("no staff has more than 2 counted sessions in a single day", () => {
     const { grid } = runPipeline(standardCentre());
-    const NO_COUNT = new Set(["Day Off", "Office", "Induction"]);
+    const NO_COUNT = new Set(["Day Off", "Induction"]);
     const { staff } = standardCentre();
     const breaches = [];
     const dates = ["2026-07-06","2026-07-07","2026-07-08","2026-07-09","2026-07-10","2026-07-11","2026-07-12","2026-07-13","2026-07-14","2026-07-15","2026-07-16","2026-07-17","2026-07-18"];
@@ -266,7 +266,7 @@ describe("rota pipeline — ZZ centre: FTT covers both AM and PM across groups",
       mkGroup("gB", 15, { lessonSlot: "PM" }),
     ];
     const { grid } = runPipeline({ staff, groups });
-    const NO_COUNT = new Set(["Day Off", "Office", "Induction"]);
+    const NO_COUNT = new Set(["Day Off", "Induction"]);
     const dates = [TUE_WK1, WED_WK1, TUE_WK2];
     ["f1", "f2"].forEach((sid) => {
       dates.forEach((ds) => {

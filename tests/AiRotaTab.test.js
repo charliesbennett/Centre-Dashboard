@@ -219,8 +219,8 @@ describe("NO_COUNT — session counting exclusions", () => {
     expect(NO_COUNT.has("Day Off")).toBe(true);
   });
 
-  it("Office does not count", () => {
-    expect(NO_COUNT.has("Office")).toBe(true);
+  it("Office counts as a session", () => {
+    expect(NO_COUNT.has("Office")).toBe(false);
   });
 
   it("Induction does not count", () => {
@@ -262,7 +262,7 @@ describe("countSessions", () => {
     expect(countSessions(grid, "s1", NO_COUNT)).toBe(3);
   });
 
-  it("Day Off, Office, and Induction do not count", () => {
+  it("Day Off and Induction do not count; Office does count", () => {
     const grid = {
       "s1-2026-07-01-AM": "Day Off",
       "s1-2026-07-01-PM": "Day Off",
@@ -271,7 +271,7 @@ describe("countSessions", () => {
       "s1-2026-07-02-PM": "Induction",
       "s1-2026-07-03-AM": "Lessons",
     };
-    expect(countSessions(grid, "s1", NO_COUNT)).toBe(1);
+    expect(countSessions(grid, "s1", NO_COUNT)).toBe(2);
   });
 
   it("Setup counts as a session", () => {
