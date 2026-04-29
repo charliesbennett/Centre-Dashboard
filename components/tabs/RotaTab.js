@@ -367,7 +367,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     if (vl.includes("lesson") || vl.includes("english test") || vl.includes("testing") || vl.includes("int english") || vl.includes("int eng")) return SESSION_TYPES["Lessons"];
     if (vl.includes("eve activity") || vl.includes("evening activity") || vl.includes("eve ent") || vl.includes("disco") || vl.includes("bbq") || vl.includes("quiz") || vl.includes("karaoke") || vl.includes("film") || vl.includes("talent") || vl.includes("scav")) return SESSION_TYPES["Eve Ents"];
     if (vl.includes("excursion")) return SESSION_TYPES["Excursion"];
-    if (vl.includes("act") || vl.includes("multi")) return SESSION_TYPES["Activities"];
+    if (vl.includes("act") || vl.includes("multi")) return SESSION_TYPES["Multi-Activity"];
     if (vl.includes("half exc")) return SESSION_TYPES["Half Exc"];
     if (vl === "office") return "#94a3b8";
     if (vl === "pickup" || vl === "welcome" || vl === "setup" || vl === "departure duty") return SESSION_TYPES["Setup"];
@@ -667,7 +667,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                               }}
                               style={{ width: "100%", fontSize: 10, padding: "4px", border: "1px solid "+B.navy, borderRadius: 3, fontFamily: "inherit", height: CELL_H }} />
                           ) : col ? (
-                            <div style={{ background: col+"25", color: col, borderRadius: 4, fontSize: 10, fontWeight: 800, height: CELL_H, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", textAlign: "center", lineHeight: 1.2 }} title={v + " — right-click to clear"}>
+                            <div style={{ background: col+"25", color: col, borderRadius: 4, fontSize: v && v.length > 20 ? 8 : 10, fontWeight: 800, height: CELL_H, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", textAlign: "center", lineHeight: 1.2 }} title={v + " — right-click to clear"}>
                               {off ? "Day Off" : v}
                             </div>
                           ) : on ? <div style={{ height: CELL_H }} /> : <div style={{ height: CELL_H, background: "#f0f0f0", borderRadius: 3 }} />}
