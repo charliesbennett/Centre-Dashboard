@@ -88,7 +88,7 @@ function summariseShortfalls(shortfalls) {
   }));
 }
 
-export default function RotaTab({ staff, progStart, progEnd, excDays, groups, rotaGrid, setRotaGrid, progGrid = {}, centreName = "", readOnly = false }) {
+export default function RotaTab({ staff, progStart, progEnd, excDays, groups, rotaGrid, setRotaGrid, progGrid = {}, centreName = "", readOnly = false, rotaStale = false, onRotaStaleCleared }) {
   const B = useB();
   const [showRatios, setShowRatios] = useState(true);
   const [editingCell, setEditingCell] = useState(null);
@@ -211,6 +211,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     const finalGrid = applyArrivalDefaults(grid, staff, groupArrivalDate);
     setGrid(finalGrid);
     setAllocShortfalls(shortfalls || []);
+    onRotaStaleCleared?.();
   };
 
   // ── AI rota generation ────────────────────────────────
@@ -476,6 +477,14 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
         if (!matched) return <div style={{ flexShrink: 0, padding: "4px 16px", background: "#fef9c3", borderBottom: `1px solid #fbbf24`, fontSize: 9, color: "#92400e" }}>⚠ Centre not recognised for induction lookup — using staff arrival date. Centre name: &quot;{centreName}&quot;</div>;
         return <div style={{ flexShrink: 0, padding: "4px 16px", background: "#f0fdf4", borderBottom: `1px solid #bbf7d0`, fontSize: 9, color: "#166534" }}>Induction: {matched} — {inDates.join(", ")}</div>;
       })()}
+
+      {/* ── VBT stale warning ── */}
+      {rotaStale && (
+        <div style={{ flexShrink: 0, padding: "7px 16px", background: "#fef3c7", borderBottom: "1px solid #fde68a", fontSize: 10, color: "#92400e", fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
+          ⚠ Group data was updated from VBT — consider re-generating the rota to reflect the latest student numbers and dates.
+          <button onClick={() => onRotaStaleCleared?.()} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", fontSize: 10, color: "#92400e", fontWeight: 700, fontFamily: "inherit", padding: 0 }}>Dismiss</button>
+        </div>
+      )}
 
       {/* ── Allocator shortfalls (from last Auto-Generate) ── */}
       {allocShortfalls.length > 0 && (

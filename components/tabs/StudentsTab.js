@@ -67,6 +67,36 @@ export function buildStudentRows(groups, roomingAssignments = [], roomingRooms =
   return rows;
 }
 
+export function exportInvoiceXlsx(groups, roomingAssignments, roomingRooms, centreName = "") {
+  const rows = [];
+  (groups || []).filter((g) => !g.archived).forEach((g) => {
+    const people = [
+      ...(g.students || []).map((s) => ({ ...s, personType: "Student" })),
+      ...(g.leaders || []).map((l) => ({ ...l, personType: "Group Leader" })),
+    ];
+    people.forEach((p) => {
+      const arr = p.arrDate || g.arr || "";
+      const dep = p.depDate || g.dep || "";
+      const nights = arr && dep ? Math.round((new Date(dep) - new Date(arr)) / 86400000) : "";
+      const fullName = [p.firstName, p.surname].filter(Boolean).join(" ").trim();
+      const assignment = (roomingAssignments || []).find((a) => a.occupantName?.trim().toLowerCase() === fullName.toLowerCase());
+      const room = assignment ? ((roomingRooms || []).find((r) => r.id === assignment.roomId || r.id === assignment.room_id)?.roomName || "") : "";
+      rows.push({
+        "Group": g.group || "", "Agent": g.agent || "", "Nationality": g.nat || p.nationality || "",
+        "Type": p.personType, "First Name": p.firstName || "", "Surname": p.surname || "",
+        "Arrival": arr, "Departure": dep, "Nights": nights,
+        "Programme": g.prog || "", "Room": room, "Medical": p.medical || "",
+      });
+    });
+  });
+  rows.sort((a, b) => (a.Group || "").localeCompare(b.Group || "") || (a.Surname || "").localeCompare(b.Surname || ""));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Invoice Data");
+  const safeName = (centreName || "export").replace(/[^a-z0-9]/gi, "-");
+  XLSX.writeFile(wb, `invoice-${safeName}-${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
 export function exportStudentsXlsx(groups, roomingAssignments, roomingRooms, centreName = "") {
   const rows = buildStudentRows(groups, roomingAssignments, roomingRooms);
   const ws = XLSX.utils.json_to_sheet(rows);
@@ -77,7 +107,7 @@ export function exportStudentsXlsx(groups, roomingAssignments, roomingRooms, cen
   XLSX.writeFile(wb, `students-${safeName}-${date}.xlsx`);
 }
 
-export default function StudentsTab({ groups = [], setGroups, progStart, progEnd, readOnly = false, userRole = "", roomingAssignments = [], roomingRooms = [], centreName = "" }) {
+export default function StudentsTab({ groups = [], setGroups, progStart, progEnd, readOnly = false, userRole = "", roomingAssignments = [], roomingRooms = [], centreName = "", onGroupUpdated }) {
   const B = useB();
   const [showAdd, setShowAdd] = useState(false);
   const [view, setView] = useState("groups");
@@ -85,6 +115,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
   const [search, setSearch] = useState("");
   const [importMsg, setImportMsg] = useState(null);
   const [importPreview, setImportPreview] = useState(null);
+  const [importDiff, setImportDiff] = useState(null);
   const fileRef = useRef(null);
   const [n, setN] = useState({
     agent: "", group: "", nat: "", stu: 0, gl: 0, arr: "", dep: "",
@@ -267,7 +298,23 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
           students, leaders,
         };
 
-        setImportPreview({ newGroup, students, leaders });
+        // Check if this group already exists (VBT update flow)
+        const existing = groups.find((g) => !g.archived && g.group?.toLowerCase().trim() === (newGroup.group || "").toLowerCase().trim());
+        if (existing) {
+          const changes = [];
+          if (existing.arr !== newGroup.arr) changes.push({ field: "Arrival", was: fmtDate(existing.arr), now: fmtDate(newGroup.arr) });
+          if (existing.dep !== newGroup.dep) changes.push({ field: "Departure", was: fmtDate(existing.dep), now: fmtDate(newGroup.dep) });
+          if (existing.stu !== students.length) changes.push({ field: "Students", was: existing.stu, now: students.length });
+          if (existing.gl !== leaders.length) changes.push({ field: "Group Leaders", was: existing.gl, now: leaders.length });
+          const exNames = new Set((existing.students || []).map((s) => `${s.firstName} ${s.surname}`.toLowerCase().trim()));
+          const newNames = new Set(students.map((s) => `${s.firstName} ${s.surname}`.toLowerCase().trim()));
+          const added = students.filter((s) => !exNames.has(`${s.firstName} ${s.surname}`.toLowerCase().trim()));
+          const removed = (existing.students || []).filter((s) => !newNames.has(`${s.firstName} ${s.surname}`.toLowerCase().trim()));
+          const rotaRelevant = changes.some((c) => ["Arrival", "Departure", "Students"].includes(c.field));
+          setImportDiff({ existingGroup: existing, newGroup, students, leaders, changes, added, removed, rotaRelevant });
+        } else {
+          setImportPreview({ newGroup, students, leaders });
+        }
       } catch (err) {
         console.error("Import error:", err);
         setImportMsg({ type: "error", text: "Import failed: " + err.message });
@@ -315,6 +362,81 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
 
   return (
     <div>
+      {/* ── VBT update diff modal ───────────────────────── */}
+      {importDiff && (() => {
+        const { existingGroup, newGroup, students, leaders, changes, added, removed, rotaRelevant } = importDiff;
+        const noChanges = changes.length === 0 && added.length === 0 && removed.length === 0;
+        const applyUpdate = () => {
+          setGroups((prev) => prev.map((g) => g.id === existingGroup.id
+            ? { ...g, ...newGroup, id: g.id, stu: students.length, gl: leaders.length, students, leaders }
+            : g
+          ));
+          if (rotaRelevant) onGroupUpdated?.();
+          const msg = noChanges ? `No changes detected in "${existingGroup.group}"` : `Updated "${existingGroup.group}" — ${changes.length} field change${changes.length !== 1 ? "s" : ""}${added.length ? `, +${added.length} student${added.length !== 1 ? "s" : ""}` : ""}${removed.length ? `, -${removed.length} student${removed.length !== 1 ? "s" : ""}` : ""}`;
+          setImportMsg({ type: "success", text: msg });
+          setTimeout(() => setImportMsg(null), 8000);
+          setImportDiff(null);
+          if (fileRef.current) fileRef.current.value = "";
+        };
+        return (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+            <div style={{ background: B.card, borderRadius: 14, width: "100%", maxWidth: 480, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+              <div style={{ background: B.navy, padding: "14px 18px", flexShrink: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>Update from VBT — {existingGroup.group}</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>Review changes before applying to the dashboard</div>
+              </div>
+              <div style={{ padding: "18px 20px", overflowY: "auto", flex: 1 }}>
+                {noChanges ? (
+                  <p style={{ fontSize: 12, color: B.textMuted, margin: 0 }}>No changes detected — the dashboard already matches this VBT export.</p>
+                ) : <>
+                  {changes.length > 0 && (
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: B.text, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Group details</div>
+                      {changes.map((c, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", borderBottom: "1px solid " + B.borderLight, fontSize: 12 }}>
+                          <span style={{ width: 110, color: B.textMuted, fontWeight: 600, flexShrink: 0 }}>{c.field}</span>
+                          <span style={{ color: B.danger, textDecoration: "line-through" }}>{c.was ?? "—"}</span>
+                          <span style={{ color: B.textMuted }}>→</span>
+                          <span style={{ color: B.success, fontWeight: 700 }}>{c.now ?? "—"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {added.length > 0 && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: B.success, textTransform: "uppercase", marginBottom: 6 }}>+ {added.length} added</div>
+                      {added.slice(0, 6).map((s, i) => <div key={i} style={{ fontSize: 11, color: B.text, padding: "1px 0" }}>{s.firstName} {s.surname}</div>)}
+                      {added.length > 6 && <div style={{ fontSize: 11, color: B.textMuted }}>+{added.length - 6} more</div>}
+                    </div>
+                  )}
+                  {removed.length > 0 && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: B.danger, textTransform: "uppercase", marginBottom: 6 }}>− {removed.length} removed</div>
+                      {removed.slice(0, 6).map((s, i) => <div key={i} style={{ fontSize: 11, color: B.textMuted, padding: "1px 0" }}>{s.firstName} {s.surname}</div>)}
+                      {removed.length > 6 && <div style={{ fontSize: 11, color: B.textMuted }}>+{removed.length - 6} more</div>}
+                    </div>
+                  )}
+                  {rotaRelevant && (
+                    <div style={{ background: "#fef3c7", borderRadius: 8, padding: "10px 12px", fontSize: 11, color: "#92400e", fontWeight: 600 }}>
+                      ⚠ Student count or dates changed — consider re-generating the rota after applying.
+                    </div>
+                  )}
+                </>}
+              </div>
+              <div style={{ padding: "12px 20px 18px", display: "flex", gap: 8, flexShrink: 0, borderTop: "1px solid " + B.borderLight }}>
+                <button onClick={applyUpdate} style={{ flex: 1, padding: "10px", background: B.navy, border: "none", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>
+                  {noChanges ? "Confirm (no changes)" : "Apply Changes"}
+                </button>
+                <button onClick={() => { setImportDiff(null); if (fileRef.current) fileRef.current.value = ""; }}
+                  style={{ padding: "10px 16px", background: B.bg, border: "1px solid " + B.border, color: B.textMuted, borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── Import preview modal ─────────────────────────── */}
       {importPreview && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
@@ -481,6 +603,11 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
           {["centre_manager", "head_office", "course_director", "excursion_activity_manager", "safeguarding_welfare"].includes(userRole) && (
             <button onClick={() => exportStudentsXlsx(groups, roomingAssignments, roomingRooms, centreName)} style={{ padding: "6px 12px", background: B.success, border: "none", color: B.white, borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
               ↓ Export Excel
+            </button>
+          )}
+          {["centre_manager", "head_office"].includes(userRole) && (
+            <button onClick={() => exportInvoiceXlsx(groups, roomingAssignments, roomingRooms, centreName)} style={{ padding: "6px 12px", background: "#7c3aed", border: "none", color: B.white, borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
+              ↓ Invoice Export
             </button>
           )}
           {!readOnly && <>
