@@ -223,3 +223,59 @@ describe("rota pipeline — shortfalls when staff inadequate", () => {
     expect(shortfalls.some((s) => s.reason === "Lessons")).toBe(true);
   });
 });
+
+describe("rota pipeline — ZZ centre: FTT covers both AM and PM across groups", () => {
+  // ZZ centres have groups with different lesson slots, so there is always
+  // both AM and PM lesson demand on teaching days. FTTs must cover both.
+  it("FTT teaches AM on days group-A has AM lessons and PM on days group-A has PM lessons", () => {
+    const staff = [
+      mkStaff("f1", "FTT"), mkStaff("f2", "FTT"),
+      mkStaff("t1", "TAL"), mkStaff("t2", "TAL"),
+      mkStaff("a1", "SAI"),
+    ];
+    // Group A: starts AM → week1=AM, week2=PM
+    // Group B: starts PM → week1=PM, week2=AM
+    // Every teaching day has both AM and PM lesson demand
+    const groups = [
+      mkGroup("gA", 15, { lessonSlot: "AM" }),
+      mkGroup("gB", 15, { lessonSlot: "PM" }),
+    ];
+    const { grid } = runPipeline({ staff, groups });
+    const fttIds = ["f1", "f2"];
+
+    // Week 1: gA → AM, gB → PM → both slots have demand
+    const fttWk1AM = fttIds.some((id) => grid[`${id}-${TUE_WK1}-AM`] === "Lessons");
+    const fttWk1PM = fttIds.some((id) => grid[`${id}-${TUE_WK1}-PM`] === "Lessons");
+    expect(fttWk1AM).toBe(true);
+    expect(fttWk1PM).toBe(true);
+
+    // Week 2: gA → PM, gB → AM → both slots still have demand
+    const fttWk2AM = fttIds.some((id) => grid[`${id}-${TUE_WK2}-AM`] === "Lessons");
+    const fttWk2PM = fttIds.some((id) => grid[`${id}-${TUE_WK2}-PM`] === "Lessons");
+    expect(fttWk2AM).toBe(true);
+    expect(fttWk2PM).toBe(true);
+  });
+
+  it("FTTs do not exceed 2 sessions in a day even when covering both slots", () => {
+    const staff = [
+      mkStaff("f1", "FTT"), mkStaff("f2", "FTT"),
+      mkStaff("t1", "TAL"), mkStaff("t2", "TAL"),
+    ];
+    const groups = [
+      mkGroup("gA", 15, { lessonSlot: "AM" }),
+      mkGroup("gB", 15, { lessonSlot: "PM" }),
+    ];
+    const { grid } = runPipeline({ staff, groups });
+    const NO_COUNT = new Set(["Day Off", "Office", "Induction"]);
+    const dates = [TUE_WK1, WED_WK1, TUE_WK2];
+    ["f1", "f2"].forEach((sid) => {
+      dates.forEach((ds) => {
+        const counted = ["AM", "PM", "Eve"].filter((sl) => {
+          const v = grid[`${sid}-${ds}-${sl}`];
+          return v && !NO_COUNT.has(v);
+        });
+        expect(counted.length).toBeLessThanOrEqual(2);
+      });
+    });
+  });
+});
