@@ -30,10 +30,10 @@ function getGroupLessonSlot(group, dateStr) {
   return weekNum % 2 === 0 ? group.lessonSlot : (group.lessonSlot === "AM" ? "PM" : "AM");
 }
 
-const ROLE_DISPLAY = { FOOTBALL: "Football Specialist", PA: "Performing Arts Specialist", Drama: "Performing Arts Specialist" };
+const ROLE_DISPLAY = { FOOTBALL: "Football Specialist", PA: "Performing Arts Specialist", Drama: "Performing Arts Specialist", DRAMA: "Performing Arts Specialist" };
 
 function getSessionLimit(role) {
-  const rule = ROLE_RULES[role === "Drama" ? "PA" : role];
+  const rule = ROLE_RULES[(role === "Drama" || role === "DRAMA") ? "PA" : role];
   if (!rule) return 24;
   if (rule.salaried) return Infinity; // management uncapped
   return rule.target || 24;
