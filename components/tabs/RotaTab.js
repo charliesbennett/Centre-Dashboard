@@ -502,15 +502,6 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       {/* ── Inline alerts / info strip ───────────────────── */}
       {(hasRotaData || showRatios) && (
         <div style={{ flexShrink: 0, borderBottom: `1px solid ${B.border}` }}>
-          {hasRotaData && groups && groups.length > 0 && (
-            <div style={{ padding: "4px 16px", background: B.cyanBg, fontSize: 9, color: B.cyan, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-              <span style={{ fontWeight: 700 }}>Lesson slots (Wk1):</span>
-              {groups.map((g) => (
-                <span key={g.id}><strong>{g.group}</strong>: {g.lessonSlot || "AM"} ({g.stu} stu)</span>
-              ))}
-              <span style={{ color: "#64748b" }}>· Set in Students tab · Auto-flips weekly</span>
-            </div>
-          )}
           {showRatios && (
             <div style={{ padding: "4px 16px" }}>
               {groups && groups.length > 0 ? (
@@ -625,59 +616,78 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
             )}
             {fortnightStaff.length === 0 ? (
               <tr><td colSpan={4 + dates.length * 3} style={{ textAlign: "center", padding: 36, color: B.textLight }}>{staff.length === 0 ? "Add staff in Team tab, then Auto-Generate" : "No staff on site during this fortnight"}</td></tr>
-            ) : fortnightStaff.map((s) => {
-              const st = getStats(s.id);
-              const limit = getSessionLimit(s.role);
-              const over = limit !== Infinity && limit > 0 && st.sess > limit;
-
+            ) : (() => {
+              const MGMT_ROLES = new Set(["CM", "CD", "EAM", "SWC"]);
+              const regularStaff = fortnightStaff.filter((s) => !MGMT_ROLES.has(s.role));
+              const mgmtStaff = fortnightStaff.filter((s) => MGMT_ROLES.has(s.role));
+              const renderRow = (s) => {
+                const st = getStats(s.id);
+                const limit = getSessionLimit(s.role);
+                const over = limit !== Infinity && limit > 0 && st.sess > limit;
+                return (
+                  <tr key={s.id} style={{ borderBottom: "1px solid "+B.borderLight }}>
+                    <td style={{ ...tdStyle, position: "sticky", left: 0, background: B.card, zIndex: 1 }}>
+                      <span style={{ background: B.cyanBg, color: B.link, padding: "3px 7px", borderRadius: 4, fontSize: 10, fontWeight: 800 }}>{s.role}</span>
+                    </td>
+                    <td style={{ ...tdStyle, fontWeight: 700, color: B.text, fontSize: 12, position: "sticky", left: 52, background: B.card, zIndex: 1, whiteSpace: "nowrap" }}>{s.name}</td>
+                    <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, fontSize: 12, position: "sticky", left: 192, background: B.card, zIndex: 1, color: over ? B.danger : B.text }}>
+                      {st.sess}{limit !== Infinity && limit > 0 ? `/${limit}` : ""}
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700, fontSize: 12, position: "sticky", left: 236, background: B.card, zIndex: 1, color: st.offs > 0 ? "#f59e0b" : B.textLight }}>{st.offs}</td>
+                    {dates.map((d) => {
+                      const ds = dayKey(d);
+                      const on = inRange(ds, s.arr, s.dep) || SLOTS.some((sl) => fixedGrid[s.id+"-"+ds+"-"+sl]);
+                      return SLOTS.map((sl) => {
+                        const key = s.id+"-"+ds+"-"+sl;
+                        const v = grid[key];
+                        const off = v === "Day Off";
+                        const col = cellColor(v, sl);
+                        const isEd = editingCell === key;
+                        return (
+                          <td key={key}
+                            onClick={() => !readOnly && on && !isEd && startEdit(key, v)}
+                            onContextMenu={(e) => { if (readOnly || !v) return; e.preventDefault(); clearCell(key); }}
+                            style={{
+                              padding: "1px", borderLeft: sl === "AM" ? "2px solid "+B.border : "1px solid "+B.borderLight,
+                              textAlign: "center", cursor: on ? "pointer" : "default",
+                              minWidth: CELL_W, background: !on ? "#f5f5f5" : off ? "#f59e0b10" : "transparent",
+                            }}>
+                            {isEd ? (
+                              <input autoFocus value={editValue} onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={commitEdit}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") { e.preventDefault(); commitEdit(); }
+                                  else if (e.key === "Escape") { e.preventDefault(); cancelEdit(); }
+                                }}
+                                style={{ width: "100%", fontSize: 10, padding: "4px", border: "1px solid "+B.navy, borderRadius: 3, fontFamily: "inherit", height: CELL_H }} />
+                            ) : col ? (
+                              <div style={{ background: col+"25", color: col, borderRadius: 4, fontSize: v && v.length > 20 ? 8 : 10, fontWeight: 800, height: CELL_H, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", textAlign: "center", lineHeight: 1.2 }} title={v + " — right-click to clear"}>
+                                {off ? "Day Off" : v}
+                              </div>
+                            ) : on ? <div style={{ height: CELL_H }} /> : <div style={{ height: CELL_H, background: "#f0f0f0", borderRadius: 3 }} />}
+                          </td>
+                        );
+                      });
+                    })}
+                  </tr>
+                );
+              };
               return (
-                <tr key={s.id} style={{ borderBottom: "1px solid "+B.borderLight }}>
-                  <td style={{ ...tdStyle, position: "sticky", left: 0, background: B.card, zIndex: 1 }}>
-                    <span style={{ background: B.cyanBg, color: B.link, padding: "3px 7px", borderRadius: 4, fontSize: 10, fontWeight: 800 }}>{s.role}</span>
-                  </td>
-                  <td style={{ ...tdStyle, fontWeight: 700, color: B.text, fontSize: 12, position: "sticky", left: 52, background: B.card, zIndex: 1, whiteSpace: "nowrap" }}>{s.name}</td>
-                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, fontSize: 12, position: "sticky", left: 192, background: B.card, zIndex: 1, color: over ? B.danger : B.text }}>
-                    {st.sess}{limit !== Infinity && limit > 0 ? `/${limit}` : ""}
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700, fontSize: 12, position: "sticky", left: 236, background: B.card, zIndex: 1, color: st.offs > 0 ? "#f59e0b" : B.textLight }}>{st.offs}</td>
-                  {dates.map((d) => {
-                    const ds = dayKey(d);
-                    const on = inRange(ds, s.arr, s.dep) || SLOTS.some((sl) => fixedGrid[s.id+"-"+ds+"-"+sl]);
-                    return SLOTS.map((sl) => {
-                      const key = s.id+"-"+ds+"-"+sl;
-                      const v = grid[key];
-                      const off = v === "Day Off";
-                      const col = cellColor(v, sl);
-                      const isEd = editingCell === key;
-                      return (
-                        <td key={key}
-                          onClick={() => !readOnly && on && !isEd && startEdit(key, v)}
-                          onContextMenu={(e) => { if (readOnly || !v) return; e.preventDefault(); clearCell(key); }}
-                          style={{
-                            padding: "1px", borderLeft: sl === "AM" ? "2px solid "+B.border : "1px solid "+B.borderLight,
-                            textAlign: "center", cursor: on ? "pointer" : "default",
-                            minWidth: CELL_W, background: !on ? "#f5f5f5" : off ? "#f59e0b10" : "transparent",
-                          }}>
-                          {isEd ? (
-                            <input autoFocus value={editValue} onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={commitEdit}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") { e.preventDefault(); commitEdit(); }
-                                else if (e.key === "Escape") { e.preventDefault(); cancelEdit(); }
-                              }}
-                              style={{ width: "100%", fontSize: 10, padding: "4px", border: "1px solid "+B.navy, borderRadius: 3, fontFamily: "inherit", height: CELL_H }} />
-                          ) : col ? (
-                            <div style={{ background: col+"25", color: col, borderRadius: 4, fontSize: v && v.length > 20 ? 8 : 10, fontWeight: 800, height: CELL_H, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", textAlign: "center", lineHeight: 1.2 }} title={v + " — right-click to clear"}>
-                              {off ? "Day Off" : v}
-                            </div>
-                          ) : on ? <div style={{ height: CELL_H }} /> : <div style={{ height: CELL_H, background: "#f0f0f0", borderRadius: 3 }} />}
+                <>
+                  {regularStaff.map(renderRow)}
+                  {mgmtStaff.length > 0 && (
+                    <>
+                      <tr>
+                        <td colSpan={4 + dates.length * 3} style={{ background: B.navy, color: B.white, fontWeight: 800, fontSize: 11, padding: "6px 12px", letterSpacing: "0.05em", textTransform: "uppercase", position: "sticky", left: 0 }}>
+                          Management Team
                         </td>
-                      );
-                    });
-                  })}
-                </tr>
+                      </tr>
+                      {mgmtStaff.map(renderRow)}
+                    </>
+                  )}
+                </>
               );
-            })}
+            })()}
           </tbody>
         </table>
       </div>
