@@ -652,7 +652,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                       return (
                         <td key={key}
                           onClick={() => !readOnly && on && !isEd && startEdit(key, v)}
-                          onContextMenu={(e) => { if (readOnly || !on || !v) return; e.preventDefault(); clearCell(key); }}
+                          onContextMenu={(e) => { if (readOnly || !v) return; e.preventDefault(); clearCell(key); }}
                           style={{
                             padding: "1px", borderLeft: sl === "AM" ? "2px solid "+B.border : "1px solid "+B.borderLight,
                             textAlign: "center", cursor: on ? "pointer" : "default",
