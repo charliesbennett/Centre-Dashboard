@@ -205,7 +205,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     const dateStrs = dates.map((d) => dayKey(d));
     const fixedGrid = buildFixedGrid(staff, dates, groupArrivalDate, progStart, centreName);
     const bindings = bindTals({ staff, groups });
-    const { demand, profiles } = buildDemand({ groups, progGrid, progStart: start, progEnd: end });
+    const isZZ = staff.some((s) => s.role === "FTT" || s.role === "5FTT");
+    const { demand, profiles } = buildDemand({ groups, progGrid, progStart: start, progEnd: end, isZZ });
     const { dayOffGrid } = placeDayOffs({ staff, profiles, fixedGrid, progStart: start, progEnd: end });
     const merged = { ...fixedGrid, ...dayOffGrid };
     const { grid, shortfalls } = allocateRota({ staff, demand, bindings, fixedGrid: merged, dates: dateStrs, profiles });
