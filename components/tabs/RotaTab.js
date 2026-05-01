@@ -53,7 +53,8 @@ function onSiteDateStrs(s, dates) {
 function buildFixedGrid(staff, dates, groupArrivalDate, progStart, centreName) {
   const progYear = progStart ? new Date(progStart).getFullYear() : new Date().getFullYear();
   const dateStrs = dates.map((d) => dayKey(d));
-  return buildFixedGridPure(staff, dateStrs, groupArrivalDate, progYear, centreName);
+  const effectiveArrival = groupArrivalDate || progStart || null;
+  return buildFixedGridPure(staff, dateStrs, effectiveArrival, progYear, centreName);
 }
 
 function canFillArrivalDefault(role) {
@@ -141,11 +142,17 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
   );
   const grid = useMemo(() => {
     const merged = { ...rotaGrid };
+    const arrivalCutoff = groupArrivalDate || progStart || null;
     // Remove stale Induction cells on programme dates where fixedGrid has no entry at all
     // (e.g. old July 6 Induction in Supabase). Don't remove where fixedGrid has Setup etc —
     // that means the user intentionally typed Induction into a pre-contract slot.
     Object.keys(merged).forEach((k) => {
       if (merged[k] === "Induction" && !fixedGrid[k]) delete merged[k];
+      // Clear stale Setup on teaching days (>= group/programme arrival) saved from old runs.
+      if (merged[k] === "Setup" && !fixedGrid[k] && arrivalCutoff) {
+        const m = k.match(/-(\d{4}-\d{2}-\d{2})-(?:AM|PM|Eve)$/);
+        if (m && m[1] >= arrivalCutoff) delete merged[k];
+      }
     });
     // Apply fixedGrid: Induction always forces; Setup/Airport/DayOff only fill empty cells
     // (so user-typed values in rotaGrid are never overwritten by soft defaults)
@@ -154,7 +161,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       if (v === "Induction" || !merged[k]) merged[k] = v;
     });
     return merged;
-  }, [rotaGrid, fixedGrid, clearedCells]);
+  }, [rotaGrid, fixedGrid, clearedCells, groupArrivalDate, progStart]);
 
   // ── Lesson demand per slot per day ────────────────────
   const lessonDemand = useMemo(() => {
