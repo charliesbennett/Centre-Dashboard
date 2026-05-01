@@ -48,12 +48,12 @@ describe("placeDayOffs — guards", () => {
 });
 
 describe("placeDayOffs — FTT on FDE", () => {
-  it("FTT gets Day Off on FDE weekdays", () => {
+  it("FTT does NOT get automatic Day Off on FDE weekdays (uses weekend-only weekly algorithm)", () => {
     const staff = [mkStaff("f1", "FTT")];
-    // FDE on a Wednesday (weekday)
+    // FDE on a Wednesday (weekday) — FTTs should still be at work, not auto day-off
     const profiles = profilesWhere({ "2026-07-08": { isFDE: true, students: 60 } });
     const { dayOffGrid } = placeDayOffs({ staff, profiles, progStart: PROG_START, progEnd: PROG_END });
-    expect(dayOffGrid[`f1-2026-07-08-AM`]).toBe("Day Off");
+    expect(dayOffGrid[`f1-2026-07-08-AM`]).toBeUndefined();
   });
 
   it("FTT gets exactly one weekend Day Off per week — never a weekday (no FDE)", () => {
