@@ -70,33 +70,34 @@ describe("applyFixedForStaff — induction on centre dates", () => {
 // ── applyFixedForStaff: Setup placement ───────────────────────────────────
 
 describe("applyFixedForStaff — Setup placement", () => {
-  it("places Setup on contracted days before group arrival (after induction)", () => {
+  it("places Induction on first contracted day, then Setup before group arrival", () => {
+    // Induction on 30 Jun, but staff arrives 1 Jul (after induction). Since all configured
+    // induction dates are before arrival, staff gets Induction on their first on-site day
+    // (1 Jul) and Setup Jul 2–5 before group arrival on 6 Jul.
     const s = mkStaff("t1", { arr: "2026-07-01" });
     const dates = range("2026-06-30", "2026-07-07");
     const fixed = {};
-    // Induction on 30 Jun, contracted from 1 Jul, groups arrive 6 Jul
     applyFixedForStaff(fixed, s, dates, "2026-07-06", NO_TO, noOff, ["2026-06-30"]);
-    expect(fixed["t1-2026-07-01-AM"]).toBe("Setup");
+    expect(fixed["t1-2026-07-01-AM"]).toBe("Induction");
     expect(fixed["t1-2026-07-02-AM"]).toBe("Setup");
     expect(fixed["t1-2026-07-05-AM"]).toBe("Setup");
     expect(fixed["t1-2026-07-06-AM"]).toBeUndefined(); // group arrival — no setup
   });
 
-  it("places Induction on configured dates + Setup between last induction and contracted arrival", () => {
-    // Staff arrives 5 Jul; induction was 30 Jun + 1 Jul (pre-contract attendance).
-    // 30 Jun / 1 Jul → Induction (pre-contract). Days 2–4 Jul → Setup. 5 Jul → Setup (before group arrival 6 Jul).
+  it("places Induction on first contracted day + pre-contract Setup between last induction and arrival", () => {
+    // Staff arrives 5 Jul; induction was 30 Jun + 1 Jul (all before arrival).
+    // Since all configured dates are before arrival, staff gets Induction on 5 Jul (first day).
+    // Pre-contract Setup fills days 2–4 Jul (between last induction 1 Jul and contracted start 5 Jul).
     const s = mkStaff("t1", { arr: "2026-07-05" });
     const dates = range("2026-06-30", "2026-07-09");
     const fixed = {};
     applyFixedForStaff(fixed, s, dates, "2026-07-06", NO_TO, noOff, ["2026-06-30", "2026-07-01"]);
-    expect(fixed["t1-2026-06-30-AM"]).toBe("Induction");
-    expect(fixed["t1-2026-06-30-PM"]).toBe("Induction");
-    expect(fixed["t1-2026-07-01-AM"]).toBe("Induction");
-    expect(fixed["t1-2026-07-01-PM"]).toBe("Induction");
-    expect(fixed["t1-2026-07-02-AM"]).toBe("Setup");
+    expect(fixed["t1-2026-06-30-AM"]).toBeUndefined(); // before arrival — no entry
+    expect(fixed["t1-2026-07-01-AM"]).toBeUndefined(); // before arrival — no entry
+    expect(fixed["t1-2026-07-02-AM"]).toBe("Setup");   // pre-contract Setup
     expect(fixed["t1-2026-07-03-AM"]).toBe("Setup");
     expect(fixed["t1-2026-07-04-AM"]).toBe("Setup");
-    expect(fixed["t1-2026-07-05-AM"]).toBe("Setup");
+    expect(fixed["t1-2026-07-05-AM"]).toBe("Induction"); // first contracted day
   });
 
   it("does not place Setup on or after group arrival", () => {
@@ -178,13 +179,15 @@ describe("buildFixedGrid — Reaseheath induction (30 Jun + 1 Jul)", () => {
     expect(fixed["t3-2026-07-10-AM"]).toBe("Induction");
   });
 
-  it("t4 (arrives same day as groups, 6 Jul) still gets Induction on 30 Jun + 1 Jul", () => {
+  it("t4 (arrives same day as groups, 6 Jul) gets Induction on first on-site day (6 Jul)", () => {
+    // All configured induction dates (30 Jun, 1 Jul) are before t4's arrival (6 Jul),
+    // so t4 gets Induction on their first on-site day instead.
     const dates = range("2026-06-30", "2026-07-13");
     const fixed = buildFixedGrid(STAFF, dates, GROUP_ARRIVAL, PROG_YEAR, "Nantwich — Reaseheath College");
-    expect(fixed["t4-2026-06-30-AM"]).toBe("Induction");
-    expect(fixed["t4-2026-06-30-PM"]).toBe("Induction");
-    expect(fixed["t4-2026-07-01-AM"]).toBe("Induction");
-    expect(fixed["t4-2026-07-01-PM"]).toBe("Induction");
+    expect(fixed["t4-2026-06-30-AM"]).toBeUndefined();
+    expect(fixed["t4-2026-07-01-AM"]).toBeUndefined();
+    expect(fixed["t4-2026-07-06-AM"]).toBe("Induction");
+    expect(fixed["t4-2026-07-06-PM"]).toBe("Induction");
   });
 
   it("in second fortnight, t1 gets NO Induction (already had it)", () => {
