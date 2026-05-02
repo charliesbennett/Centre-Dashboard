@@ -647,7 +647,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
                       const on = inRange(ds, s.arr, s.dep) || SLOTS.some((sl) => fixedGrid[s.id+"-"+ds+"-"+sl]);
                       return SLOTS.map((sl) => {
                         const key = s.id+"-"+ds+"-"+sl;
-                        const v = grid[key];
+                        const v = on ? grid[key] : undefined;
                         const off = v === "Day Off";
                         const col = cellColor(v, sl);
                         const isEd = editingCell === key;
