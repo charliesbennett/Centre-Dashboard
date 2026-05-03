@@ -173,10 +173,15 @@ describe("buildFixedGrid — Reaseheath induction (30 Jun + 1 Jul)", () => {
     expect(fixed["t2-2026-07-01-AM"]).toBe("Induction");
   });
 
-  it("t3 (late joiner, arrives 10 Jul) gets Induction on 10 Jul", () => {
+  it("t3 (late joiner, arrives 10 Jul) gets Induction on 10 Jul and NO pre-contract Setup", () => {
     const dates = range("2026-07-06", "2026-07-19");
     const fixed = buildFixedGrid(STAFF, dates, GROUP_ARRIVAL, PROG_YEAR, "Nantwich — Reaseheath College");
     expect(fixed["t3-2026-07-10-AM"]).toBe("Induction");
+    // No Setup before arrival — late joiners were not on site during setup period
+    expect(fixed["t3-2026-07-06-AM"]).toBeUndefined();
+    expect(fixed["t3-2026-07-07-AM"]).toBeUndefined();
+    expect(fixed["t3-2026-07-08-AM"]).toBeUndefined();
+    expect(fixed["t3-2026-07-09-AM"]).toBeUndefined();
   });
 
   it("t4 (arrives same day as groups, 6 Jul) gets Induction on first on-site day (6 Jul)", () => {
@@ -195,6 +200,27 @@ describe("buildFixedGrid — Reaseheath induction (30 Jun + 1 Jul)", () => {
     const fixed = buildFixedGrid(STAFF, dates, GROUP_ARRIVAL, PROG_YEAR, "Nantwich — Reaseheath College");
     expect(fixed["t1-2026-07-14-AM"]).toBeUndefined();
     expect(fixed["t1-2026-07-14-PM"]).toBeUndefined();
+  });
+});
+
+// ── buildFixedGrid: Dean Close / late joiner scenario (Tom's case) ────────
+describe("buildFixedGrid — Dean Close, late joiner arrives after group arrival", () => {
+  // Groups arrive 8 Jul; Tom contracted from 13 Jul (week 2 Monday).
+  // Induction dates 5-6 Jul are before Tom's arrival — Tom is a true late joiner.
+  const STAFF = [{ id: "tom", role: "FTT", arr: "2026-07-13", dep: "2026-08-05" }];
+  const GROUP_ARRIVAL = "2026-07-08";
+  const PROG_YEAR = 2026;
+
+  it("Tom gets Induction on 13 Jul (first on-site day), no Setup before that", () => {
+    const dates = range("2026-07-06", "2026-07-19");
+    const fixed = buildFixedGrid(STAFF, dates, GROUP_ARRIVAL, PROG_YEAR, "Cheltenham — Dean Close School");
+    expect(fixed["tom-2026-07-13-AM"]).toBe("Induction");
+    expect(fixed["tom-2026-07-13-PM"]).toBe("Induction");
+    // No pre-contract Setup: Tom was not on site during setup period
+    expect(fixed["tom-2026-07-07-AM"]).toBeUndefined();
+    expect(fixed["tom-2026-07-08-AM"]).toBeUndefined();
+    expect(fixed["tom-2026-07-09-AM"]).toBeUndefined();
+    expect(fixed["tom-2026-07-12-AM"]).toBeUndefined();
   });
 });
 
