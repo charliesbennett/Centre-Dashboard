@@ -482,8 +482,12 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       {(() => {
         const matched = getMatchedCentreName(centreName);
         const inDates = getAllInductionDates(centreName);
-        if (!matched) return <div style={{ flexShrink: 0, padding: "4px 16px", background: "#fef9c3", borderBottom: `1px solid #fbbf24`, fontSize: 9, color: "#92400e" }}>⚠ Centre not recognised for induction lookup — using staff arrival date. Centre name: &quot;{centreName}&quot;</div>;
-        return <div style={{ flexShrink: 0, padding: "4px 16px", background: "#f0fdf4", borderBottom: `1px solid #bbf7d0`, fontSize: 9, color: "#166534" }}>Induction: {matched} — {inDates.join(", ")}</div>;
+        const dbg = staff.filter(s => s.role === "FTT" || s.role === "TAL").map(s => {
+          const keys = Object.keys(fixedGrid).filter(k => k.startsWith(s.id + "-")).sort().slice(0, 6);
+          return `${s.name||s.id}(arr=${s.arr}): ${keys.map(k => k.replace(s.id+"-","") + "=" + fixedGrid[k]).join(", ")}`;
+        }).join(" | ");
+        if (!matched) return <div style={{ flexShrink: 0, padding: "4px 16px", background: "#fef9c3", borderBottom: `1px solid #fbbf24`, fontSize: 9, color: "#92400e" }}>⚠ Centre not recognised — using arrival date. Centre: &quot;{centreName}&quot; | {dbg}</div>;
+        return <div style={{ flexShrink: 0, padding: "4px 16px", background: "#f0fdf4", borderBottom: `1px solid #bbf7d0`, fontSize: 9, color: "#166534" }}>Induction: {matched} — {inDates.join(", ")} | {dbg}</div>;
       })()}
 
       {/* ── VBT stale warning ── */}
