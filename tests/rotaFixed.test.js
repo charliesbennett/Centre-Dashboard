@@ -203,6 +203,21 @@ describe("buildFixedGrid — Reaseheath induction (30 Jun + 1 Jul)", () => {
   });
 });
 
+// ── applyFixedForStaff: staff arriving on group arrival day ───────────────
+describe("applyFixedForStaff — arrives on group arrival day", () => {
+  it("gets Induction on arrival day, no pre-contract Setup the day before", () => {
+    // Induction 5-6 Jul, students arrive 8 Jul, staff also arrives 8 Jul.
+    // July 7 should NOT show Setup — staff are not on site yet.
+    const s = mkStaff("t1", { arr: "2026-07-08" });
+    const dates = range("2026-07-05", "2026-07-12");
+    const fixed = {};
+    applyFixedForStaff(fixed, s, dates, "2026-07-08", NO_TO, noOff, ["2026-07-05", "2026-07-06"]);
+    expect(fixed["t1-2026-07-07-AM"]).toBeUndefined(); // not on site — no Setup
+    expect(fixed["t1-2026-07-07-PM"]).toBeUndefined();
+    expect(fixed["t1-2026-07-08-AM"]).toBe("Induction"); // first on-site day
+  });
+});
+
 // ── buildFixedGrid: Dean Close / late joiner scenario (Tom's case) ────────
 describe("buildFixedGrid — Dean Close, late joiner arrives after group arrival", () => {
   // Groups arrive 8 Jul; Tom contracted from 13 Jul (week 2 Monday).
