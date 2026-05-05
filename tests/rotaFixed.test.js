@@ -184,15 +184,16 @@ describe("buildFixedGrid — Reaseheath induction (30 Jun + 1 Jul)", () => {
     expect(fixed["t3-2026-07-09-AM"]).toBeUndefined();
   });
 
-  it("t4 (arrives same day as groups, 6 Jul) gets Induction on first on-site day (6 Jul)", () => {
-    // All configured induction dates (30 Jun, 1 Jul) are before t4's arrival (6 Jul),
-    // so t4 gets Induction on their first on-site day instead.
+  it("t4 (arrives same day as groups, 6 Jul) gets pre-contract Induction 30 Jun + 1 Jul", () => {
+    // t4's contract starts on group arrival day (6 Jul) — same pattern as Cheltenham staff.
+    // They attend induction pre-contract on the configured dates (30 Jun, 1 Jul).
     const dates = range("2026-06-30", "2026-07-13");
     const fixed = buildFixedGrid(STAFF, dates, GROUP_ARRIVAL, PROG_YEAR, "Nantwich — Reaseheath College");
-    expect(fixed["t4-2026-06-30-AM"]).toBeUndefined();
-    expect(fixed["t4-2026-07-01-AM"]).toBeUndefined();
-    expect(fixed["t4-2026-07-06-AM"]).toBe("Induction");
-    expect(fixed["t4-2026-07-06-PM"]).toBe("Induction");
+    expect(fixed["t4-2026-06-30-AM"]).toBe("Induction");
+    expect(fixed["t4-2026-07-01-AM"]).toBe("Induction");
+    expect(fixed["t4-2026-07-02-AM"]).toBe("Setup"); // pre-contract Setup between induction and arrival
+    expect(fixed["t4-2026-07-05-AM"]).toBe("Setup");
+    expect(fixed["t4-2026-07-06-AM"]).toBeUndefined(); // teaching begins
   });
 
   it("in second fortnight, t1 gets NO Induction (already had it)", () => {
@@ -205,16 +206,19 @@ describe("buildFixedGrid — Reaseheath induction (30 Jun + 1 Jul)", () => {
 
 // ── applyFixedForStaff: staff arriving on group arrival day ───────────────
 describe("applyFixedForStaff — arrives on group arrival day", () => {
-  it("gets Induction on arrival day, no pre-contract Setup the day before", () => {
-    // Induction 5-6 Jul, students arrive 8 Jul, staff also arrives 8 Jul.
-    // July 7 should NOT show Setup — staff are not on site yet.
+  it("gets pre-contract Induction on configured dates + Setup the day before group arrival", () => {
+    // Contracts start 8 Jul (= group arrival), but staff physically arrive 5-6 Jul for induction.
+    // Expected: Induction 5-6 Jul, Setup 7 Jul, nothing special on 8 Jul (teaching begins).
     const s = mkStaff("t1", { arr: "2026-07-08" });
     const dates = range("2026-07-05", "2026-07-12");
     const fixed = {};
     applyFixedForStaff(fixed, s, dates, "2026-07-08", NO_TO, noOff, ["2026-07-05", "2026-07-06"]);
-    expect(fixed["t1-2026-07-07-AM"]).toBeUndefined(); // not on site — no Setup
-    expect(fixed["t1-2026-07-07-PM"]).toBeUndefined();
-    expect(fixed["t1-2026-07-08-AM"]).toBe("Induction"); // first on-site day
+    expect(fixed["t1-2026-07-05-AM"]).toBe("Induction");
+    expect(fixed["t1-2026-07-05-PM"]).toBe("Induction");
+    expect(fixed["t1-2026-07-06-AM"]).toBe("Induction");
+    expect(fixed["t1-2026-07-06-PM"]).toBe("Induction");
+    expect(fixed["t1-2026-07-07-AM"]).toBe("Setup");
+    expect(fixed["t1-2026-07-08-AM"]).toBeUndefined(); // teaching day — no fixed assignment
   });
 });
 
