@@ -206,7 +206,7 @@ describe("buildFixedGrid — Reaseheath induction (30 Jun + 1 Jul)", () => {
 // ── buildFixedGrid: Dean Close / late joiner scenario (Tom's case) ────────
 describe("buildFixedGrid — Dean Close, late joiner arrives after group arrival", () => {
   // Groups arrive 8 Jul; Tom contracted from 13 Jul (week 2 Monday).
-  // Induction dates 5-6 Jul are before Tom's arrival — Tom is a true late joiner.
+  // Induction dates 3-4 Jul are before Tom's arrival — Tom is a true late joiner.
   const STAFF = [{ id: "tom", role: "FTT", arr: "2026-07-13", dep: "2026-08-05" }];
   const GROUP_ARRIVAL = "2026-07-08";
   const PROG_YEAR = 2026;
