@@ -40,7 +40,7 @@ const EVE_ELIGIBLE   = new Set(["FTT","TAL","SAI","AL","EAL","SC","AC","EAC","LA
 const EVE_LABEL = "Eve Activity";
 
 // ── Day profile builder ───────────────────────────────────────────────────────
-function buildDayProfiles(dates, groups, progGrid) {
+function buildDayProfiles(dates, groups, progGrid, isZZ = false) {
   const allArrivalDates = new Set((groups || []).map(g => g.arr).filter(Boolean));
   const firstArrival    = [...allArrivalDates].sort()[0] || null;
   const arrStu = {};
@@ -76,7 +76,7 @@ function buildDayProfiles(dates, groups, progGrid) {
         if (val && !/arriv|depart/i.test(val)) {
           excDests[val] = (excDests[val] || 0) + pax; return;
         }
-        if (!val && d.getDay() !== 0 && getGroupLessonSlot(g, ds) === slot) {
+        if (!val && d.getDay() !== 0 && (isZZ || getGroupLessonSlot(g, ds) === slot)) {
           lessonStu += pax;
         }
       });
@@ -664,7 +664,7 @@ export async function POST(req) {
           to: s.to || "",
         }));
 
-        const dayProfiles = buildDayProfiles(dates, groups, progGrid);
+        const dayProfiles = buildDayProfiles(dates, groups, progGrid, !!isZZ);
 
         sendEvent(controller, { step: 2, message: "Building rota…" });
 

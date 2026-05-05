@@ -212,7 +212,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     const dateStrs = dates.map((d) => dayKey(d));
     const fixedGrid = buildFixedGrid(staff, dates, groupArrivalDate, progStart, centreName);
     const bindings = bindTals({ staff, groups });
-    const { demand, profiles } = buildDemand({ groups, progGrid, progStart: start, progEnd: end });
+    const isZZ = staff.some((s) => s.role === "FTT");
+    const { demand, profiles } = buildDemand({ groups, progGrid, progStart: start, progEnd: end, isZZ });
     const { dayOffGrid } = placeDayOffs({ staff, profiles, fixedGrid, progStart: start, progEnd: end });
     const merged = { ...fixedGrid, ...dayOffGrid };
     const { grid, shortfalls } = allocateRota({ staff, demand, bindings, fixedGrid: merged, dates: dateStrs, profiles });
@@ -235,7 +236,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       const res = await fetch("/api/generate-rota", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ staff, groups, progGrid, progStart, progEnd, centreName }),
+        body: JSON.stringify({ staff, groups, progGrid, progStart, progEnd, centreName, isZZ: staff.some((s) => s.role === "FTT") }),
       });
       const contentType = res.headers.get("content-type") || "";
       if (contentType.includes("text/event-stream")) {

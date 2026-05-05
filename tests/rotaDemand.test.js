@@ -73,6 +73,20 @@ describe("buildDemand — lesson demand", () => {
     expect(tue.AM.filter((c) => c.kind === "Lessons")).toHaveLength(1);
     expect(tue.PM.filter((c) => c.kind === "Lessons")).toHaveLength(1);
   });
+
+  it("ZZ mode: lesson demand in both AM and PM for every group", () => {
+    const r = buildDemand({ groups: [mkGroup({ lessonSlot: "AM" })], progStart: PROG_START, progEnd: PROG_END, isZZ: true });
+    const tue = r.demand["2026-07-07"];
+    expect(tue.AM.some((c) => c.kind === "Lessons")).toBe(true);
+    expect(tue.PM.some((c) => c.kind === "Lessons")).toBe(true);
+  });
+
+  it("ZZ mode: lesson demand in both slots in week 2 (no flip)", () => {
+    const r = buildDemand({ groups: [mkGroup({ lessonSlot: "AM" })], progStart: PROG_START, progEnd: PROG_END, isZZ: true });
+    const wk2Tue = r.demand["2026-07-14"];
+    expect(wk2Tue.AM.some((c) => c.kind === "Lessons")).toBe(true);
+    expect(wk2Tue.PM.some((c) => c.kind === "Lessons")).toBe(true);
+  });
 });
 
 describe("buildDemand — excursion demand", () => {
