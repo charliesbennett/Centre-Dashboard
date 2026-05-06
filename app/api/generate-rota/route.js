@@ -139,7 +139,7 @@ function isFullDayOffEntry(tos, ds) {
 }
 
 // ── Deterministic rota builder ────────────────────────────────────────────────
-function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
+function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ, isINPS = false) {
   const ng   = {};
   const sess = {};
   staffIndex.forEach(s => { sess[s.id] = 0; });
@@ -328,7 +328,7 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
 
   dates.forEach(d => {
     const ds = dayKey(d);
-    if (!groupArrivalDate || ds < groupArrivalDate) return;
+    if (!groupArrivalDate || ds < groupArrivalDate || isINPS) return;
     const p = profileMap[ds];
 
     const groupsOnSiteEve = (groups || []).filter(g =>
@@ -514,8 +514,8 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
         }
       });
 
-    // Activity staff: excursion or activities each slot
-    actStaff.filter(s => onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
+    // Activity staff: excursion or activities each slot (not for INPS — no activities programme)
+    if (!isINPS) actStaff.filter(s => onSite(s, ds) && !ng[`${s.id}-${ds}-AM`])
       .forEach(s => {
         if (!hasCapacityForDaytime(s)) return;
         if (!hasDailyCapacity(s.id, ds)) return;
@@ -525,16 +525,14 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
   });
 
   // ── Pass 4: Eve Activity ──────────────────────────────────────────────────
-  // Eve-duty staff were pre-assigned before Pass 3 and only got one daytime slot,
-  // so AM + Eve = 2 sessions exactly.
-  dates.forEach(d => {
+  if (!isINPS) dates.forEach(d => {
     const ds = dayKey(d);
     const dutySet = eveDutyMap[ds];
     if (!dutySet?.size) return;
     dutySet.forEach(sid => put(sid, ds, "Eve", EVE_LABEL));
   });
 
-  // ── Pass 5: Session top-up for teaching staff below target ──────────────────
+  // ── Pass 5: Session top-up (eve) — skip for INPS, no eve activities ──────────
   // FTTs and TALs who have fewer than their target sessions get Eve Activity
   // assigned on remaining evenings where students are on site and daily cap allows.
   const teachingTargeted = staffIndex.filter(s =>
@@ -543,7 +541,7 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ) {
 
   teachingTargeted.sort((a, b) => (sess[a.id] || 0) - (sess[b.id] || 0));
 
-  teachingTargeted.forEach(s => {
+  if (!isINPS) teachingTargeted.forEach(s => {
     const target = SESSION_TARGET(s.role);
     if ((sess[s.id] || 0) >= target) return;
 
@@ -641,7 +639,7 @@ export async function POST(req) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const { staff, groups, progGrid, progStart, progEnd, isZZ } = await req.json();
+        const { staff, groups, progGrid, progStart, progEnd, isZZ, isINPS } = await req.json();
 
         if (!staff?.length) {
           sendEvent(controller, { error: "No staff provided" });
@@ -668,7 +666,7 @@ export async function POST(req) {
 
         sendEvent(controller, { step: 2, message: "Building rota…" });
 
-        const grid = buildRota(staffIndex, dates, groups, progGrid, dayProfiles, !!isZZ);
+        const grid = buildRota(staffIndex, dates, groups, progGrid, dayProfiles, !!isZZ, !!isINPS);
 
         sendEvent(controller, { step: 3, message: "Checking session limits…" });
 

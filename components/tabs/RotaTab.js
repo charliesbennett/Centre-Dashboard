@@ -90,7 +90,7 @@ function summariseShortfalls(shortfalls) {
   }));
 }
 
-export default function RotaTab({ staff, progStart, progEnd, excDays, groups, rotaGrid, setRotaGrid, progGrid = {}, centreName = "", readOnly = false, rotaStale = false, onRotaStaleCleared }) {
+export default function RotaTab({ staff, progStart, progEnd, excDays, groups, rotaGrid, setRotaGrid, progGrid = {}, centreName = "", readOnly = false, rotaStale = false, onRotaStaleCleared, settings = {}, saveSetting }) {
   const B = useB();
   const [showRatios, setShowRatios] = useState(true);
   const [editingCell, setEditingCell] = useState(null);
@@ -104,6 +104,8 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
   const [allocShortfalls, setAllocShortfalls] = useState([]);
   const [clearedCells, setClearedCells] = useState(new Set());
   const setGrid = setRotaGrid;
+
+  const isINPS = settings?.isINPS === true;
 
   // Rota grid starts from induction day (before contracted staff arrival).
   const rotaStart = useMemo(() => {
@@ -213,10 +215,10 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
     const fixedGrid = buildFixedGrid(staff, dates, groupArrivalDate, progStart, centreName);
     const bindings = bindTals({ staff, groups });
     const isZZ = staff.some((s) => s.role === "FTT");
-    const { demand, profiles } = buildDemand({ groups, progGrid, progStart: start, progEnd: end, isZZ });
+    const { demand, profiles } = buildDemand({ groups, progGrid, progStart: start, progEnd: end, isZZ, isINPS });
     const { dayOffGrid } = placeDayOffs({ staff, profiles, fixedGrid, progStart: start, progEnd: end });
     const merged = { ...fixedGrid, ...dayOffGrid };
-    const { grid, shortfalls } = allocateRota({ staff, demand, bindings, fixedGrid: merged, dates: dateStrs, profiles });
+    const { grid, shortfalls } = allocateRota({ staff, demand, bindings, fixedGrid: merged, dates: dateStrs, profiles, isINPS });
     const finalGrid = applyArrivalDefaults(grid, staff, groupArrivalDate);
     setGrid(finalGrid);
     setAllocShortfalls(shortfalls || []);
@@ -236,7 +238,7 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
       const res = await fetch("/api/generate-rota", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ staff, groups, progGrid, progStart, progEnd, centreName, isZZ: staff.some((s) => s.role === "FTT") }),
+        body: JSON.stringify({ staff, groups, progGrid, progStart, progEnd, centreName, isZZ: staff.some((s) => s.role === "FTT"), isINPS }),
       });
       const contentType = res.headers.get("content-type") || "";
       if (contentType.includes("text/event-stream")) {
@@ -409,6 +411,11 @@ export default function RotaTab({ staff, progStart, progEnd, excDays, groups, ro
           <button onClick={() => setShowRatios(!showRatios)} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: "1px solid "+(showRatios ? B.navy : B.border), background: showRatios ? B.navy : B.card, color: showRatios ? B.white : B.textMuted, display: "flex", alignItems: "center", gap: 4 }}>
             Ratios {ratioAlerts.length > 0 && <span style={{ background: B.danger, color: B.white, borderRadius: 8, padding: "1px 5px", fontSize: 8 }}>{ratioAlerts.length}</span>}
           </button>
+          {!readOnly && saveSetting && (
+            <button onClick={() => saveSetting("isINPS", !isINPS)} style={{ padding: "5px 12px", borderRadius: 5, fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: `1px solid ${isINPS ? "#0891b2" : B.border}`, background: isINPS ? "#cffafe" : B.card, color: isINPS ? "#0e7490" : B.textMuted }}>
+              INPS Only
+            </button>
+          )}
           {!readOnly && <button onClick={() => {
             const hasData = Object.values(rotaGrid).some((v) => v);
             if (hasData && !window.confirm("Auto-generate will overwrite all existing rota entries. Continue?")) return;
