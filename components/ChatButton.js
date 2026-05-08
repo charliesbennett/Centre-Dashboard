@@ -155,7 +155,7 @@ export default function ChatButton({ centreId, centreName, centreData }) {
           }}>
             <div style={{ color: B.yellow, display: "flex" }}><IcChat /></div>
             <div style={{ flex: 1 }}>
-              <div style={{ color: B.white, fontWeight: 700, fontSize: 13, fontFamily: "'Raleway', sans-serif" }}>Centre Assistant</div>
+              <div style={{ color: B.white, fontWeight: 700, fontSize: 13, fontFamily: "'Raleway', sans-serif" }}>Elvi</div>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 10 }}>{centreName}</div>
             </div>
             <button
