@@ -116,6 +116,9 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
   const [importMsg, setImportMsg] = useState(null);
   const [importPreview, setImportPreview] = useState(null);
   const [importDiff, setImportDiff] = useState(null);
+  const [importBatch, setImportBatch] = useState(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const isHeadOffice = userRole === "head_office";
   const fileRef = useRef(null);
   const [n, setN] = useState({
     agent: "", group: "", nat: "", stu: 0, gl: 0, arr: "", dep: "",
@@ -151,7 +154,79 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
         const wb = XLSX.read(evt.target.result, { type: "array", cellDates: false });
         const groupSheet = wb.SheetNames.find((n) => n.toLowerCase().includes("group") || n === "Sheet1") || wb.SheetNames[0];
         const ws = wb.Sheets[groupSheet];
+        const allRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
 
+        // Detect flat-list VBT master format: an early row has "firstname" as a column header
+        const flatHeaderIdx = [0, 1, 2].find((ri) =>
+          (allRows[ri] || []).some((v) => /^(first\s*name|firstname)$/i.test(String(v || "").trim()))
+        );
+
+        if (flatHeaderIdx !== undefined) {
+          const hdrs = allRows[flatHeaderIdx].map((v) => String(v || "").toLowerCase().trim());
+          const hCol = (...names) => names.reduce((f, n) => f >= 0 ? f : hdrs.indexOf(n), -1);
+          const fnCol  = hCol("firstname", "first name");
+          const snCol  = hCol("surname", "last name", "family name");
+          const grpCol = hCol("group");
+          const agCol  = hCol("agent");
+          const natCol = hCol("nationality");
+          const typCol = hCol("type");
+          const ageCol = hCol("age");
+          const sexCol = hCol("sex");
+          const dobCol = hCol("dob", "date of birth");
+          const arrCol = hCol("arr date", "arrival date", "arrival");
+          const depCol = hCol("dep date", "departure date", "departure");
+          const sp1Col = hCol("course specialism choice1", "specialism 1", "specialism1");
+          const medCol = hCol("medical notes", "medical");
+          const swimCol = hCol("swimming ability", "swimming");
+          const gMap = {};
+          for (let r = flatHeaderIdx + 1; r < allRows.length; r++) {
+            const row = allRows[r];
+            const firstName = String(row[fnCol] || "").trim();
+            const surname = snCol >= 0 ? String(row[snCol] || "").trim() : "";
+            if (!firstName && !surname) continue;
+            const grpName = String(row[grpCol] || "").trim();
+            if (!grpName) continue;
+            const agent = agCol >= 0 ? String(row[agCol] || "").trim() : "";
+            const nat = natCol >= 0 ? String(row[natCol] || "").trim() : "";
+            const type = typCol >= 0 ? String(row[typCol] || "").trim().toUpperCase() : "S";
+            if (!gMap[grpName]) gMap[grpName] = { agent, group: grpName, students: [], leaders: [], nats: [] };
+            const person = {
+              id: uid(), firstName, surname,
+              dob: dobCol >= 0 ? excelDate(row[dobCol]) : "",
+              age: ageCol >= 0 ? (row[ageCol] || "") : "",
+              sex: sexCol >= 0 ? String(row[sexCol] || "").trim() : "",
+              nationality: nat,
+              arrDate: arrCol >= 0 ? excelDate(row[arrCol]) : "",
+              depDate: depCol >= 0 ? excelDate(row[depCol]) : "",
+              specialism1: sp1Col >= 0 ? String(row[sp1Col] || "").trim() : "",
+              medical: medCol >= 0 ? String(row[medCol] || "").trim() : "",
+              swimming: swimCol >= 0 ? String(row[swimCol] || "").trim() : "",
+            };
+            if (nat) gMap[grpName].nats.push(nat);
+            if (type === "GL") gMap[grpName].leaders.push({ ...person, type: "gl", mobile: "" });
+            else gMap[grpName].students.push({ ...person, type: "student" });
+          }
+          const parsedGroups = Object.values(gMap).map((g) => {
+            const arrs = g.students.map((s) => s.arrDate).filter(Boolean).sort();
+            const deps = g.students.map((s) => s.depDate).filter(Boolean).sort();
+            return {
+              id: uid(), agent: g.agent, group: g.group,
+              nat: g.nats.length > 0 ? mode(g.nats) : "",
+              stu: g.students.length, gl: g.leaders.length,
+              arr: arrs[0] || "", dep: deps[deps.length - 1] || "",
+              firstMeal: "Dinner", lastMeal: "Packed Lunch", prog: "Multi-Activity", lessonSlot: "AM",
+              students: g.students, leaders: g.leaders,
+            };
+          });
+          const existingKeys = new Set(groups.filter((g) => !g.archived).map((g) => g.group?.toLowerCase().trim()));
+          const matched = parsedGroups.filter((g) => existingKeys.has(g.group.toLowerCase().trim()));
+          const newOnes = parsedGroups.filter((g) => !existingKeys.has(g.group.toLowerCase().trim()));
+          setImportBatch({ parsedGroups, matched, newOnes });
+          if (fileRef.current) fileRef.current.value = "";
+          return;
+        }
+
+        // TRADITIONAL FORMAT (single-group agent spreadsheet)
         // Convert 0-based col index to letter(s): 0→A, 25→Z, 26→AA
         const colLetter = (idx) => {
           let s = "";
@@ -362,6 +437,107 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
 
   return (
     <div>
+      {/* ── Batch import modal (flat-list VBT master format) ── */}
+      {importBatch && (() => {
+        const { matched, newOnes, parsedGroups } = importBatch;
+        const totalStuImport = parsedGroups.reduce((n, g) => n + g.stu, 0);
+        const totalGLImport = parsedGroups.reduce((n, g) => n + g.gl, 0);
+        const applyBatch = () => {
+          setGroups((prev) => {
+            const updated = prev.map((g) => {
+              const parsed = matched.find((p) => p.group.toLowerCase().trim() === g.group?.toLowerCase().trim());
+              if (!parsed) return g;
+              return { ...g, nat: parsed.nat || g.nat, stu: parsed.stu, gl: parsed.gl, students: parsed.students, leaders: parsed.leaders,
+                       arr: parsed.arr || g.arr, dep: parsed.dep || g.dep };
+            });
+            return [...updated, ...newOnes];
+          });
+          setImportMsg({ type: "success", text: `Updated ${matched.length}, added ${newOnes.length} new — ${totalStuImport} students total` });
+          setTimeout(() => setImportMsg(null), 8000);
+          setImportBatch(null);
+        };
+        const applyBulkImport = async () => {
+          setBulkLoading(true);
+          try {
+            const payload = parsedGroups.map((g) => ({
+              groupName: g.group,
+              students:  g.students || [],
+              leaders:   g.leaders  || [],
+            }));
+            const res  = await fetch("/api/db/students/bulk", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ groups: payload }) });
+            const data = await res.json();
+            if (!res.ok) {
+              setImportMsg({ type: "error", text: data.error || "Bulk import failed." });
+            } else {
+              const unmatchedNote = data.unmatched?.length ? ` · ${data.unmatched.length} unmatched (run Groups import first)` : "";
+              setImportMsg({ type: "success", text: `Bulk import complete — ${data.imported} students across ${data.matched} groups${unmatchedNote}` });
+            }
+          } catch (e) {
+            setImportMsg({ type: "error", text: "Bulk import failed: " + e.message });
+          }
+          setTimeout(() => setImportMsg(null), 12000);
+          setBulkLoading(false);
+          setImportBatch(null);
+        };
+        return (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+            <div style={{ background: B.card, borderRadius: 14, width: "100%", maxWidth: 420, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+              <div style={{ background: B.navy, padding: "14px 18px" }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>Import Students — Master Excel</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>{parsedGroups.length} groups · {totalStuImport} students found in file</div>
+              </div>
+              <div style={{ padding: "18px 20px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "8px 14px", fontSize: 12 }}>
+                  <span style={{ color: B.textMuted, fontWeight: 600 }}>Matched groups</span>
+                  <span style={{ fontWeight: 800, color: B.success }}>{matched.length}</span>
+                  <span style={{ color: B.textMuted, fontWeight: 600 }}>Students to import</span>
+                  <span style={{ fontWeight: 700 }}>{totalStuImport}</span>
+                  <span style={{ color: B.textMuted, fontWeight: 600 }}>Group leaders</span>
+                  <span>{totalGLImport}</span>
+                  {newOnes.length > 0 && <>
+                    <span style={{ color: B.textMuted, fontWeight: 600 }}>New groups to add</span>
+                    <span style={{ fontWeight: 700, color: B.text }}>{newOnes.length}</span>
+                  </>}
+                </div>
+                {parsedGroups.length === 0 && (
+                  <p style={{ fontSize: 12, color: B.danger, marginTop: 12, marginBottom: 0 }}>
+                    No groups found in this file.
+                  </p>
+                )}
+                {matched.length > 0 && (
+                  <div style={{ marginTop: 12, maxHeight: 120, overflowY: "auto" }}>
+                    {matched.map((g, i) => (
+                      <div key={i} style={{ fontSize: 10, color: B.text, padding: "2px 0", borderBottom: "1px solid " + B.borderLight, display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ fontWeight: 600 }}>{g.group}</span>
+                        <span style={{ color: B.textMuted }}>{g.stu} stu · {g.nat}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div style={{ padding: "0 20px 18px", display: "flex", flexDirection: "column", gap: 8 }}>
+                {isHeadOffice && (
+                  <button onClick={applyBulkImport} disabled={bulkLoading || parsedGroups.length === 0}
+                    style={{ width: "100%", padding: "10px", background: bulkLoading ? "#94a3b8" : B.red, border: "none", color: "#fff", borderRadius: 8, cursor: bulkLoading ? "default" : "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>
+                    {bulkLoading ? "Importing…" : `Bulk Import — All Centres (${parsedGroups.length} groups)`}
+                  </button>
+                )}
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={applyBatch} disabled={parsedGroups.length === 0}
+                    style={{ flex: 1, padding: "10px", background: parsedGroups.length > 0 ? B.navy : "#94a3b8", border: "none", color: "#fff", borderRadius: 8, cursor: parsedGroups.length > 0 ? "pointer" : "default", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>
+                    Import for {centreName || "Current Centre"} Only
+                  </button>
+                  <button onClick={() => setImportBatch(null)}
+                    style={{ padding: "10px 16px", background: B.bg, border: "1px solid " + B.border, color: B.textMuted, borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── VBT update diff modal ───────────────────────── */}
       {importDiff && (() => {
         const { existingGroup, newGroup, students, leaders, changes, added, removed, rotaRelevant } = importDiff;
@@ -613,7 +789,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
           {!readOnly && <>
             <label style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", background: B.navy, border: "none", color: B.white, borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
               {"\ud83d\udce5"} Import Excel
-              <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleImport} style={{ display: "none" }} />
+              <input ref={fileRef} type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" onChange={handleImport} style={{ display: "none" }} />
             </label>
             <button onClick={() => setShowAdd(!showAdd)} style={btnPrimary}><IcPlus /> Add Manual</button>
           </>}
