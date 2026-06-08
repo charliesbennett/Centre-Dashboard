@@ -1,6 +1,6 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
-import { SESSION_TYPES, genDates, dayKey, dayName, isWeekend, inRange, fmtDate } from "@/lib/constants";
+import { SESSION_TYPES, genDates, dayKey, dayName, isWeekend, inRange, fmtDate, getGroupLessonSlot } from "@/lib/constants";
 import { useB } from "@/lib/theme";
 import { EVE_ENT_NAMES } from "@/lib/rotaRules";
 import { ROLE_RULES, NO_COUNT } from "@/lib/rotaRules";
@@ -20,15 +20,6 @@ const ACTIVITY_ROLES = new Set(["SAI", "LAL", "LAC", "EAL", "EAC", "SC", "AC", "
 
 function calcRequiredStaff(n) { return n > 0 ? Math.ceil(n / 20) : 0; }
 
-// Which lesson slot does this group have on a given date?
-function getGroupLessonSlot(group, dateStr) {
-  if (!group.arr || !group.lessonSlot) return group.lessonSlot || "AM";
-  const arrDate = new Date(group.arr);
-  const curDate = new Date(dateStr);
-  const daysSince = Math.floor((curDate - arrDate) / 86400000);
-  const weekNum = Math.floor(daysSince / 7);
-  return weekNum % 2 === 0 ? group.lessonSlot : (group.lessonSlot === "AM" ? "PM" : "AM");
-}
 
 const ROLE_DISPLAY = { FOOTBALL: "Football Specialist", PA: "Performing Arts Specialist", Drama: "Performing Arts Specialist", DRAMA: "Performing Arts Specialist" };
 
