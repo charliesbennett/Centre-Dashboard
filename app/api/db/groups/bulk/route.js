@@ -53,6 +53,7 @@ export async function POST(req) {
   const syncErrors = [];
   for (const centreId of affectedCentres) {
     const centreImportedIds = rows.filter((r) => r.centre_id === centreId).map((r) => r.id);
+    if (centreImportedIds.length === 0) continue;
     const { data: stale, error: staleErr } = await db
       .from("groups")
       .select("id,group_name")

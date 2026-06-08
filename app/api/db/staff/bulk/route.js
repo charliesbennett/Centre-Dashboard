@@ -38,15 +38,18 @@ export async function POST(req) {
   const { error } = await db.from("staff").upsert(rows, { onConflict: "id" });
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  // Remove stale rows: staff who were at one of the imported centres but are
-  // no longer in the spreadsheet (moved centre or removed entirely).
-  const importedCentreIds = [...new Set(rows.map((r) => r.centre_id))];
-  const importedIds = rows.map((r) => r.id);
-  const { error: delError } = await db.from("staff")
-    .delete()
-    .in("centre_id", importedCentreIds)
-    .not("id", "in", `(${importedIds.join(",")})`);
-  if (delError) return Response.json({ error: delError.message }, { status: 500 });
+  // Remove stale rows per centre: staff no longer in the spreadsheet for each imported centre.
+  const affectedCentres = [...new Set(rows.map((r) => r.centre_id))];
+  const syncErrors = [];
+  for (const centreId of affectedCentres) {
+    const centreImportedIds = rows.filter((r) => r.centre_id === centreId).map((r) => r.id);
+    if (centreImportedIds.length === 0) continue;
+    const { error: delError } = await db.from("staff")
+      .delete()
+      .eq("centre_id", centreId)
+      .not("id", "in", `(${centreImportedIds.join(",")})`);
+    if (delError) syncErrors.push(delError.message);
+  }
 
-  return Response.json({ ok: true, imported: rows.length });
+  return Response.json({ ok: true, imported: rows.length, syncErrors: syncErrors.length ? syncErrors : undefined });
 }
