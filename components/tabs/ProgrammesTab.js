@@ -406,17 +406,6 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       </div>
     </div>
 
-    {/* Lesson slot summary + custom template status */}
-    {groups.length > 0 && !isMinistay && (
-      <div style={{padding:"6px 20px",background:B.cyanBg,borderBottom:"1px solid "+B.border,fontSize:10,display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
-        <span style={{fontWeight:700,color:B.cyan}}>{"\ud83d\udcda"} Lesson slots:</span>
-        {groups.map(g => <span key={g.id}><strong>{g.group}</strong>: Wk1 {g.lessonSlot || "AM"} / Wk2 {(g.lessonSlot||"AM")==="AM"?"PM":"AM"}</span>)}
-        <span style={{color:"#64748b"}}>{"\u00b7"} Toggle in Students tab</span>
-        {namedTemplates.length > 0
-          ? <span style={{color:"#16a34a",fontWeight:600,marginLeft:8}}>{"\u2713"} {namedTemplates.length} template{namedTemplates.length!==1?"s":""} ready {"\u00b7"} Use <strong>Apply Templates</strong> to populate groups</span>
-          : <span style={{color:"#92400e",fontWeight:600,marginLeft:8}}>No templates yet {"\u00b7"} Use <strong>Templates</strong> to upload a programme Excel</span>}
-      </div>
-    )}
     {groups.length > 0 && isMinistay && (
       <div style={{padding:"6px 20px",background:B.warningBg,borderBottom:"1px solid "+B.border,fontSize:10,display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
         <span style={{fontWeight:700,color:B.warning}}>{"\ud83d\udcc5"} Ministay programme:</span>
@@ -434,9 +423,9 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
             <th style={{...thStyle,width:90,maxWidth:90,overflow:"hidden",whiteSpace:"nowrap",position:"sticky",left:100,zIndex:2,background:B.bg,color:B.textMuted,backgroundImage:"none"}}>Group</th>
             <th style={{...thStyle,width:44,textAlign:"center"}}>Pax</th>
             <th style={{...thStyle,width:44,textAlign:"center",fontSize:8}}>Wk1</th>
-            {dates.map(d=>{const s=dayKey(d),exc=excDays[s],we=isWeekend(d);return<th key={s} colSpan={slots.length} onClick={()=>toggleExc(s)} style={{...thStyle,textAlign:"center",borderLeft:"2px solid "+B.border,padding:"3px 2px",minWidth:192,cursor:"pointer",background:exc?B.pink:we?B.dangerBg:B.ice}}>
-              <div style={{fontSize:7,color:B.textMuted}}>{fmtDate(d)}</div>
-              <div style={{fontWeight:800,fontSize:9,color:we?B.red:B.text}}>{dayName(d)}</div>
+            {dates.map(d=>{const s=dayKey(d),exc=excDays[s],we=isWeekend(d);return<th key={s} colSpan={slots.length} onClick={()=>toggleExc(s)} style={{...thStyle,textAlign:"center",borderLeft:"2px solid "+B.border,padding:"4px 2px",minWidth:240,cursor:"pointer",background:exc?B.pink:we?B.dangerBg:B.ice}}>
+              <div style={{fontSize:8,color:B.textMuted}}>{fmtDate(d)}</div>
+              <div style={{fontWeight:800,fontSize:10,color:we?B.red:B.text}}>{dayName(d)}</div>
               {exc&&<div style={{fontSize:6,color:B.red,fontWeight:800}}>{exc==="Full"?"FD EXC":"HD EXC"}</div>}
             </th>;})}
           </tr>
@@ -445,7 +434,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
             <th style={{...thStyle,position:"sticky",left:100,zIndex:2,background:B.bg,backgroundImage:"none"}}></th>
             <th style={thStyle}></th>
             <th style={thStyle}></th>
-            {dates.map(d=>slots.map(sl=><th key={dayKey(d)+"-"+sl} style={{...thStyle,textAlign:"center",fontSize:8,padding:"3px 1px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,minWidth:isMinistay?64:64}}>{sl}</th>))}
+            {dates.map(d=>slots.map(sl=><th key={dayKey(d)+"-"+sl} style={{...thStyle,textAlign:"center",fontSize:9,padding:"3px 1px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,minWidth:80}}>{sl}</th>))}
           </tr>
         </thead>
         <tbody>
@@ -456,10 +445,10 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
             <td style={{...tdStyle,fontWeight:800,textAlign:"center",fontSize:10}}>{(g.stu||0)+(g.gl||0)}</td>
             <td style={{...tdStyle,textAlign:"center"}}><span style={{background:g.lessonSlot==="PM"?B.pink:B.ice,color:g.lessonSlot==="PM"?B.red:B.link,padding:"2px 6px",borderRadius:3,fontSize:8,fontWeight:800}}>{g.lessonSlot||"AM"}</span></td>
             {dates.map(d=>slots.map(sl=>{const s=dayKey(d),key=g.id+"-"+s+"-"+sl,val=grid[key],on=inRange(s,g.arr,g.dep),cls=classify(val),isEd=editingCell===key,isQP=quickPickCell===key;
-              return<td key={key} onClick={(e)=>handleCellClick(key,sl,on,e)} onDoubleClick={()=>!readOnly&&on&&startEdit(key,val)} style={{padding:"2px 3px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,verticalAlign:"middle",minWidth:64,maxWidth:100,background:!on?B.bg:cls.bg,cursor:on?"pointer":"default",position:"relative"}}>
-                {isEd?<input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} style={{width:"100%",fontSize:9,padding:"3px",border:"1px solid "+B.border,borderRadius:2,fontFamily:"inherit",background:B.card,color:B.text}}/>:
-                val?<div style={{color:cls.color,fontSize:9,fontWeight:600,padding:"3px 4px",borderRadius:2,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:96}} title={val}>{val}</div>:
-                on?<div style={{height:18}}/>:<div style={{height:18}}/>}
+              return<td key={key} onClick={(e)=>handleCellClick(key,sl,on,e)} onDoubleClick={()=>!readOnly&&on&&startEdit(key,val)} style={{padding:"3px 4px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,verticalAlign:"middle",minWidth:80,maxWidth:120,background:!on?B.bg:cls.bg,cursor:on?"pointer":"default",position:"relative"}}>
+                {isEd?<input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} style={{width:"100%",fontSize:10,padding:"3px",border:"1px solid "+B.border,borderRadius:2,fontFamily:"inherit",background:B.card,color:B.text}}/>:
+                val?<div style={{color:cls.color,fontSize:10,fontWeight:600,padding:"4px 5px",borderRadius:3,lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:116}} title={val}>{val}</div>:
+                on?<div style={{height:22}}/>:<div style={{height:22}}/>}
                 {isQP&&<div style={{position:"fixed",top:qpPos.top,left:qpPos.left,zIndex:9999,background:B.card,border:"1px solid "+B.border,borderRadius:6,boxShadow:"0 4px 12px rgba(0,0,0,0.15)",padding:"4px 0",minWidth:140,maxHeight:200,overflowY:"auto"}}>
                   {(sl==="EVE"?QUICK_EVE:QUICK_AM_PM).map(opt=><div key={opt} onClick={(e)=>{e.stopPropagation();quickPick(key,opt);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:classify(opt).color,whiteSpace:"nowrap"}} onMouseEnter={e=>e.target.style.background=B.ice} onMouseLeave={e=>e.target.style.background="transparent"}>{opt}</div>)}
                   <div style={{borderTop:"1px solid "+B.border,marginTop:2,paddingTop:2}}>
