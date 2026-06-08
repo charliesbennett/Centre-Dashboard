@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UKLC Centre Dashboard — User Handbook</title>
+<style>
+  :root {
+    --navy: #1c3048;
+    --red: #ec273b;
+    --navy-light: #2a4363;
+    --ice: #f0f4f8;
+    --border: #dde3ec;
+    --text: #1a2332;
+    --muted: #60748a;
+    --success: #15803d;
+    --success-bg: #f0fdf4;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text);
+    background: #fff;
+  }
+
+  /* ─── Page layout ─────────────────────────────────────────── */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  /* ─── Cover ───────────────────────────────────────────────── */
+  .cover {
+    background: var(--navy);
+    color: #fff;
+    min-height: 297mm;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 60px 40px;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: "";
+    position: absolute;
+    top: -80px; left: -80px;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    background: rgba(236,39,59,0.12);
+  }
+  .cover::after {
+    content: "";
+    position: absolute;
+    bottom: -60px; right: -60px;
+    width: 240px; height: 240px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .cover-logo {
+    width: 140px;
+    margin-bottom: 36px;
+    opacity: 0.95;
+    position: relative; z-index: 1;
+  }
+  .cover h1 {
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    position: relative; z-index: 1;
+    margin-bottom: 10px;
+  }
+  .cover h2 {
+    font-size: 18px;
+    font-weight: 400;
+    opacity: 0.75;
+    margin-bottom: 48px;
+    position: relative; z-index: 1;
+  }
+  .cover-badge {
+    display: inline-block;
+    background: var(--red);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 20px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    position: relative; z-index: 1;
+  }
+  .cover-rule {
+    width: 60px;
+    height: 3px;
+    background: var(--red);
+    margin: 28px auto;
+    border-radius: 2px;
+    position: relative; z-index: 1;
+  }
+  .cover-note {
+    font-size: 11px;
+    opacity: 0.5;
+    margin-top: 60px;
+    position: relative; z-index: 1;
+  }
+
+  /* ─── Content pages ────────────────────────────────────────── */
+  .content {
+    padding: 28px 40px 40px;
+  }
+
+  /* ─── Table of contents ─────────────────────────────────────── */
+  .toc {
+    page-break-after: always;
+    padding: 40px 40px;
+  }
+  .toc-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--navy);
+    margin-bottom: 28px;
+    padding-bottom: 10px;
+    border-bottom: 3px solid var(--red);
+  }
+  .toc-section {
+    margin-bottom: 16px;
+  }
+  .toc-section-title {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    margin-top: 18px;
+  }
+  .toc-item {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 4px 0;
+    border-bottom: 1px dotted var(--border);
+    font-size: 13px;
+  }
+  .toc-num {
+    color: var(--red);
+    font-weight: 700;
+    font-size: 11px;
+    min-width: 24px;
+  }
+  .toc-label { flex: 1; color: var(--text); }
+  .toc-desc  { font-size: 11px; color: var(--muted); }
+
+  /* ─── Chapter header ────────────────────────────────────────── */
+  .chapter {
+    page-break-before: always;
+  }
+  .chapter-header {
+    background: var(--navy);
+    color: #fff;
+    padding: 18px 40px 16px;
+    margin: 0 -40px 28px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .chapter-num {
+    background: var(--red);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .chapter-title {
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+  }
+  .chapter-sub {
+    font-size: 12px;
+    opacity: 0.65;
+    margin-top: 1px;
+  }
+
+  /* ─── Section headings ────────────────────────────────────── */
+  h2.section {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--navy);
+    margin: 26px 0 10px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid var(--border);
+  }
+  h3.sub {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--navy-light);
+    margin: 18px 0 7px;
+  }
+
+  /* ─── Body text ──────────────────────────────────────────── */
+  p { margin-bottom: 10px; }
+  ul, ol { margin: 8px 0 10px 20px; }
+  li { margin-bottom: 4px; }
+  strong { font-weight: 700; }
+
+  /* ─── Callout boxes ─────────────────────────────────────── */
+  .tip, .warning, .note {
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .tip    { background: var(--success-bg); border-left: 4px solid var(--success); }
+  .warning { background: #fff7ed; border-left: 4px solid #ea580c; }
+  .note   { background: var(--ice); border-left: 4px solid var(--navy); }
+  .tip strong, .warning strong, .note strong {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .tip strong    { color: var(--success); }
+  .warning strong { color: #ea580c; }
+  .note strong   { color: var(--navy); }
+
+  /* ─── Step list ─────────────────────────────────────────── */
+  .steps { margin: 10px 0 14px; padding: 0; list-style: none; counter-reset: step; }
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .steps li::before {
+    content: counter(step);
+    background: var(--navy);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* ─── Data table ────────────────────────────────────────── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 16px;
+    font-size: 12px;
+  }
+  .data-table th {
+    background: var(--navy);
+    color: #fff;
+    text-align: left;
+    padding: 7px 12px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .data-table td {
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .data-table tr:nth-child(even) td { background: var(--ice); }
+
+  /* ─── Role badge ────────────────────────────────────────── */
+  .role-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    vertical-align: middle;
+  }
+  .role-all   { background: #dbeafe; color: #1d4ed8; }
+  .role-ho    { background: #fce7f3; color: #be185d; }
+  .role-mgr   { background: #f0fdf4; color: var(--success); }
+
+  /* ─── View pill ─────────────────────────────────────────── */
+  .pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 12px; }
+  .pill {
+    background: var(--ice);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  /* ─── Print ─────────────────────────────────────────────── */
+  @media print {
+    body { font-size: 12px; }
+    .page { width: 100%; }
+    .cover { page-break-after: always; min-height: 100vh; }
+    .toc   { page-break-after: always; }
+    .chapter { page-break-before: always; }
+    @page { margin: 0; }
+  }
+
+  /* ─── Screen only ───────────────────────────────────────── */
+  @media screen {
+    body { background: #f4f6f8; }
+    .page { box-shadow: 0 2px 24px rgba(0,0,0,0.10); margin: 20px auto 40px; }
+    .cover { border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ═══════════════════════════════════════════════════════════ COVER -->
+<div class="cover">
+  <img class="cover-logo" src="/logo-white.png" alt="UKLC" />
+  <h1>Centre Dashboard</h1>
+  <h2>User Handbook</h2>
+  <div class="cover-rule"></div>
+  <div class="cover-badge">Summer 2026</div>
+  <p class="cover-note">For centre managers and Head Office staff &nbsp;·&nbsp; uklcdashboard.com</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ TABLE OF CONTENTS -->
+<div class="toc">
+  <div class="toc-title">Contents</div>
+
+  <div class="toc-section">
+    <div class="toc-section-title">Getting Started</div>
+    <div class="toc-item"><span class="toc-num">1</span><span class="toc-label">What is the Centre Dashboard?</span></div>
+    <div class="toc-item"><span class="toc-num">2</span><span class="toc-label">Logging In</span></div>
+    <div class="toc-item"><span class="toc-num">3</span><span class="toc-label">Selecting Your Centre &amp; Finding Your Way Around</span></div>
+  </div>
+
+  <div class="toc-section">
+    <div class="toc-section-title">The Tabs — For All Users</div>
+    <div class="toc-item"><span class="toc-num">4</span><span class="toc-label">Students</span><span class="toc-desc">&nbsp;— groups, student records, flags, exports</span></div>
+    <div class="toc-item"><span class="toc-num">5</span><span class="toc-label">Rota</span><span class="toc-desc">&nbsp;— staff schedule grid, session tracking</span></div>
+    <div class="toc-item"><span class="toc-num">6</span><span class="toc-label">AI Rota Generator</span><span class="toc-desc">&nbsp;— auto-generate a draft rota</span></div>
+    <div class="toc-item"><span class="toc-num">7</span><span class="toc-label">Programmes</span><span class="toc-desc">&nbsp;— lesson and activity timetable</span></div>
+    <div class="toc-item"><span class="toc-num">8</span><span class="toc-label">Catering</span><span class="toc-desc">&nbsp;— meal counts, dietary requirements, kitchen sheets</span></div>
+    <div class="toc-item"><span class="toc-num">9</span><span class="toc-label">Transfers</span><span class="toc-desc">&nbsp;— airport arrivals and departures</span></div>
+    <div class="toc-item"><span class="toc-num">10</span><span class="toc-label">Team</span><span class="toc-desc">&nbsp;— staff register, DBS records, contracts</span></div>
+    <div class="toc-item"><span class="toc-num">11</span><span class="toc-label">Excursions</span><span class="toc-desc">&nbsp;— day trips, coach bookings, weekend outings</span></div>
+    <div class="toc-item"><span class="toc-num">12</span><span class="toc-label">Rooming</span><span class="toc-desc">&nbsp;— room setup and bed assignments</span></div>
+    <div class="toc-item"><span class="toc-num">13</span><span class="toc-label">Petty Cash</span><span class="toc-desc">&nbsp;— income, expenses, closing balance</span></div>
+    <div class="toc-item"><span class="toc-num">14</span><span class="toc-label">Contacts</span><span class="toc-desc">&nbsp;— venue, transport, emergency numbers</span></div>
+  </div>
+
+  <div class="toc-section">
+    <div class="toc-section-title">Head Office Features</div>
+    <div class="toc-item"><span class="toc-num">15</span><span class="toc-label">Bulk Import — Groups &amp; Staff</span></div>
+    <div class="toc-item"><span class="toc-num">16</span><span class="toc-label">Rooming Import from Excel</span></div>
+    <div class="toc-item"><span class="toc-num">17</span><span class="toc-label">User Management</span></div>
+  </div>
+
+  <div class="toc-section">
+    <div class="toc-section-title">Reference</div>
+    <div class="toc-item"><span class="toc-num">18</span><span class="toc-label">Common Questions &amp; Tips</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH1: WHAT IS IT? -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">1</div>
+    <div>
+      <div class="chapter-title">What is the Centre Dashboard?</div>
+      <div class="chapter-sub">An overview of what the dashboard does and who it is for</div>
+    </div>
+  </div>
+
+  <p>The UKLC Centre Dashboard is the central tool for managing your summer language school programme. It brings together everything you need — student records, staff rotas, lesson timetables, catering counts, airport transfers, rooming, and more — in one place.</p>
+
+  <p>All changes are saved automatically and in real time. If a colleague at the same centre updates something, you will see the change the next time you load or refresh the page.</p>
+
+  <h2 class="section">Who is it for?</h2>
+
+  <table class="data-table">
+    <tr>
+      <th>Role</th>
+      <th>What they use it for</th>
+    </tr>
+    <tr>
+      <td><strong>Centre Manager</strong></td>
+      <td>Day-to-day operation — viewing groups, managing the rota, checking catering counts, tracking transfers, and keeping the team register up to date</td>
+    </tr>
+    <tr>
+      <td><strong>Head Office</strong></td>
+      <td>Everything above, plus bulk-importing groups and staff across all centres, managing rooming data, and administering user accounts</td>
+    </tr>
+  </table>
+
+  <div class="note">
+    <strong>About this handbook</strong>
+    Sections 4–14 apply to everyone. Sections 15–17 cover Head Office-only features, which are clearly marked with a <span class="role-badge role-ho">Head Office</span> label.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH2: LOGGING IN -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">2</div>
+    <div>
+      <div class="chapter-title">Logging In</div>
+      <div class="chapter-sub">How to sign in to the dashboard</div>
+    </div>
+  </div>
+
+  <p>The dashboard is available at <strong>uklcdashboard.com</strong>. It runs in any modern web browser — Chrome, Firefox, Edge, and Safari are all supported. No app download is required.</p>
+
+  <h2 class="section">Signing in</h2>
+  <ol class="steps">
+    <li>Go to <strong>uklcdashboard.com</strong> in your browser.</li>
+    <li>Enter your <strong>UKLC email address</strong> (e.g. yourname@uklc.org) or your <strong>username</strong> if you have been given one.</li>
+    <li>Enter your <strong>password</strong>.</li>
+    <li>Click <strong>Sign In</strong>.</li>
+  </ol>
+
+  <div class="note">
+    <strong>Note</strong>
+    Only @uklc.org email addresses are accepted. If you try to log in with a personal email address you will see an error message.
+  </div>
+
+  <div class="tip">
+    <strong>Forgotten your password?</strong>
+    Contact Head Office to have your password reset. Your account details are managed by the UKLC admin team.
+  </div>
+
+  <h2 class="section">Logging out</h2>
+  <p>Click your name or the sign-out button at the top right of the screen. You will be returned to the login page. Always log out when using a shared computer.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH3: NAVIGATION -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">3</div>
+    <div>
+      <div class="chapter-title">Selecting Your Centre &amp; Finding Your Way Around</div>
+      <div class="chapter-sub">The layout of the dashboard</div>
+    </div>
+  </div>
+
+  <h2 class="section">Selecting a centre</h2>
+  <p>After signing in, the centre selector appears at the top of the screen. <strong>Click the dropdown and choose your centre.</strong> All the data shown in the tabs will be for that centre only.</p>
+  <p>If your account is linked to a specific centre, it will be pre-selected for you. Head Office users can switch between any centre at any time using the same dropdown.</p>
+
+  <h2 class="section">The tab bar</h2>
+  <p>The dashboard is divided into tabs along the top of the screen. Click any tab to switch to that section. The tabs are:</p>
+
+  <div class="pill-row">
+    <div class="pill">Students</div>
+    <div class="pill">Rota</div>
+    <div class="pill">AI Rota</div>
+    <div class="pill">Programmes</div>
+    <div class="pill">Catering</div>
+    <div class="pill">Transfers</div>
+    <div class="pill">Team</div>
+    <div class="pill">Excursions</div>
+    <div class="pill">Rooming</div>
+    <div class="pill">Petty Cash</div>
+    <div class="pill">Contacts</div>
+  </div>
+
+  <h2 class="section">Saving your work</h2>
+  <p>Most changes save automatically as you type or click. You do not need to press a Save button for everyday edits. A few areas (such as rooming assignments) have an explicit Save button — you will see it clearly on screen. In these cases, make sure to click Save before switching tab or closing your browser.</p>
+
+  <h2 class="section">Light and dark mode</h2>
+  <p>The dashboard defaults to light mode. If you prefer dark mode, click the theme toggle button at the top right of the screen. Your preference is remembered in your browser.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH4: STUDENTS -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">4</div>
+    <div>
+      <div class="chapter-title">Students Tab</div>
+      <div class="chapter-sub">Group summaries, individual student records, and exports</div>
+    </div>
+  </div>
+
+  <p>The Students tab is your central record of all groups and students attending your centre. It has three views, selectable by the buttons at the top of the tab.</p>
+
+  <h2 class="section">Groups view</h2>
+  <p>This is the default view. Each card shows a single group with:</p>
+  <ul>
+    <li><strong>Group name and agent</strong></li>
+    <li><strong>Nationality</strong></li>
+    <li><strong>Number of students and group leaders</strong></li>
+    <li><strong>Arrival and departure dates</strong></li>
+    <li><strong>Programme type</strong> (e.g. Multi-Activity, English Plus)</li>
+    <li><strong>Lesson slot</strong> (AM or PM)</li>
+    <li><strong>First and last meal</strong> — used by the Catering tab to calculate meals on arrival and departure days</li>
+  </ul>
+
+  <p>Click the expand arrow on any group card to see the full list of students in that group.</p>
+
+  <h3 class="sub">Adding a group manually</h3>
+  <p>Click <strong>+ Add Group</strong> and fill in the details. For larger imports, use the bulk import feature described in Section 15.</p>
+
+  <h2 class="section">All Students view</h2>
+  <p>A single alphabetical list of every student across all groups. Shows first name, surname, group, nationality, age, arrival and departure dates, medical notes, and room assignment. Use the search box to find a specific student by name.</p>
+
+  <h2 class="section">Flagged view</h2>
+  <p>Shows only students who have a <strong>medical condition</strong> or a <strong>dietary requirement</strong> recorded. Use this view to make sure no one has been missed before a new group arrives, and to share the list with your welfare officer and catering team.</p>
+
+  <div class="warning">
+    <strong>Important — check flags before every arrival</strong>
+    Dietary requirements such as halal, vegan, and gluten-free are automatically detected from student data. Medical notes are entered against individual students. Review the Flagged view when a new group is due.
+  </div>
+
+  <h2 class="section">Importing student data</h2>
+  <p>If you have a VBT master Excel file with individual student records (first name, surname, group, nationality, age, medical notes, swimming ability, etc.), you can import it directly:</p>
+  <ol class="steps">
+    <li>Click the <strong>Import</strong> button at the top of the Students tab.</li>
+    <li>Choose the Excel file.</li>
+    <li>The dashboard will show a preview of the changes — new students added, existing ones updated.</li>
+    <li>Click <strong>Confirm</strong> to apply the import.</li>
+  </ol>
+
+  <h2 class="section">Exporting data</h2>
+  <p>Two export buttons are available:</p>
+  <ul>
+    <li><strong>Export Students</strong> — downloads an Excel file with the full student list including names, groups, ages, medical notes, and room assignments</li>
+    <li><strong>Export Invoice Data</strong> — downloads an Excel file in the format required for invoicing, covering both students and group leaders with nights stayed and programme type</li>
+  </ul>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH5: ROTA -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">5</div>
+    <div>
+      <div class="chapter-title">Rota Tab</div>
+      <div class="chapter-sub">The staff schedule grid</div>
+    </div>
+  </div>
+
+  <p>The Rota tab shows the full staff schedule for your centre, laid out as a grid. Each row is a staff member. Each column is a day. Each day is split into three slots: AM, PM, and Evening.</p>
+
+  <h2 class="section">Reading the rota</h2>
+  <p>Each cell shows what a staff member is doing in that slot. Common values include:</p>
+
+  <table class="data-table">
+    <tr><th>Value</th><th>Meaning</th></tr>
+    <tr><td>Lessons / Teaching</td><td>Running an English lesson</td></tr>
+    <tr><td>Activity (e.g. Football, Drama)</td><td>Supervising or leading an activity session</td></tr>
+    <tr><td>Day Off</td><td>Rest day (shown in red)</td></tr>
+    <tr><td>Induction / Setup</td><td>Preparation on arrival day</td></tr>
+    <tr><td>Eve Activity</td><td>Running or supervising evening entertainment</td></tr>
+    <tr><td>Welcome / Pick-up</td><td>Meeting groups on arrival</td></tr>
+    <tr><td>Office</td><td>Administrative duties</td></tr>
+  </table>
+
+  <h2 class="section">The fortnight selector</h2>
+  <p>The programme is divided into fortnights. Use the buttons at the top to jump between fortnights. The current fortnight is highlighted.</p>
+
+  <h2 class="section">Editing the rota</h2>
+  <p>Click any cell to edit it. Type a session name or select from the dropdown that appears. Changes save automatically when you click away. To clear a cell, delete the text and click away.</p>
+
+  <h2 class="section">Session counts and shortfalls</h2>
+  <p>Summary cards at the top of the tab show:</p>
+  <ul>
+    <li><strong>Total sessions</strong> assigned in the current fortnight</li>
+    <li><strong>Days off</strong> taken across the team</li>
+    <li><strong>Shortfalls</strong> — slots where the required number of staff has not been assigned</li>
+  </ul>
+
+  <div class="warning">
+    <strong>Resolve shortfalls before publishing the rota</strong>
+    A shortfall means a session does not have enough staff to meet safeguarding ratios. The rota is not ready to share until all shortfalls are cleared.
+  </div>
+
+  <div class="tip">
+    <strong>Tip — use the AI Rota Generator for a first draft</strong>
+    If you are building the rota from scratch, the AI Rota Generator (Section 6) can produce an initial draft automatically, which you can then fine-tune manually in this tab.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH6: AI ROTA -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">6</div>
+    <div>
+      <div class="chapter-title">AI Rota Generator</div>
+      <div class="chapter-sub">Automatically create a draft rota from your group and staff data</div>
+    </div>
+  </div>
+
+  <p>The AI Rota Generator creates a first draft of the staff rota automatically. It reads your current group numbers, lesson slots, and team data, then applies all standard UKLC rules to produce a schedule that should be correct from the start.</p>
+
+  <h2 class="section">How it works — three steps</h2>
+
+  <h3 class="sub">Step 1 — Programme</h3>
+  <p>Select the fortnight you want to generate. The screen shows a summary of which groups are on site during that period and which lesson slot each group is following. Check these look correct before continuing.</p>
+
+  <h3 class="sub">Step 2 — Generate</h3>
+  <p>Click <strong>Generate Rota</strong>. The system runs through every day and slot, assigns staff to sessions, places day offs, and checks all the constraints listed below. This takes a few seconds.</p>
+
+  <h3 class="sub">Step 3 — Review</h3>
+  <p>The draft rota is shown as a grid. Check it over — every staff member should have at least one full day off per week, sessions should be covered, and no one should be over their session limit. If you are happy, click <strong>Copy to Rota</strong> to push the draft into the main Rota tab. If not, click <strong>Discard</strong> and generate again, or switch to the Rota tab to make manual adjustments.</p>
+
+  <h2 class="section">Constraints automatically applied</h2>
+  <table class="data-table">
+    <tr><th>Rule</th><th>What it means</th></tr>
+    <tr><td>One session per slot per day</td><td>No staff member is double-booked in the same slot</td></tr>
+    <tr><td>Day off every week</td><td>Every staff member gets at least one full day off per seven-day period</td></tr>
+    <tr><td>Session limits</td><td>TALs and FTTs are capped at 22 sessions per fortnight</td></tr>
+    <tr><td>Safeguarding ratios</td><td>Each activity session has the minimum required number of staff</td></tr>
+    <tr><td>Role rules</td><td>FTTs are not assigned on excursion days; 5FTTs are not assigned at weekends</td></tr>
+    <tr><td>Evening cover</td><td>Eligible staff cover every evening entertainment session</td></tr>
+  </table>
+
+  <div class="note">
+    <strong>Note</strong>
+    The AI Rota Generator is a starting point, not a finished product. Always review the draft and make any necessary adjustments in the Rota tab before sharing it with your team.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH7: PROGRAMMES -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">7</div>
+    <div>
+      <div class="chapter-title">Programmes Tab</div>
+      <div class="chapter-sub">Lesson and activity timetable for every group</div>
+    </div>
+  </div>
+
+  <p>The Programmes tab shows the timetable of lessons and activities for each group across the full programme period. This is the schedule that group leaders follow to know when their students are in lessons and when they are doing activities.</p>
+
+  <h2 class="section">Reading the grid</h2>
+  <p>Groups are listed as rows on the left. Dates run across the top. Within each date column there are slots (AM, PM, and Evening). Each cell shows what that group is doing in that slot on that day.</p>
+
+  <p>The group's <strong>lesson slot</strong> (set in the Students tab) determines whether they have lessons in the morning or afternoon. This switches between AM and PM each week automatically.</p>
+
+  <p>Dates that are excursion days are highlighted differently to indicate the group is off-site for part or all of the day.</p>
+
+  <h2 class="section">Editing the timetable</h2>
+  <p>Click any cell to type in an activity or lesson. Changes save automatically when you click away. Use the same names consistently (e.g. always "Football" not "football" or "Football session") so the Rota tab can match them correctly.</p>
+
+  <div class="tip">
+    <strong>Tip — scroll right for the full programme</strong>
+    If your programme is more than a week long, scroll the grid to the right to see all the dates. The group names column stays fixed on the left.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH8: CATERING -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">8</div>
+    <div>
+      <div class="chapter-title">Catering Tab</div>
+      <div class="chapter-sub">Meal counts, dietary requirements, and kitchen sheets</div>
+    </div>
+  </div>
+
+  <p>The Catering tab calculates how many meals are needed each day and helps you manage dietary requirements and special catering events. The numbers are calculated automatically from the group and team data — you should not need to enter meal counts by hand.</p>
+
+  <h2 class="section">Views</h2>
+
+  <h3 class="sub">Grid</h3>
+  <p>The main view: a table with meal types as rows (Breakfast, Lunch, Packed Lunch, Dinner, etc.) and dates as columns. Each number is the total for that meal on that day.</p>
+  <p>The counts are calculated from:</p>
+  <ul>
+    <li>Group arrival and departure dates and their first/last meal settings</li>
+    <li>The number of residential staff on site</li>
+    <li>Full excursion days (where lunch becomes Packed Lunch)</li>
+    <li>Weekends (where lunch also becomes Packed Lunch)</li>
+  </ul>
+  <p>If a number needs to be overridden, click the cell and type the correct figure.</p>
+
+  <h3 class="sub">Groups</h3>
+  <p>Shows which groups are on site each day, making it easy to cross-reference the meal count with actual headcount.</p>
+
+  <h3 class="sub">Dietary</h3>
+  <p>A register of students with dietary requirements. Add an entry for each student who has a special diet, specifying their name, group, type of requirement (vegetarian, vegan, halal, kosher, gluten-free, dairy-free, nut allergy, etc.), and any further details. This list can be printed and shared with the kitchen.</p>
+
+  <h3 class="sub">Special Meals</h3>
+  <p>Record one-off events such as a birthday cake, a celebration dinner, or a themed meal night. Set the date, meal, description, and number of covers.</p>
+
+  <h3 class="sub">Offsite Meals</h3>
+  <p>When a group eats off-site (for example, during an excursion), record it here so that group is deducted from the kitchen's count for that meal. Enter the group, date, which meal, and the number of people not eating on-site.</p>
+
+  <h2 class="section">Printing a catering sheet</h2>
+  <p>Click the <strong>Print</strong> button in the top toolbar to open a print-ready version of the meal grid. Print this and share it with your kitchen team at the start of each week.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH9: TRANSFERS -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">9</div>
+    <div>
+      <div class="chapter-title">Transfers Tab</div>
+      <div class="chapter-sub">Airport arrivals and departures</div>
+    </div>
+  </div>
+
+  <p>The Transfers tab tracks every group's airport pick-up and drop-off. It gives your transport coordinator a single place to see all flight details, check statuses, and confirm bookings.</p>
+
+  <h2 class="section">Views</h2>
+  <div class="pill-row">
+    <div class="pill">Overview</div>
+    <div class="pill">Arrivals</div>
+    <div class="pill">Departures</div>
+    <div class="pill">Timeline</div>
+  </div>
+
+  <ul>
+    <li><strong>Overview</strong> — all groups side by side with a summary of their arrival and departure details</li>
+    <li><strong>Arrivals</strong> — groups ordered by arrival date, with flight number, time, and airport</li>
+    <li><strong>Departures</strong> — groups ordered by departure date</li>
+    <li><strong>Timeline</strong> — a visual view of all arrivals and departures across the programme, helpful for spotting busy days</li>
+  </ul>
+
+  <h2 class="section">Transfer record fields</h2>
+  <table class="data-table">
+    <tr><th>Field</th><th>What to fill in</th></tr>
+    <tr><td>Airport</td><td>Arrival/departure airport (Heathrow, Gatwick, Stansted, etc.)</td></tr>
+    <tr><td>Terminal</td><td>Terminal number or name (T1, T2, South, etc.)</td></tr>
+    <tr><td>Flight number</td><td>e.g. BA0246</td></tr>
+    <tr><td>Date &amp; time</td><td>Scheduled arrival or departure time</td></tr>
+    <tr><td>UKLC transfer?</td><td>Yes / No / Arr Only / Dep Only / TBC</td></tr>
+    <tr><td>Status</td><td>Pending → Booked → Confirmed</td></tr>
+    <tr><td>Notes</td><td>Any extra information for the driver</td></tr>
+  </table>
+
+  <h2 class="section">Syncing from groups</h2>
+  <p>When groups are imported, their flight details are brought across automatically. If you add a new group after the initial import, click the <strong>Sync</strong> button in the Transfers tab to create a transfer record for it.</p>
+
+  <h2 class="section">Editing a transfer</h2>
+  <p>Click the <strong>edit (pencil) icon</strong> on any row to update its details. Click <strong>Save</strong> when done.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH10: TEAM -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">10</div>
+    <div>
+      <div class="chapter-title">Team Tab</div>
+      <div class="chapter-sub">Staff register, DBS records, and contracts</div>
+    </div>
+  </div>
+
+  <p>The Team tab holds the complete register of staff at your centre. It is the source of truth for who is on site, their role, their contract type, and their DBS (safeguarding check) details.</p>
+
+  <h2 class="section">What each row shows</h2>
+  <table class="data-table">
+    <tr><th>Field</th><th>Meaning</th></tr>
+    <tr><td>Name</td><td>Full name of the staff member</td></tr>
+    <tr><td>Role</td><td>TAL, FTT, 5FTT, Director of Studies, Centre Director, Welfare Officer, etc.</td></tr>
+    <tr><td>Accommodation</td><td>Residential (lives on site) or Non-residential</td></tr>
+    <tr><td>Arrival / Departure</td><td>When they join and leave the centre</td></tr>
+    <tr><td>Time Off</td><td>Any agreed time off during the programme, e.g. "16 Jul evening"</td></tr>
+    <tr><td>DBS Number / Expiry</td><td>Their Disclosure and Barring Service check number and expiry date</td></tr>
+    <tr><td>Contract Type</td><td>Full-time, Part-time, Sessional, or Volunteer</td></tr>
+    <tr><td>Email / Phone</td><td>Contact details</td></tr>
+    <tr><td>Notes</td><td>Any other relevant information</td></tr>
+  </table>
+
+  <h2 class="section">Adding a staff member</h2>
+  <ol class="steps">
+    <li>Click <strong>+ Add Staff Member</strong>.</li>
+    <li>Fill in their name, role, accommodation type, arrival and departure dates.</li>
+    <li>Add their DBS number and expiry date, contract type, and contact details if available.</li>
+    <li>Click <strong>Save</strong>.</li>
+  </ol>
+
+  <h2 class="section">Common staff roles</h2>
+  <table class="data-table">
+    <tr><th>Abbreviation</th><th>Role</th></tr>
+    <tr><td>TAL</td><td>Teaching Activity Leader</td></tr>
+    <tr><td>FTT</td><td>Full-Time Teacher</td></tr>
+    <tr><td>5FTT</td><td>Five-Day Full-Time Teacher</td></tr>
+    <tr><td>DOS</td><td>Director of Studies</td></tr>
+    <tr><td>CD</td><td>Centre Director</td></tr>
+    <tr><td>WO</td><td>Welfare Officer</td></tr>
+    <tr><td>SC / SAI</td><td>Sports Coach / Sports Activity Instructor</td></tr>
+    <tr><td>PA</td><td>Performing Arts Specialist</td></tr>
+  </table>
+
+  <div class="tip">
+    <strong>Tip — bulk import for large teams</strong>
+    If you are setting up the Team tab from scratch, Head Office can import all staff from the master spreadsheet at once. See Section 15.
+  </div>
+
+  <h2 class="section">Why this matters for the Rota</h2>
+  <p>The Rota tab and the AI Rota Generator both read from the Team tab. A staff member's role determines which sessions they can be assigned to and their session limits per fortnight. Their arrival and departure dates determine which days they appear on the rota. <strong>Keep the Team tab up to date, especially when staff join late or leave early.</strong></p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH11: EXCURSIONS -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">11</div>
+    <div>
+      <div class="chapter-title">Excursions Tab</div>
+      <div class="chapter-sub">Day trips, coach bookings, and weekend outings</div>
+    </div>
+  </div>
+
+  <p>The Excursions tab manages all day trips and weekend outings during the programme. It shows you how many students are going on each date, where they are going, and the status of any coach bookings.</p>
+
+  <h2 class="section">The excursion list</h2>
+  <p>Every day marked as a Full Day or Half Day excursion appears in this list, along with every weekend during the programme. For each excursion date you can see:</p>
+  <ul>
+    <li>The date and day of the week</li>
+    <li>Whether it is a Full Day or Half Day excursion</li>
+    <li>The number of students and group leaders going</li>
+    <li>The destination</li>
+    <li>Coach details</li>
+    <li>Notes</li>
+  </ul>
+
+  <h2 class="section">Marking a day as an excursion</h2>
+  <p>Excursion days are set in the <strong>Programmes tab</strong> (see Section 7). Once a day is marked there, it appears automatically in the Excursions tab.</p>
+
+  <h2 class="section">Adding destination and coach details</h2>
+  <ol class="steps">
+    <li>Find the excursion date in the list.</li>
+    <li>Click the <strong>destination</strong> field and type where the group is going (e.g. "London — Tower of London").</li>
+    <li>Click <strong>+ Add Coach</strong> to add a coach booking.</li>
+    <li>Fill in the company name, phone number, booking reference, invoice number, pick-up and drop-off times, and vehicle type.</li>
+    <li>Set the status: <strong>Pending → Requested → Confirmed → Paid</strong>.</li>
+  </ol>
+
+  <h2 class="section">Weekend excursions</h2>
+  <p>Weekends are automatically listed as Full Day excursions and shown separately in the tab. Students are always on excursion at weekends. Fill in the destination and coach details as for any other excursion day.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH12: ROOMING -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">12</div>
+    <div>
+      <div class="chapter-title">Rooming Tab</div>
+      <div class="chapter-sub">Room setup and bed assignments</div>
+    </div>
+  </div>
+
+  <p>The Rooming tab manages where students, group leaders, and staff sleep. It has two main views: an Overview of nightly headcounts and a Houses view for detailed room-by-room assignments.</p>
+
+  <h2 class="section">Overview view</h2>
+  <p>The overview shows a grid of houses (rows) and dates (columns). Each cell shows how many students are sleeping in that house on that night. The numbers are calculated automatically from group arrival and departure dates.</p>
+  <p>If you need to change a number for a specific night (for example, if a group is sleeping in a different house), click the cell and enter the correct figure. Overrides are shown in blue so you can distinguish them from auto-calculated values.</p>
+
+  <h2 class="section">Houses view</h2>
+  <p>The Houses view has two sub-tabs: Setup and Assign.</p>
+
+  <h3 class="sub">Setup</h3>
+  <p>Define the physical layout of your accommodation:</p>
+  <ol class="steps">
+    <li>Click <strong>+ Add House</strong> and enter the house name (e.g. "Windsor House").</li>
+    <li>Within each house, click <strong>+ Add Room</strong> to add a room. Give each room a name (e.g. "Room 12" or "Dormitory B") and a floor label.</li>
+    <li>Enter the number of beds in each room — this sets its capacity.</li>
+  </ol>
+
+  <h3 class="sub">Assign</h3>
+  <p>Fill in who is sleeping in each bed. Each room shows its beds as a list. Click a bed slot and type the student or group leader's name. Rooms are colour-coded by group so you can see at a glance whether groups have been mixed.</p>
+  <p>An occupancy table at the bottom shows each house's total capacity and how many beds are currently filled.</p>
+
+  <div class="tip">
+    <strong>Tip — import rooming from Excel</strong>
+    If your rooming has already been planned in an Excel spreadsheet, Head Office can import it directly. See Section 16.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH13: PETTY CASH -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">13</div>
+    <div>
+      <div class="chapter-title">Petty Cash Tab</div>
+      <div class="chapter-sub">Income, expenses, and closing balance</div>
+    </div>
+  </div>
+
+  <p>The Petty Cash tab is your on-site cash book. It tracks money coming in and going out, calculates the running balance, and records the amount sent to the Regional Operations Manager (ROM) at the end of the programme.</p>
+
+  <h2 class="section">At a glance — the summary cards</h2>
+  <table class="data-table">
+    <tr><th>Card</th><th>What it shows</th></tr>
+    <tr><td>Opening</td><td>The amount of cash at the start of the programme</td></tr>
+    <tr><td>Income</td><td>Total money received during the programme</td></tr>
+    <tr><td>Expenses</td><td>Total money paid out</td></tr>
+    <tr><td>To ROM</td><td>Amount sent to the Regional Operations Manager</td></tr>
+    <tr><td>Closing</td><td>Calculated automatically: Opening + Income − Expenses − To ROM</td></tr>
+  </table>
+
+  <h2 class="section">Setting the opening balance</h2>
+  <p>Enter the amount of cash you received at the start of the programme in the <strong>Opening (£)</strong> field. This is usually the float provided by Head Office.</p>
+
+  <h2 class="section">Recording cash in</h2>
+  <p>Click <strong>+ Cash In</strong> to add an income entry. Select the date, enter the group or source, choose a category, and enter the amount.</p>
+  <p><strong>Income categories:</strong> Activity, Housekeeping, Transfer, Equals Card Top-Up, Other.</p>
+
+  <h2 class="section">Recording expenses</h2>
+  <p>Click <strong>+ Add Expense</strong> to add an outgoing payment. Enter the date, description, category, and amount.</p>
+  <p><strong>Expense categories:</strong> Activities &amp; Equipment, Cleaning, Transport, Food &amp; Drink, Stationery, Medical, Staff Expenses, Prizes, Other.</p>
+
+  <h2 class="section">Sending money to ROM</h2>
+  <p>When you send cash to the Regional Operations Manager, enter the amount in the <strong>To ROM (£)</strong> field. This is deducted from the closing balance automatically.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH14: CONTACTS -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">14</div>
+    <div>
+      <div class="chapter-title">Contacts Tab</div>
+      <div class="chapter-sub">Venue, transport, and emergency contact details</div>
+    </div>
+  </div>
+
+  <p>The Contacts tab stores all the important phone numbers and email addresses your centre team might need during the programme. Contacts are organised into categories so they are easy to find quickly.</p>
+
+  <h2 class="section">Categories</h2>
+  <table class="data-table">
+    <tr><th>Category</th><th>Examples</th></tr>
+    <tr><td>Centre / Venue</td><td>Reception desk, facilities manager, security</td></tr>
+    <tr><td>Coaches &amp; Transport</td><td>Coach companies used for excursions and transfers</td></tr>
+    <tr><td>Excursions</td><td>Attraction ticket offices, local guides</td></tr>
+    <tr><td>DJ / Entertainment</td><td>Disco suppliers, entertainment providers</td></tr>
+    <tr><td>Medical / Emergency</td><td>Nearest hospital, local GP practice, NHS 111</td></tr>
+    <tr><td>UKLC Head Office</td><td>Your regional manager, operations desk</td></tr>
+    <tr><td>Other</td><td>Any contact that doesn't fit another category</td></tr>
+  </table>
+
+  <h2 class="section">Adding a contact</h2>
+  <ol class="steps">
+    <li>Click <strong>+ Add Contact</strong>.</li>
+    <li>Enter the name, email address, phone number, and their role or job title.</li>
+    <li>Choose the appropriate category.</li>
+    <li>Click <strong>Add</strong>.</li>
+  </ol>
+
+  <div class="warning">
+    <strong>Set up emergency contacts on day one</strong>
+    Make sure the nearest hospital or A&amp;E and the UKLC emergency number are in the Contacts tab before students arrive. Your welfare officer should check these are correct and up to date.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH15: BULK IMPORT -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">15</div>
+    <div>
+      <div class="chapter-title">Bulk Import — Groups &amp; Staff</div>
+      <div class="chapter-sub"><span class="role-badge role-ho">Head Office</span> &nbsp;Importing the master spreadsheet data</div>
+    </div>
+  </div>
+
+  <p>Bulk import is used at the start of summer and throughout the season to keep the dashboard in sync with the master Groups and Staff spreadsheets. It can update all centres in a single import.</p>
+
+  <h2 class="section">How the import works</h2>
+  <p>The import is intelligent and safe:</p>
+  <ul>
+    <li><strong>New groups/staff are added.</strong></li>
+    <li><strong>Existing groups/staff are updated</strong> if anything has changed in the spreadsheet.</li>
+    <li><strong>Groups/staff removed from the spreadsheet are deleted</strong> from those centres. Only the centres in the import file are affected — other centres are untouched.</li>
+  </ul>
+
+  <div class="warning">
+    <strong>Important — do not select a centre before a bulk import</strong>
+    A bulk import covers all centres in the file. Make sure the centre selector at the top of the screen shows <em>no centre selected</em> (blank) before you run a bulk import. If a specific centre is selected, only that centre's data will be processed.
+  </div>
+
+  <h2 class="section">Bulk import — Groups</h2>
+  <ol class="steps">
+    <li>Ensure <strong>no centre is selected</strong> in the centre dropdown at the top of the screen.</li>
+    <li>Go to the <strong>Students tab</strong>.</li>
+    <li>Click the <strong>Import</strong> button and choose <strong>Bulk Import (Head Office)</strong>.</li>
+    <li>Select your <strong>Groups Excel file</strong>.</li>
+    <li>Review the preview — it shows how many groups will be added, updated, or removed across all centres.</li>
+    <li>Click <strong>Confirm</strong> to run the import.</li>
+  </ol>
+
+  <h2 class="section">Bulk import — Staff</h2>
+  <ol class="steps">
+    <li>Ensure <strong>no centre is selected</strong>.</li>
+    <li>Go to the <strong>Team tab</strong>.</li>
+    <li>Click <strong>Bulk Import</strong>.</li>
+    <li>Select your <strong>Staff Excel file</strong>.</li>
+    <li>Click <strong>Confirm</strong>.</li>
+  </ol>
+
+  <div class="tip">
+    <strong>Run the Groups import first</strong>
+    Staff records reference centre names. Import Groups before Staff on any given day to make sure the centre matching is accurate.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH16: ROOMING IMPORT -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">16</div>
+    <div>
+      <div class="chapter-title">Rooming Import from Excel</div>
+      <div class="chapter-sub"><span class="role-badge role-ho">Head Office</span> &nbsp;Importing a Heads-on-Beds spreadsheet</div>
+    </div>
+  </div>
+
+  <p>If rooming has already been planned in an Excel spreadsheet, it can be imported directly into the Rooming tab rather than entered by hand.</p>
+
+  <h2 class="section">Supported file formats</h2>
+  <p>The importer accepts <strong>Heads-on-Beds</strong> format spreadsheets. The file must have an <strong>Overview</strong> sheet (or the first sheet will be used) with this column layout:</p>
+
+  <table class="data-table">
+    <tr><th>Column</th><th>Contents</th></tr>
+    <tr><td>A</td><td>House name (sparse — only shown on the first row of each house)</td></tr>
+    <tr><td>B</td><td>Floor label (sparse — only shown on the first row of each floor)</td></tr>
+    <tr><td>C</td><td>Room name (e.g. "Room 1", "Dormitory B")</td></tr>
+    <tr><td>D</td><td>Bed identifier — either "Bed 1", "Bed 2"… or simply 1, 2, 3…</td></tr>
+  </table>
+
+  <h2 class="section">How to run the import</h2>
+  <ol class="steps">
+    <li>Select the correct centre from the centre dropdown.</li>
+    <li>Go to the <strong>Rooming tab</strong> and click the <strong>Houses view</strong>.</li>
+    <li>Click <strong>Import from Excel</strong>.</li>
+    <li>Choose your <strong>.xlsx</strong> or <strong>.xlsm</strong> file.</li>
+    <li>The dashboard shows a preview: the number of houses, rooms, and beds detected.</li>
+    <li>If the numbers look correct, click <strong>Import</strong>.</li>
+  </ol>
+
+  <div class="note">
+    <strong>What gets imported</strong>
+    The import creates all the house and room records in the Setup view. If the spreadsheet includes names against bed slots, those names are populated in the Assign view as well. Any existing rooming data for that centre will be replaced.
+  </div>
+
+  <div class="warning">
+    <strong>Check the preview carefully</strong>
+    If the detected room or bed count looks wrong (too low or zero), the file may not be in the expected format. Contact the developer before proceeding.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH17: USER MGMT -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">17</div>
+    <div>
+      <div class="chapter-title">User Management</div>
+      <div class="chapter-sub"><span class="role-badge role-ho">Head Office</span> &nbsp;Creating and managing dashboard accounts</div>
+    </div>
+  </div>
+
+  <p>The Users tab is only visible to Head Office accounts. It allows you to create new user accounts, assign roles and centres, and update passwords.</p>
+
+  <h2 class="section">User roles</h2>
+  <table class="data-table">
+    <tr><th>Role</th><th>Access level</th></tr>
+    <tr><td>Head Office</td><td>Can see and edit all centres, run bulk imports, access the Users tab</td></tr>
+    <tr><td>Centre Manager</td><td>Can see and edit their assigned centre only. Cannot access the Users tab or run bulk imports</td></tr>
+  </table>
+
+  <h2 class="section">Creating a new user</h2>
+  <ol class="steps">
+    <li>Go to the <strong>Users tab</strong>.</li>
+    <li>Click <strong>+ Add User</strong>.</li>
+    <li>Enter their full name, email address, and a username (optional — used as an alternative to email at the login screen).</li>
+    <li>Set their <strong>role</strong> (Head Office or Centre Manager).</li>
+    <li>If they are a Centre Manager, select their <strong>centre</strong>.</li>
+    <li>Set an initial password. The user should change this after first login.</li>
+    <li>Click <strong>Save</strong>.</li>
+  </ol>
+
+  <div class="tip">
+    <strong>Tip — one account per person</strong>
+    Each member of staff who needs dashboard access should have their own account. Do not share login credentials between people. This ensures the audit trail is accurate and access can be removed individually if someone leaves.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ CH18: COMMON QUESTIONS -->
+<div class="content chapter">
+  <div class="chapter-header">
+    <div class="chapter-num">18</div>
+    <div>
+      <div class="chapter-title">Common Questions &amp; Tips</div>
+      <div class="chapter-sub">Quick answers to the most frequent questions</div>
+    </div>
+  </div>
+
+  <h2 class="section">General</h2>
+
+  <h3 class="sub">Do I need to click a Save button?</h3>
+  <p>Most edits (group details, rota cells, programme cells, transfers, contacts, petty cash entries) save automatically when you click away from a field. Areas with their own Save button — such as rooming bed assignments — will show it clearly. Always click Save before navigating away from those screens.</p>
+
+  <h3 class="sub">Can two people edit the same centre at the same time?</h3>
+  <p>Yes. The dashboard supports concurrent editing. Changes made by one person are synced to other users who have the same centre open. However, if two people edit the exact same cell at the same moment, the last save wins — so coordinate with your team to avoid overwriting each other.</p>
+
+  <h3 class="sub">I can see groups from another centre on my screen. What do I do?</h3>
+  <p>Check the centre selector at the top of the screen. If the wrong centre is selected, click the dropdown and choose your own. If you can still see incorrect groups, contact Head Office — they can re-run the bulk import to clean up the data.</p>
+
+  <h2 class="section">Students</h2>
+
+  <h3 class="sub">A student has moved to a different group. How do I update this?</h3>
+  <p>Find the student in the All Students view, click to edit their record, and change their group. If the move is reflected in the master spreadsheet, running the bulk import again will update it automatically.</p>
+
+  <h3 class="sub">The medical flag for a student is missing. Why?</h3>
+  <p>Medical notes are only flagged if they have been entered against the individual student record (not the group). Check the student's record in the expanded group view and make sure the Medical field has been filled in.</p>
+
+  <h2 class="section">Rota &amp; Team</h2>
+
+  <h3 class="sub">A staff member isn't appearing on the rota. Why?</h3>
+  <p>Check their arrival and departure dates in the Team tab. If their dates don't cover the period you are looking at, they won't appear on the rota for those days. Also check they haven't been accidentally deleted — if so, add them again or re-run the staff bulk import.</p>
+
+  <h3 class="sub">The AI Rota generated too many day offs. What should I do?</h3>
+  <p>The AI follows the contracted minimum (one day off per week). If your contract requires more, or if specific staff have different arrangements, adjust the day offs manually in the Rota tab after generating the draft.</p>
+
+  <h2 class="section">Catering</h2>
+
+  <h3 class="sub">The meal counts don't look right. What should I check?</h3>
+  <p>The most common causes are: (1) a group's arrival or departure date is wrong in the Students tab — correct it there and the catering grid will update automatically; (2) the first or last meal setting is wrong — check the group card in the Students tab; (3) an excursion day hasn't been marked as a Full Day excursion in the Programmes tab.</p>
+
+  <h2 class="section">Rooming</h2>
+
+  <h3 class="sub">I've entered some bed assignments but they disappeared. What happened?</h3>
+  <p>The rooming Assign view has a Save button. If you navigated away without clicking Save, your changes were not stored. Always click Save after entering bed assignments.</p>
+
+  <h2 class="section">Getting help</h2>
+  <p>For issues not covered in this handbook, contact UKLC Head Office. If you believe you have found a bug in the dashboard, note what you were doing when the issue occurred and contact the admin team with as much detail as possible.</p>
+
+  <div style="margin-top: 40px; padding: 20px 24px; background: var(--navy); color: #fff; border-radius: 10px; font-size: 12px; line-height: 1.7;">
+    <strong style="display: block; font-size: 14px; margin-bottom: 6px;">UKLC Centre Dashboard</strong>
+    Available at <strong>uklcdashboard.com</strong><br />
+    For account issues or technical support, contact UKLC Head Office.<br />
+    <span style="opacity: 0.55; font-size: 11px;">Summer 2026 &nbsp;·&nbsp; Handbook version 1.0</span>
+  </div>
+</div>
+
+</div><!-- .page -->
+</body>
+</html>
