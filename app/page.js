@@ -57,6 +57,17 @@ export default function Dashboard() {
     if (db.settings.prog_end) setManualEnd(db.settings.prog_end);
   }, [db.settings]);
 
+  // Warn before unload if rooming assignments have unsaved changes in the debounce window
+  useEffect(() => {
+    const handler = (e) => {
+      if (!roomingDirtyRef.current) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
+
   // Auto-lock centre for non-HO users
   useEffect(() => {
     if (auth.isAuthenticated && !auth.isHeadOffice && auth.userCentreId && db.centres.length > 0) {
@@ -191,6 +202,7 @@ export default function Dashboard() {
   }, [db.saveTransfer, db.deleteTransfer]);
 
   const roomingAssignSaveTimer = useRef(null);
+  const roomingDirtyRef = useRef(false);
   const [roomingOverrides, setRoomingOverridesState] = useState({});
 
   // ── Catering data (overrides, dietary, specials) ───────
@@ -289,9 +301,11 @@ export default function Dashboard() {
   const setRoomingAssignments = useCallback((updater) => {
     db.setRoomingAssignments((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;
+      roomingDirtyRef.current = true;
       clearTimeout(roomingAssignSaveTimer.current);
       roomingAssignSaveTimer.current = setTimeout(async () => {
         await db.saveRoomingAssignments(next);
+        roomingDirtyRef.current = false;
         setLastSaved(new Date());
       }, 1500);
       return next;
