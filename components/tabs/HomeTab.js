@@ -499,7 +499,7 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
         <StatCard label="Group Leaders" value={onSiteGLs} color="#7c3aed" icon={<IcStar />} />
         <StatCard label="UKLC Staff" value={onSiteStaff.length} color="#0891b2" icon={<IcUserCog />} />
         {amToday > 0 && <StatCard label="AM Classes" value={amToday} color="#1e40af" icon={<IcBook />} />}
-        {pmToday > 0 && <StatCard label="PM Lessons" value={pmToday} color="#166534" icon={<IcBook />} />}
+        {pmToday > 0 && <StatCard label="PM Classes" value={pmToday} color="#166534" icon={<IcBook />} />}
         {(amTomorrow + pmTomorrow) > 0 && <StatCard label="Tomorrow" value={amTomorrow + pmTomorrow} color="#64748b" icon={<IcBook />} sub={`${amTomorrow > 0 ? amTomorrow + " AM" : ""}${amTomorrow > 0 && pmTomorrow > 0 ? " · " : ""}${pmTomorrow > 0 ? pmTomorrow + " PM" : ""}`} />}
         {arrivingToday.length > 0 && <StatCard label="Arriving" value={arrivingToday.length} color={B.success} icon={<IcPlaneUp />} sub={arrivingToday.length === 1 ? "group" : "groups"} />}
         {departingToday.length > 0 && <StatCard label="Departing" value={departingToday.length} color={B.warning} icon={<IcPlaneDn />} sub={departingToday.length === 1 ? "group" : "groups"} />}
