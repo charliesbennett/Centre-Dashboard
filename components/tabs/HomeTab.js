@@ -1,6 +1,6 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
-import { dayKey, dayName, fmtDate, ACTIVITY_TYPES, SESSION_TYPES, ROLES, calcLessonSplit, uid } from "@/lib/constants";
+import { dayKey, dayName, fmtDate, ACTIVITY_TYPES, SESSION_TYPES, ROLES, calcLessonSplit, getGroupLessonSlot, inRange, uid } from "@/lib/constants";
 import { useB } from "@/lib/theme";
 import { StatCard, IcPlaneUp, IcPlaneDn, IcCake, IcBus, IcMountain, IcSparkles, IcBook, IcGradCap, IcUserCog, IcUsersTab, IcStar, IconBtn, IcTrash, btnPrimary, inputStyle } from "@/components/ui";
 
@@ -386,11 +386,35 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
     };
   }, [today, progStart, progEnd, todayDate]);
 
-  // ── AM/PM lesson split for today ──────────────────────
-  const { amToday, pmToday } = useMemo(() => {
-    const split = calcLessonSplit(activeGroups, [today]);
-    return { amToday: split[today]?.am || 0, pmToday: split[today]?.pm || 0 };
-  }, [activeGroups, today]);
+  // ── Lesson class counts for today & tomorrow ──────────
+  // A "class" = 16 students. Sum AM/PM students ÷ 16 (ceil).
+  const CLASS_SIZE = 16;
+
+  const tomorrow = useMemo(() => {
+    const d = new Date(todayDate);
+    d.setDate(d.getDate() + 1);
+    return dayKey(d);
+  }, [todayDate]);
+
+  const { amToday, pmToday, amTomorrow, pmTomorrow } = useMemo(() => {
+    let amStuToday = 0, pmStuToday = 0, amStuTmrw = 0, pmStuTmrw = 0;
+    activeGroups.forEach((g) => {
+      const stu = g.stu || 0;
+      if (stu === 0) return;
+      if (inRange(today, g.arr, g.dep) && today !== g.arr && today !== g.dep) {
+        getGroupLessonSlot(g, today) === "AM" ? (amStuToday += stu) : (pmStuToday += stu);
+      }
+      if (inRange(tomorrow, g.arr, g.dep) && tomorrow !== g.arr && tomorrow !== g.dep) {
+        getGroupLessonSlot(g, tomorrow) === "AM" ? (amStuTmrw += stu) : (pmStuTmrw += stu);
+      }
+    });
+    return {
+      amToday:    amStuToday > 0 ? Math.ceil(amStuToday / CLASS_SIZE) : 0,
+      pmToday:    pmStuToday > 0 ? Math.ceil(pmStuToday / CLASS_SIZE) : 0,
+      amTomorrow: amStuTmrw  > 0 ? Math.ceil(amStuTmrw  / CLASS_SIZE) : 0,
+      pmTomorrow: pmStuTmrw  > 0 ? Math.ceil(pmStuTmrw  / CLASS_SIZE) : 0,
+    };
+  }, [activeGroups, today, tomorrow]);
 
   // ── Quote of the day ───────────────────────────────────
   const dayOfYear = Math.floor((todayDate - new Date(todayDate.getFullYear(), 0, 0)) / 86400000);
@@ -474,8 +498,9 @@ export default function HomeTab({ groups = [], staff = [], excDays = {}, progGri
         <StatCard label="Students" value={onSiteStudents} color={B.red} icon={<IcGradCap />} />
         <StatCard label="Group Leaders" value={onSiteGLs} color="#7c3aed" icon={<IcStar />} />
         <StatCard label="UKLC Staff" value={onSiteStaff.length} color="#0891b2" icon={<IcUserCog />} />
-        {amToday > 0 && <StatCard label="AM Lessons" value={amToday} color="#1e40af" icon={<IcBook />} />}
+        {amToday > 0 && <StatCard label="AM Classes" value={amToday} color="#1e40af" icon={<IcBook />} />}
         {pmToday > 0 && <StatCard label="PM Lessons" value={pmToday} color="#166534" icon={<IcBook />} />}
+        {(amTomorrow + pmTomorrow) > 0 && <StatCard label="Tomorrow" value={amTomorrow + pmTomorrow} color="#64748b" icon={<IcBook />} sub={`${amTomorrow > 0 ? amTomorrow + " AM" : ""}${amTomorrow > 0 && pmTomorrow > 0 ? " · " : ""}${pmTomorrow > 0 ? pmTomorrow + " PM" : ""}`} />}
         {arrivingToday.length > 0 && <StatCard label="Arriving" value={arrivingToday.length} color={B.success} icon={<IcPlaneUp />} sub={arrivingToday.length === 1 ? "group" : "groups"} />}
         {departingToday.length > 0 && <StatCard label="Departing" value={departingToday.length} color={B.warning} icon={<IcPlaneDn />} sub={departingToday.length === 1 ? "group" : "groups"} />}
         {excToday && <StatCard label="Excursion Today" value={excToday === "Full" ? "Full Day" : "Half Day"} color="#ea580c" icon={<IcBus />} />}

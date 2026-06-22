@@ -157,7 +157,7 @@ function ProgrammeStep({ progStart, progEnd, groups, staff, fortnights, fortIdx,
                 flex: 1, padding: "12px 16px", borderRadius: 8, cursor: "pointer",
                 border: `2px solid ${isZZ === val ? B.navy : B.border}`,
                 background: isZZ === val ? B.navy : B.white,
-                color: isZZ === val ? B.white : B.text,
+                color: isZZ === val ? B.white : B.navy,
                 textAlign: "left", fontFamily: "inherit",
               }}
             >

@@ -408,6 +408,8 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
   const [showArchived, setShowArchived] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
   const [editDraft, setEditDraft] = useState({});
+  const [editingNat, setEditingNat] = useState(null);
+  const [natDraft, setNatDraft] = useState("");
 
   const openEdit = (g, e) => {
     e.stopPropagation();
@@ -422,7 +424,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
   const filtered = groups.filter((x) =>
     (showArchived ? x.archived : !x.archived) &&
     (!search || (x.agent + " " + x.group + " " + x.nat).toLowerCase().includes(search.toLowerCase()))
-  );
+  ).sort((a, b) => (a.arr || "z").localeCompare(b.arr || "z"));
   const totalStu = groups.filter((x) => !x.archived).reduce((s, x) => s + (x.stu || 0), 0);
   const totalGL = groups.filter((x) => !x.archived).reduce((s, x) => s + (x.gl || 0), 0);
   const activeGroups = groups.filter((x) => !x.archived);
@@ -461,6 +463,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
           try {
             const payload = parsedGroups.map((g) => ({
               groupName: g.group,
+              nat:       g.nat || "",
               students:  g.students || [],
               leaders:   g.leaders  || [],
             }));
@@ -471,6 +474,11 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
             } else {
               const unmatchedNote = data.unmatched?.length ? ` · ${data.unmatched.length} unmatched (run Groups import first)` : "";
               setImportMsg({ type: "success", text: `Bulk import complete — ${data.imported} students across ${data.matched} groups${unmatchedNote}` });
+              setGroups((prev) => prev.map((g) => {
+                const parsed = parsedGroups.find((p) => p.group.toLowerCase().trim() === g.group?.toLowerCase().trim());
+                if (!parsed) return g;
+                return { ...g, nat: parsed.nat || g.nat, stu: parsed.stu, gl: parsed.gl, students: parsed.students, leaders: parsed.leaders };
+              }));
             }
           } catch (e) {
             setImportMsg({ type: "error", text: "Bulk import failed: " + e.message });
@@ -865,17 +873,28 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
       {view === "groups" && <div style={{ padding: "0 12px 16px", overflowX: "auto" }}>
         <TableWrap>
           <table style={{ minWidth: 800, borderCollapse: "collapse", fontSize: 11 }}>
-            <thead><tr>{["", "Agent", "Group", "Nat", "Stu", "GLs", "Total", "Wk1", "Prog", "Arr", "Dep", "", ""].map((h, i) => <th key={h + i} style={thStyle}>{h}</th>)}</tr></thead>
+            <thead><tr>{["", "Agent", "Group", "Nat", "Stu", "GLs", "Total", "Wk1", "Prog", "1st Meal", "Last Meal", "Arr", "Dep", "", ""].map((h, i) => <th key={h + i} style={thStyle}>{h}</th>)}</tr></thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={13} style={{ textAlign: "center", padding: 36, color: B.textLight }}>No groups — use <strong>Import Excel</strong> to upload an agent spreadsheet</td></tr>
+                <tr><td colSpan={15} style={{ textAlign: "center", padding: 36, color: B.textLight }}>No groups — use <strong>Import Excel</strong> to upload an agent spreadsheet</td></tr>
               ) : filtered.map((x) => (
                 <>
                   <tr key={x.id} style={{ borderBottom: expanded === x.id ? "none" : "1px solid " + B.borderLight, cursor: "pointer", opacity: x.archived ? 0.5 : 1 }} onClick={() => setExpanded(expanded === x.id ? null : x.id)}>
                     <td style={{ ...tdStyle, fontSize: 9, color: B.textMuted }}>{expanded === x.id ? "\u25bc" : "\u25b6"}</td>
                     <td style={tdStyle}>{x.agent}</td>
                     <td style={{ ...tdStyle, fontWeight: 700, color: B.text }}>{x.group}</td>
-                    <td style={tdStyle}><span style={{ background: B.pink, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700, color: B.red }}>{x.nat}</span></td>
+                    <td style={tdStyle} onClick={(e) => { e.stopPropagation(); if (!readOnly) { setEditingNat(x.id); setNatDraft(x.nat || ""); } }}>
+                      {editingNat === x.id ? (
+                        <input autoFocus value={natDraft} onChange={(e) => setNatDraft(e.target.value)}
+                          onBlur={() => { setGroups((p) => p.map((g) => g.id === x.id ? { ...g, nat: natDraft.trim() } : g)); setEditingNat(null); }}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") e.target.blur(); }}
+                          style={{ width: 70, fontSize: 9, padding: "2px 4px", border: "1px solid " + B.navy, borderRadius: 3, fontFamily: "inherit" }} />
+                      ) : x.nat ? (
+                        <span style={{ background: B.pink, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700, color: B.red, cursor: "pointer" }}>{x.nat}</span>
+                      ) : (
+                        <span style={{ color: B.textLight, fontSize: 9, cursor: "pointer" }}>{"\u2014"}</span>
+                      )}
+                    </td>
                     <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700 }}>{x.stu}</td>
                     <td style={{ ...tdStyle, textAlign: "center" }}>{x.gl}</td>
                     <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800, color: B.text }}>{(x.stu || 0) + (x.gl || 0)}</td>
@@ -887,6 +906,8 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
                       }}>{x.lessonSlot || "AM"}</span>
                     </td>
                     <td style={tdStyle}><span style={{ background: B.cyanBg, color: B.cyan, padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{x.prog}</span></td>
+                    <td style={tdStyle}><span style={{ background: "#fef3c7", color: "#92400e", padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{x.firstMeal || "Dinner"}</span></td>
+                    <td style={tdStyle}><span style={{ background: "#ede9fe", color: "#5b21b6", padding: "2px 6px", borderRadius: 3, fontSize: 9, fontWeight: 700 }}>{x.lastMeal || "Packed Lunch"}</span></td>
                     <td style={tdStyle}>{fmtDate(x.arr)}</td>
                     <td style={tdStyle}>{fmtDate(x.dep)}</td>
                     <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
@@ -906,7 +927,7 @@ export default function StudentsTab({ groups = [], setGroups, progStart, progEnd
                   </tr>
                   {expanded === x.id && x.students && (
                     <tr key={x.id + "-d"} style={{ borderBottom: "1px solid " + B.borderLight }}>
-                      <td colSpan={13} style={{ padding: "0 8px 12px", background: B.bg }}>
+                      <td colSpan={15} style={{ padding: "0 8px 12px", background: B.bg }}>
                         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", padding: "8px 12px" }}>
                           {x.arrFlight && <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Arrival:</span> {x.arrAirport} · {x.arrFlight} {x.arrTime ? "at " + x.arrTime : ""}</div>}
                           {x.depFlight && <div style={{ fontSize: 10 }}><span style={{ fontWeight: 700, color: B.textMuted }}>Departure:</span> {x.depAirport} · {x.depFlight} {x.depTime ? "at " + x.depTime : ""}</div>}

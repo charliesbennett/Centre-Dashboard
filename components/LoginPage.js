@@ -1,18 +1,28 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useB } from "@/lib/theme";
 
 export default function LoginPage({ onLogin, error: authError }) {
   const B = useB();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("uklc_session_expired")) {
+        setSessionExpired(true);
+        localStorage.removeItem("uklc_session_expired");
+      }
+    } catch {}
+  }, []);
 
   const submit = async () => {
-    if (!email.trim() || !password.trim()) return;
+    if (!identifier.trim() || !password.trim()) return;
     setLoading(true);
-    const ok = await onLogin(email.trim().toLowerCase(), password);
+    const ok = await onLogin(identifier.trim().toLowerCase(), password);
     if (!ok) setLoading(false);
   };
 
@@ -20,7 +30,7 @@ export default function LoginPage({ onLogin, error: authError }) {
   const fieldStyle = {
     width: "100%", padding: "14px 18px", fontSize: 15, borderRadius: 24,
     border: "1.5px solid #c8d0da", background: "#eef2f7", fontFamily: "inherit",
-    outline: "none", boxSizing: "border-box", color: B.text,
+    outline: "none", boxSizing: "border-box", color: B.navy,
   };
 
   return (
@@ -41,18 +51,19 @@ export default function LoginPage({ onLogin, error: authError }) {
       }}>
         {/* UKLC Logo */}
         <div style={{ textAlign: "center", marginBottom: 16, display: "flex", justifyContent: "center" }}>
-          <img src="/logo-new.png" alt="UKLC" style={{ height: 70 }} />
+          <img src="/logo-white.png" alt="UKLC" style={{ height: 70 }} />
         </div>
 
         <h1 style={{ textAlign: "center", fontSize: 22, fontWeight: 800, color: B.text, margin: "0 0 4px" }}>Centre Dashboard</h1>
         <p style={{ textAlign: "center", fontSize: 13, color: "#7a8599", margin: "0 0 28px" }}>Sign in with your UKLC Account</p>
 
+        {sessionExpired && <div style={{ background: "#fefce8", border: "1px solid #fde047", borderRadius: 12, padding: "10px 16px", marginBottom: 18, fontSize: 13, color: "#854d0e", fontWeight: 600 }}>Your session has expired. Please sign in again.</div>}
         {err && <div style={{ background: B.dangerBg, border: "1px solid " + B.border, borderRadius: 12, padding: "10px 16px", marginBottom: 18, fontSize: 13, color: B.danger, fontWeight: 600 }}>{err}</div>}
 
-        {/* Email */}
+        {/* Identifier */}
         <div style={{ marginBottom: 20 }}>
-          <label style={{ display: "block", fontSize: 15, fontWeight: 700, color: B.text, marginBottom: 8 }}>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder="yourname@uklc.org" autoFocus style={fieldStyle} />
+          <label style={{ display: "block", fontSize: 15, fontWeight: 700, color: B.text, marginBottom: 8 }}>Email or username</label>
+          <input type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder="yourname@uklc.org or username" autoFocus style={fieldStyle} />
         </div>
 
         {/* Password */}

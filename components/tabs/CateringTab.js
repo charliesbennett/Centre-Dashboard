@@ -10,6 +10,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
   const B = useB();
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
   const teamSize = staff.filter((s) => s.acc === "Residential").length;
+  const nonResCount = staff.filter((s) => s.acc === "Non-residential").length;
   const cd = cateringData || {};
   const dietary = cd.dietary || [];
   const specialMeals = cd.specialMeals || [];
@@ -44,6 +45,9 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
         totals[s][(isFE || we) ? "Packed Lunch" : "Lunch"] += teamSize;
         totals[s]["Dinner"] += teamSize;
       }
+      if (nonResCount > 0) {
+        totals[s][(isFE || we) ? "Packed Lunch" : "Lunch"] += nonResCount;
+      }
 
       groups.forEach((g) => {
         const pax = (g.stu || 0) + (g.gl || 0);
@@ -53,16 +57,21 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
 
         if (isArr) {
           const fm = g.firstMeal || "Dinner";
-          if (fm === "Breakfast" || fm === "Packed Bkfst") { totals[s][fm] += pax; totals[s]["Lunch"] += pax; totals[s]["Dinner"] += pax; }
-          else if (fm === "Lunch" || fm === "Packed Lunch") { totals[s][fm] += pax; totals[s]["Dinner"] += pax; }
+          const lk = (isFE || we) ? "Packed Lunch" : "Lunch";
+          if (fm === "Breakfast" || fm === "Packed Bkfst") { totals[s][fm] += pax; totals[s][lk] += pax; totals[s]["Dinner"] += pax; }
+          else if (fm === "Lunch") { totals[s][lk] += pax; totals[s]["Dinner"] += pax; }
+          else if (fm === "Packed Lunch") { totals[s]["Packed Lunch"] += pax; totals[s]["Dinner"] += pax; }
           else { totals[s]["Dinner"] += pax; }
           return;
         }
         if (isDep) {
           const lm = g.lastMeal || "Packed Lunch";
-          totals[s]["Breakfast"] += pax;
-          if (lm !== "Breakfast" && lm !== "Packed Bkfst") totals[s][lm] += pax;
-          if (lm === "Dinner" || lm === "Packed Dinner") totals[s]["Lunch"] += pax;
+          const lk = (isFE || we) ? "Packed Lunch" : "Lunch";
+          totals[s][lm === "Packed Bkfst" ? "Packed Bkfst" : "Breakfast"] += pax;
+          if (lm === "Lunch") totals[s][lk] += pax;
+          else if (lm === "Packed Lunch") totals[s]["Packed Lunch"] += pax;
+          else if (lm === "Dinner") { totals[s][lk] += pax; totals[s]["Dinner"] += pax; }
+          else if (lm === "Packed Dinner") { totals[s][lk] += pax; totals[s]["Packed Dinner"] += pax; }
           return;
         }
         totals[s]["Breakfast"] += pax;
@@ -79,7 +88,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
     });
 
     return totals;
-  }, [dates, groups, teamSize, excDays, offsiteMeals]);
+  }, [dates, groups, teamSize, nonResCount, excDays, offsiteMeals]);
 
   // Per-group data
   const groupData = useMemo(() => {
@@ -99,16 +108,21 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
 
         if (isArr) {
           const fm = g.firstMeal || "Dinner";
-          if (fm === "Breakfast" || fm === "Packed Bkfst") { gd[g.id][s][fm] += pax; gd[g.id][s]["Lunch"] += pax; gd[g.id][s]["Dinner"] += pax; }
-          else if (fm === "Lunch" || fm === "Packed Lunch") { gd[g.id][s][fm] += pax; gd[g.id][s]["Dinner"] += pax; }
+          const lk = (isFE || we) ? "Packed Lunch" : "Lunch";
+          if (fm === "Breakfast" || fm === "Packed Bkfst") { gd[g.id][s][fm] += pax; gd[g.id][s][lk] += pax; gd[g.id][s]["Dinner"] += pax; }
+          else if (fm === "Lunch") { gd[g.id][s][lk] += pax; gd[g.id][s]["Dinner"] += pax; }
+          else if (fm === "Packed Lunch") { gd[g.id][s]["Packed Lunch"] += pax; gd[g.id][s]["Dinner"] += pax; }
           else { gd[g.id][s]["Dinner"] += pax; }
           return;
         }
         if (isDep) {
           const lm = g.lastMeal || "Packed Lunch";
-          gd[g.id][s]["Breakfast"] += pax;
-          if (lm !== "Breakfast" && lm !== "Packed Bkfst") gd[g.id][s][lm] += pax;
-          if (lm === "Dinner" || lm === "Packed Dinner") gd[g.id][s]["Lunch"] += pax;
+          const lk = (isFE || we) ? "Packed Lunch" : "Lunch";
+          gd[g.id][s][lm === "Packed Bkfst" ? "Packed Bkfst" : "Breakfast"] += pax;
+          if (lm === "Lunch") gd[g.id][s][lk] += pax;
+          else if (lm === "Packed Lunch") gd[g.id][s]["Packed Lunch"] += pax;
+          else if (lm === "Dinner") { gd[g.id][s][lk] += pax; gd[g.id][s]["Dinner"] += pax; }
+          else if (lm === "Packed Dinner") { gd[g.id][s][lk] += pax; gd[g.id][s]["Packed Dinner"] += pax; }
           return;
         }
         gd[g.id][s]["Breakfast"] += pax;
@@ -244,7 +258,8 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
       {/* Header */}
       <div style={{ padding: "12px 20px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <StatCard label="Groups" value={groups.length} accent={B.navy} />
-        <StatCard label="Team" value={teamSize} accent="#0369a1" />
+        <StatCard label="Res Staff" value={teamSize} accent="#0369a1" />
+        {nonResCount > 0 && <StatCard label="Non-res" value={nonResCount} accent="#0891b2" />}
         <StatCard label="Days" value={dates.length} accent={B.textMuted} />
         <StatCard label="Dietary" value={dietary.length} accent="#dc2626" />
         <StatCard label="Specials" value={specialMeals.length} accent="#7c3aed" />
@@ -360,7 +375,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
               {/* Team row */}
               <div style={{ background: B.card, border: "1px solid " + B.border, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
                 <div style={{ padding: "8px 16px", fontWeight: 800, fontSize: 11, color: B.cyan, background: B.cyanBg, borderBottom: "1px solid " + B.border }}>
-                  {"\ud83d\udc64"} Staff Team ({teamSize} people)
+                  {"\ud83d\udc64"} Staff Team \u2014 {teamSize} residential (3 meals){nonResCount > 0 ? ` \u00b7 ${nonResCount} non-residential (lunch only)` : ""}
                 </div>
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
@@ -374,12 +389,18 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
                           <td style={{ padding: "4px 8px" }}><span style={{ background: MEAL_COLORS[m] + "20", color: MEAL_COLORS[m], padding: "1px 6px", borderRadius: 3, fontSize: 8, fontWeight: 700 }}>{m}</span></td>
                           {dates.map((d) => {
                             const s = dayKey(d); const isFE = excDays[s] === "Full"; const we = isWeekend(d);
-                            let v = 0;
-                            if (m === "Breakfast") v = teamSize;
-                            else if (m === "Lunch" && !isFE && !we) v = teamSize;
-                            else if (m === "Packed Lunch" && (isFE || we)) v = teamSize;
-                            else if (m === "Dinner") v = teamSize;
-                            return <td key={s} style={{ textAlign: "center", fontSize: 9, fontWeight: v ? 700 : 400, color: v ? B.navy : B.textLight, borderLeft: "1px solid " + B.borderLight }}>{v || ""}</td>;
+                            let res = 0, nonRes = 0;
+                            if (m === "Breakfast") res = teamSize;
+                            else if (m === "Lunch" && !isFE && !we) { res = teamSize; nonRes = nonResCount; }
+                            else if (m === "Packed Lunch" && (isFE || we)) { res = teamSize; nonRes = nonResCount; }
+                            else if (m === "Dinner") res = teamSize;
+                            const v = res + nonRes;
+                            return (
+                              <td key={s} style={{ textAlign: "center", fontSize: 9, fontWeight: v ? 700 : 400, color: v ? B.navy : B.textLight, borderLeft: "1px solid " + B.borderLight }}>
+                                {v || ""}
+                                {nonRes > 0 && <div style={{ fontSize: 6, color: "#0891b2", lineHeight: 1 }}>+{nonRes} NR</div>}
+                              </td>
+                            );
                           })}
                         </tr>
                       ))}
@@ -620,7 +641,7 @@ export default function CateringTab({ groups, staff, progStart, progEnd, excDays
       )}
 
       <div style={{ padding: "0 20px 8px", fontSize: 9, color: B.success, fontWeight: 600 }}>
-        {"\u2713"} Auto-calculated: {groups.length} groups + {teamSize} team {"\u00b7"} Exc days & weekends {"\u2192"} packed lunches {"\u00b7"} Click cells to override
+        {"\u2713"} Auto-calculated: {groups.length} groups + {teamSize} res staff (3 meals){nonResCount > 0 ? ` + ${nonResCount} non-res (lunch only)` : ""} {"\u00b7"} Exc days & weekends {"\u2192"} packed lunches {"\u00b7"} Click cells to override
       </div>
     </div>
   );

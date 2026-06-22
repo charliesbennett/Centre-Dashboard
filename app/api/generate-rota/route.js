@@ -216,17 +216,21 @@ function buildRota(staffIndex, dates, groups, progGrid, dayProfiles, isZZ, isINP
     const onSiteDays = dates.map(dayKey).filter(ds => inRange(ds, s.arr, s.dep));
     if (!onSiteDays.length) return;
 
-    // Induction — first day on site (AM + PM placeholder)
+    // Induction — only if the staff member actually arrives within the rota date range
     const indDs = onSiteDays[0];
-    if (s.role === "5FTT" && isWeekend(new Date(indDs))) {
-      setDayOff(s.id, indDs);
-    } else {
-      ng[`${s.id}-${indDs}-AM`] = "Induction";
-      ng[`${s.id}-${indDs}-PM`] = "Induction";
+    const arrivesDuringRota = s.arr >= indDs;
+    if (arrivesDuringRota) {
+      if (s.role === "5FTT" && isWeekend(new Date(indDs))) {
+        setDayOff(s.id, indDs);
+      } else {
+        ng[`${s.id}-${indDs}-AM`] = "Induction";
+        ng[`${s.id}-${indDs}-PM`] = "Induction";
+      }
     }
 
-    // Setup — days between induction and first student arrival
-    for (let i = 1; i < onSiteDays.length; i++) {
+    // Setup — days between induction (or rota start) and first student arrival
+    const setupStart = arrivesDuringRota ? 1 : 0;
+    for (let i = setupStart; i < onSiteDays.length; i++) {
       const ds = onSiteDays[i];
       if (groupArrivalDate && ds >= groupArrivalDate) break;
       ng[`${s.id}-${ds}-AM`] = "Setup";
@@ -653,14 +657,16 @@ export async function POST(req) {
         sendEvent(controller, { step: 1, message: "Reading programme…" });
 
         const dates = genDates(progStart, progEnd);
-        const staffIndex = staff.map((s, i) => ({
-          i, id: s.id,
-          name: s.name || `Staff ${i}`,
-          role: s.role || "SAI",
-          arr: s.arr || progStart,
-          dep: s.dep || progEnd,
-          to: s.to || "",
-        }));
+        const staffIndex = staff
+          .filter((s) => s.arr && s.dep)
+          .map((s, i) => ({
+            i, id: s.id,
+            name: s.name || `Staff ${i}`,
+            role: s.role || "SAI",
+            arr: s.arr,
+            dep: s.dep,
+            to: s.to || "",
+          }));
 
         const dayProfiles = buildDayProfiles(dates, groups, progGrid, !!isZZ);
 

@@ -150,8 +150,8 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
         if (!amDest && isExcActivity(am)) amDest = am;
         if (!pmDest && isExcActivity(pm)) pmDest = pm;
       });
-      const amExc = isMinistay && (groups || []).some((g) => isExcActivity((progGrid || {})[`${g.id}-${ds}-AM`] || ""));
-      const pmExc = isMinistay && (groups || []).some((g) => isExcActivity((progGrid || {})[`${g.id}-${ds}-PM`] || ""));
+      const amExc = (groups || []).some((g) => inRange(ds, g.arr, g.dep) && isExcActivity((progGrid || {})[`${g.id}-${ds}-AM`] || ""));
+      const pmExc = (groups || []).some((g) => inRange(ds, g.arr, g.dep) && isExcActivity((progGrid || {})[`${g.id}-${ds}-PM`] || ""));
       let excType = hasFullKw || (amExc && pmExc) ? "Full"
         : hasHalfKw || amExc || pmExc ? "Half" : null;
       if (excType) {

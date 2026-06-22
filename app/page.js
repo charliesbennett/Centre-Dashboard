@@ -91,24 +91,15 @@ export default function Dashboard() {
 
   const isMinistay = centreName.toLowerCase().includes("ministay");
   const { progStart, progEnd } = useMemo(() => {
-    const allDates = [];
-    db.groups.forEach((g) => {
-      if (g.arr) allDates.push({ d: g.arr, type: "start" });
-      if (g.dep) allDates.push({ d: g.dep, type: "end" });
-    });
-    db.staff.forEach((s) => {
-      if (s.arr) allDates.push({ d: s.arr, type: "start" });
-      if (s.dep) allDates.push({ d: s.dep, type: "end" });
-    });
-    if (allDates.length === 0) return { progStart: manualStart, progEnd: manualEnd };
-    const starts = allDates.filter((x) => x.type === "start").map((x) => x.d).sort();
-    const ends = allDates.filter((x) => x.type === "end").map((x) => x.d).sort();
-    const earliest = starts[0] || manualStart;
-    const latest = ends[ends.length - 1] || manualEnd;
-    return {
-      progStart: isMinistay ? earliest : (earliest < manualStart ? earliest : manualStart),
-      progEnd: isMinistay ? latest : (latest > manualEnd ? latest : manualEnd),
-    };
+    const groupArrs = db.groups.filter((g) => g.arr && !g.archived).map((g) => g.arr).sort();
+    const allEnds = [
+      ...db.groups.filter((g) => g.dep && !g.archived).map((g) => g.dep),
+      ...db.staff.filter((s) => s.dep).map((s) => s.dep),
+    ].sort();
+    if (groupArrs.length === 0 && allEnds.length === 0) return { progStart: manualStart, progEnd: manualEnd };
+    const earliest = groupArrs[0] || manualStart;
+    const latest = allEnds[allEnds.length - 1] || manualEnd;
+    return { progStart: earliest, progEnd: latest };
   }, [db.groups, db.staff, manualStart, manualEnd, isMinistay]);
 
   // Debounced auto-save for grids
@@ -362,7 +353,15 @@ export default function Dashboard() {
         <div style={{ fontSize: 13, fontWeight: 600, color: B.textMuted }}>Loading {centreName}…</div>
       </div>
     );
-    const activeGroups = (db.groups || []).filter((g) => !g.archived);
+    if (db.error) return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 10 }}>
+        <div style={{ fontSize: 32 }}>⚠️</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: B.text }}>Failed to load {centreName}</div>
+        <div style={{ fontSize: 12, color: B.textMuted, marginBottom: 8 }}>{db.error}</div>
+        <button onClick={() => window.location.reload()} style={{ padding: "8px 20px", background: B.navy, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>Try again</button>
+      </div>
+    );
+    const activeGroups = (db.groups || []).filter((g) => !g.archived).sort((a, b) => (a.arr || "z").localeCompare(b.arr || "z"));
     switch (tab) {
       case "home": return <HomeTab groups={db.groups} staff={db.staff} excDays={db.excDays} progGrid={db.progGrid} rotaGrid={db.rotaGrid} progStart={progStart} progEnd={progEnd} excursions={db.excursions} userRole={auth.userRole} userName={auth.userName} centreName={centreName} settings={db.settings} saveSetting={db.saveSetting} />;
       case "students": return <StudentsTab groups={db.groups} setGroups={setGroups} progStart={progStart} progEnd={progEnd} readOnly={isReadOnly} userRole={auth.userRole} roomingAssignments={db.roomingAssignments} roomingRooms={db.roomingRooms} centreName={centreName} onGroupUpdated={() => setRotaStale(true)} />;
@@ -383,7 +382,7 @@ export default function Dashboard() {
       />;
       case "pettycash": return <PettyCashTab pettyCash={pettyCash} setPettyCash={setPettyCash} readOnly={isReadOnly} />;
       case "contacts": return <ContactsTab contacts={contacts} setContacts={setContacts} readOnly={isReadOnly} />;
-      case "users": return <UsersTab centres={db.centres} />;
+      case "users": return <UsersTab centres={db.centres} isSuperAdmin={auth.isSuperAdmin} />;
       default: return null;
     }
   };

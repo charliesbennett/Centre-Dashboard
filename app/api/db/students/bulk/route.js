@@ -32,6 +32,7 @@ export async function POST(req) {
   const rows = [];
   const unmatched = [];
   const affectedGroupIds = new Set();
+  const groupNatMap = {};
 
   for (const g of groups) {
     const groupId = groupMap[g.groupName.toLowerCase().trim()];
@@ -40,6 +41,7 @@ export async function POST(req) {
       continue;
     }
     affectedGroupIds.add(groupId);
+    if (g.nat) groupNatMap[groupId] = g.nat;
     const people = [
       ...(g.students || []).map((s) => ({ ...s, type: "student" })),
       ...(g.leaders  || []).map((s) => ({ ...s, type: "gl" })),
@@ -77,8 +79,14 @@ export async function POST(req) {
     }, { status: 422 });
   }
 
-  const { error: upsertError } = await db.from("students").upsert(rows, { onConflict: "id" });
+  const deduped = [...new Map(rows.map((r) => [r.id, r])).values()];
+  const { error: upsertError } = await db.from("students").upsert(deduped, { onConflict: "id" });
   if (upsertError) return Response.json({ error: upsertError.message }, { status: 500 });
+
+  // Update nationality on group records where we have it from the student data
+  for (const [groupId, nat] of Object.entries(groupNatMap)) {
+    if (nat) await db.from("groups").update({ nationality: nat }).eq("id", groupId);
+  }
 
   // Delete stale students per group (students removed from the Excel since last import)
   let removed = 0;

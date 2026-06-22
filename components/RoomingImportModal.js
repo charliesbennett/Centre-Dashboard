@@ -210,9 +210,10 @@ export default function RoomingImportModal({
               )}
 
               <div style={{ marginTop: 14, padding: "10px 14px", background: B.cyanBg, border: "1px solid " + B.border, borderRadius: 8, fontSize: 10, color: B.cyan, lineHeight: 1.6 }}>
-                <strong>Expected columns (in order):</strong><br />
-                Floor label &nbsp;·&nbsp; Building/House name &nbsp;·&nbsp; Room number &nbsp;·&nbsp; Type (M/F/GL/UKLC) &nbsp;·&nbsp; First name &nbsp;·&nbsp; Last name<br />
-                <span style={{ color: "#64748b" }}>Column letters are auto-detected — A–F and B–G layouts both work.</span>
+                <strong>Supported formats:</strong><br />
+                <strong>Heads-on-Beds (UKLC):</strong> A = House &nbsp;·&nbsp; B = Floor &nbsp;·&nbsp; C = Room &nbsp;·&nbsp; D = Bed rows (one per bed)<br />
+                <strong>Named list:</strong> Floor &nbsp;·&nbsp; House &nbsp;·&nbsp; Room# &nbsp;·&nbsp; Type &nbsp;·&nbsp; First &nbsp;·&nbsp; Last<br />
+                <span style={{ color: "#64748b" }}>The format is auto-detected. Uses the "Overview" sheet if present.</span>
               </div>
             </div>
           )}
