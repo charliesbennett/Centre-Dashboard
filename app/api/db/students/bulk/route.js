@@ -89,19 +89,24 @@ export async function POST(req) {
   }
 
   // Delete stale students per group (students removed from the Excel since last import)
+  // Build a per-group map of imported IDs so we can do one DELETE per group instead of N.
+  const importedByGroup = {};
+  for (const r of rows) {
+    if (!importedByGroup[r.group_id]) importedByGroup[r.group_id] = [];
+    importedByGroup[r.group_id].push(r.id);
+  }
+
   let removed = 0;
   for (const groupId of affectedGroupIds) {
-    const importedIds = rows.filter((r) => r.group_id === groupId).map((r) => r.id);
+    const importedIds = importedByGroup[groupId] || [];
     if (importedIds.length === 0) continue;
-    const { data: stale } = await db
+    const { data: deleted } = await db
       .from("students")
-      .select("id")
+      .delete()
       .eq("group_id", groupId)
-      .not("id", "in", `(${importedIds.join(",")})`);
-    for (const s of stale || []) {
-      await db.from("students").delete().eq("id", s.id);
-      removed++;
-    }
+      .not("id", "in", `(${importedIds.join(",")})`)
+      .select("id");
+    removed += (deleted || []).length;
   }
 
   return Response.json({
