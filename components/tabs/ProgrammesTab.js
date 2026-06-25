@@ -307,21 +307,28 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   const QUICK_AM_PM = ["English Lessons", "English Test", "Orientation Tour", "Sports & Games", "Arts & Crafts", "Paparazzi Challenge", "Half Day Excursion", "Full Day Excursion", "ARRIVAL", "DEPARTURE"];
   const QUICK_EVE = ["Evening Activity", "EE", "Welcome Talk", "Speed Dating", "Paparazzi", "Trashion Show", "Movie Night", "Quiz Night", "Disco", "Drop the Egg", "Attractions"];
 
-  const classify = (text) => {
+  const PILL = {
+    lesson:   { bg: "#1d4ed8", color: "#fff" },
+    exc:      { bg: "#b45309", color: "#fff" },
+    evening:  { bg: "#6d28d9", color: "#fff" },
+    activity: { bg: "#15803d", color: "#fff" },
+    arrival:  { bg: "#0369a1", color: "#fff" },
+    depart:   { bg: "#9f1239", color: "#fff" },
+    freetime: { bg: "#6b7280", color: "#fff" },
+  };
+
+  const classify = (text, ds) => {
     if (!text) return { color: B.textLight, bg: "transparent" };
     const t = text.toLowerCase();
-    if (t.includes("arrival")) return { color: B.success, bg: B.ice };
-    if (t.includes("depart")) return { color: B.danger, bg: B.pink };
-    if (t.includes("english test")) return { color: B.cyan, bg: B.ice };
-    if (t.includes("lesson")) return { color: B.link, bg: B.ice };
-    if (t.includes("multi-activity") || t.includes("chosen programme")) return { color: B.purple, bg: B.ice };
-    if (t.includes("activity")) return { color: B.purple, bg: B.ice };
-    if (t.includes("free time") || t.includes("optional")) return { color: B.textMuted, bg: B.bg };
-    if (t.includes("orientation") || t.includes("welcome")) return { color: B.success, bg: B.ice };
-    if (t.includes("exc")) return { color: B.red, bg: B.pink };
-    if (t.includes("ee") || t.includes("evening") || t.includes("disco") || t.includes("quiz") || t.includes("movie") || t.includes("trashion") || t.includes("speed dating") || (t.includes("paparazzi") && t.length < 20)) return { color: B.purple, bg: B.ice };
-    if (t.includes("sports") || t.includes("games")) return { color: B.success, bg: B.ice };
-    return { color: B.link, bg: B.ice };
+    if (t.includes("arrival")) return PILL.arrival;
+    if (t.includes("depart")) return PILL.depart;
+    if (t.includes("lesson") || t.includes("english test")) return PILL.lesson;
+    if (t.includes("exc")) return PILL.exc;
+    if (t.includes("evening") || t === "ee" || t.includes(" ee") || t.includes("disco") || t.includes("quiz") || t.includes("movie") || t.includes("trashion") || t.includes("speed dating") || t.includes("paparazzi")) return PILL.evening;
+    if (t.includes("activity") || t.includes("multi-activity") || t.includes("sports") || t.includes("games") || t.includes("orientation") || t.includes("welcome") || t.includes("chosen programme")) return PILL.activity;
+    if (t.includes("free time") || t.includes("optional")) return PILL.freetime;
+    if (ds && (excDays[ds] || isWeekend(new Date(ds + "T12:00:00")))) return PILL.exc;
+    return PILL.activity;
   };
 
   const selGroup = groups.find(g => g.id === selectedGroupId);
@@ -423,10 +430,10 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
             <th style={{...thStyle,width:90,maxWidth:90,overflow:"hidden",whiteSpace:"nowrap",position:"sticky",left:100,zIndex:2,background:B.bg,color:B.textMuted,backgroundImage:"none"}}>Group</th>
             <th style={{...thStyle,width:44,textAlign:"center"}}>Pax</th>
             <th style={{...thStyle,width:44,textAlign:"center",fontSize:8}}>Wk1</th>
-            {dates.map(d=>{const s=dayKey(d),exc=excDays[s],we=isWeekend(d);return<th key={s} colSpan={slots.length} onClick={()=>toggleExc(s)} style={{...thStyle,textAlign:"center",borderLeft:"2px solid "+B.border,padding:"4px 2px",minWidth:240,cursor:"pointer",background:exc?B.pink:we?B.dangerBg:B.ice}}>
+            {dates.map(d=>{const s=dayKey(d),exc=excDays[s],we=isWeekend(d);return<th key={s} colSpan={slots.length} onClick={()=>toggleExc(s)} style={{...thStyle,textAlign:"center",borderLeft:"2px solid "+B.border,padding:"4px 2px",minWidth:268,cursor:"pointer",background:exc?"#fef3c7":we?"#fee2e2":B.ice}}>
               <div style={{fontSize:8,color:B.textMuted}}>{fmtDate(d)}</div>
-              <div style={{fontWeight:800,fontSize:10,color:we?B.red:B.text}}>{dayName(d)}</div>
-              {exc&&<div style={{fontSize:6,color:B.red,fontWeight:800}}>{exc==="Full"?"FD EXC":"HD EXC"}</div>}
+              <div style={{fontWeight:800,fontSize:10,color:we?"#b91c1c":B.text}}>{dayName(d)}</div>
+              {exc&&<div style={{fontSize:7,color:"#b45309",fontWeight:800,background:"#fde68a",borderRadius:3,padding:"1px 4px",display:"inline-block",marginTop:1}}>{exc==="Full"?"FULL EXC":"HALF EXC"}</div>}
             </th>;})}
           </tr>
           <tr>
@@ -434,7 +441,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
             <th style={{...thStyle,position:"sticky",left:100,zIndex:2,background:B.bg,backgroundImage:"none"}}></th>
             <th style={thStyle}></th>
             <th style={thStyle}></th>
-            {dates.map(d=>slots.map(sl=><th key={dayKey(d)+"-"+sl} style={{...thStyle,textAlign:"center",fontSize:9,padding:"3px 1px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,minWidth:80}}>{sl}</th>))}
+            {dates.map(d=>slots.map(sl=><th key={dayKey(d)+"-"+sl} style={{...thStyle,textAlign:"center",fontSize:9,padding:"3px 1px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,minWidth:sl==="Eve"?76:96}}>{sl}</th>))}
           </tr>
         </thead>
         <tbody>
@@ -444,13 +451,13 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
             <td style={{...tdStyle,fontWeight:700,color:B.text,fontSize:10,position:"sticky",left:100,background:B.card,zIndex:1,maxWidth:90,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{g.group}</td>
             <td style={{...tdStyle,fontWeight:800,textAlign:"center",fontSize:10}}>{(g.stu||0)+(g.gl||0)}</td>
             <td style={{...tdStyle,textAlign:"center"}}><span style={{background:g.lessonSlot==="PM"?B.pink:B.ice,color:g.lessonSlot==="PM"?B.red:B.link,padding:"2px 6px",borderRadius:3,fontSize:8,fontWeight:800}}>{g.lessonSlot||"AM"}</span></td>
-            {dates.map(d=>slots.map(sl=>{const s=dayKey(d),key=g.id+"-"+s+"-"+sl,val=grid[key],on=inRange(s,g.arr,g.dep),cls=classify(val),isEd=editingCell===key,isQP=quickPickCell===key;
-              return<td key={key} onClick={(e)=>handleCellClick(key,sl,on,e)} onDoubleClick={()=>!readOnly&&on&&startEdit(key,val)} style={{padding:"3px 4px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,verticalAlign:"middle",minWidth:80,maxWidth:120,background:!on?B.bg:cls.bg,cursor:on?"pointer":"default",position:"relative"}}>
-                {isEd?<input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} style={{width:"100%",fontSize:10,padding:"3px",border:"1px solid "+B.border,borderRadius:2,fontFamily:"inherit",background:B.card,color:B.text}}/>:
-                (val&&on)?<div style={{color:cls.color,fontSize:10,fontWeight:600,padding:"4px 5px",borderRadius:3,lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:116}} title={val}>{val}</div>:
-                <div style={{height:22}}/>}
-                {isQP&&<div style={{position:"fixed",top:qpPos.top,left:qpPos.left,zIndex:9999,background:B.card,border:"1px solid "+B.border,borderRadius:6,boxShadow:"0 4px 12px rgba(0,0,0,0.15)",padding:"4px 0",minWidth:140,maxHeight:200,overflowY:"auto"}}>
-                  {(sl==="EVE"?QUICK_EVE:QUICK_AM_PM).map(opt=><div key={opt} onClick={(e)=>{e.stopPropagation();quickPick(key,opt);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:classify(opt).color,whiteSpace:"nowrap"}} onMouseEnter={e=>e.target.style.background=B.ice} onMouseLeave={e=>e.target.style.background="transparent"}>{opt}</div>)}
+            {dates.map(d=>slots.map(sl=>{const s=dayKey(d),key=g.id+"-"+s+"-"+sl,val=grid[key],on=inRange(s,g.arr,g.dep),cls=classify(val,s),isEd=editingCell===key,isQP=quickPickCell===key;
+              return<td key={key} onClick={(e)=>handleCellClick(key,sl,on,e)} onDoubleClick={()=>!readOnly&&on&&startEdit(key,val)} style={{padding:0,borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,verticalAlign:"top",minWidth:sl==="Eve"?76:96,background:!on?"#e2e8f0":(val?cls.bg:"#f8fafc"),cursor:on?"pointer":"default",position:"relative",height:52}}>
+                {isEd?<input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} style={{width:"100%",height:"100%",fontSize:10,padding:"5px 6px",border:"none",fontFamily:"inherit",background:B.card,color:B.text,boxSizing:"border-box"}}/>:
+                (val&&on)?<div style={{color:cls.color,fontSize:10,fontWeight:700,padding:"5px 7px",lineHeight:1.3,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",wordBreak:"break-word",height:52,boxSizing:"border-box"}} title={val}>{val}</div>:
+                <div style={{height:52}}/>}
+                {isQP&&<div style={{position:"fixed",top:qpPos.top,left:qpPos.left,zIndex:9999,background:B.card,border:"1px solid "+B.border,borderRadius:6,boxShadow:"0 4px 12px rgba(0,0,0,0.15)",padding:"4px 0",minWidth:160,maxHeight:220,overflowY:"auto"}}>
+                  {(sl==="Eve"?QUICK_EVE:QUICK_AM_PM).map(opt=>{const oc=classify(opt);return<div key={opt} onClick={(e)=>{e.stopPropagation();quickPick(key,opt);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:B.text,display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap"}} onMouseEnter={e=>e.target.style.background=B.ice} onMouseLeave={e=>e.target.style.background="transparent"}><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:oc.bg,flexShrink:0}}/>{opt}</div>;})}
                   <div style={{borderTop:"1px solid "+B.border,marginTop:2,paddingTop:2}}>
                     <div onClick={(e)=>{e.stopPropagation();quickPick(key,undefined);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:B.textMuted}} onMouseEnter={e=>e.target.style.background=B.ice} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u2717"} Clear</div>
                     <div onClick={(e)=>{e.stopPropagation();setQuickPickCell(null);startEdit(key,val);}} style={{padding:"4px 10px",fontSize:9,fontWeight:600,cursor:"pointer",color:B.text}} onMouseEnter={e=>e.target.style.background=B.ice} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u270f\ufe0f"} Custom text...</div>
@@ -488,7 +495,15 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
           ))}</tfoot>;
         })()}
       </table></TableWrap>
-      <div style={{padding:"6px 12px",fontSize:9,color:B.textMuted}}>{isMinistay ? "Click cell for quick-pick \u00b7 Double-click for custom text \u00b7 Click date headers for exc days" : "Double-click to edit \u00b7 Click date headers for exc days \u00b7 Lessons follow Wk1 slot, flip each week"}</div>
+      <div style={{padding:"8px 12px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+        {[["#1d4ed8","Lessons"],["#b45309","Excursions"],["#15803d","Activities"],["#6d28d9","Evening"],["#0369a1","Arrival"],["#9f1239","Departure"],["#6b7280","Free time"]].map(([bg,label])=>(
+          <span key={label} style={{display:"flex",alignItems:"center",gap:4,fontSize:9,color:B.textMuted}}>
+            <span style={{display:"inline-block",width:10,height:10,borderRadius:2,background:bg}}/>
+            {label}
+          </span>
+        ))}
+        <span style={{fontSize:9,color:B.textMuted,marginLeft:"auto"}}>{isMinistay ? "Click cell for quick-pick \u00b7 Double-click for custom text \u00b7 Click date headers for exc days" : "Double-click to edit \u00b7 Click date headers for exc days \u00b7 Lessons follow Wk1 slot, flip each week"}</span>
+      </div>
     </div>}
 
     {viewMode==="group" && <div>
@@ -518,18 +533,21 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
         </div>}
         <TableWrap><table style={{minWidth:1200,width:"100%",borderCollapse:"collapse",fontSize:10}}>
           <thead><tr><th style={{...thStyle,width:30}}></th>
-            {dates.filter(d=>inRange(dayKey(d),selGroup.arr,selGroup.dep)).map(d=>{const s=dayKey(d),we=isWeekend(d),exc=excDays[s];return<th key={s} style={{...thStyle,textAlign:"center",minWidth:80,background:exc?B.pink:we?B.dangerBg:B.ice}}>
+            {dates.filter(d=>inRange(dayKey(d),selGroup.arr,selGroup.dep)).map(d=>{const s=dayKey(d),we=isWeekend(d),exc=excDays[s];return<th key={s} style={{...thStyle,textAlign:"center",minWidth:100,background:exc?"#fef3c7":we?"#fee2e2":B.ice}}>
               <div style={{fontSize:7,color:B.textMuted}}>{fmtDate(d)}</div>
-              <div style={{fontWeight:800,fontSize:9,color:we?B.red:B.text}}>{dayName(d)}</div></th>;})}
+              <div style={{fontWeight:800,fontSize:9,color:we?"#b91c1c":B.text}}>{dayName(d)}</div>
+              {exc&&<div style={{fontSize:7,color:"#b45309",fontWeight:800}}>{exc==="Full"?"FULL EXC":"HALF EXC"}</div>}
+            </th>;})}
           </tr></thead>
           <tbody>{slots.map(sl=><tr key={sl} style={{borderBottom:"1px solid "+B.borderLight}}>
-            <td style={{...tdStyle,fontWeight:800,fontSize:8,color:sl==="EVE"?B.warning:B.textMuted,textAlign:"center"}}>{sl}</td>
-            {dates.filter(d=>inRange(dayKey(d),selGroup.arr,selGroup.dep)).map(d=>{const key=selGroup.id+"-"+dayKey(d)+"-"+sl,val=grid[key],cls=classify(val),isEd=editingCell===key,isQP=quickPickCell===key;
-              return<td key={key} onClick={(e)=>handleCellClick(key,sl,true,e)} onDoubleClick={()=>!readOnly&&startEdit(key,val)} style={{padding:"4px 6px",borderLeft:"1px solid "+B.borderLight,verticalAlign:"top",cursor:"pointer",position:"relative"}}>
-                {isEd?<input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} style={{width:"100%",fontSize:9,padding:"4px",border:"1px solid "+B.border,borderRadius:3,fontFamily:"inherit",background:B.card,color:B.text}}/>:
-                <div style={{background:cls.bg,color:cls.color,padding:"4px 6px",borderRadius:4,fontSize:9,fontWeight:600,minHeight:32,display:"flex",alignItems:"center"}}>{val||"\u2014"}</div>}
-                {isQP&&<div style={{position:"fixed",top:qpPos.top,left:qpPos.left,zIndex:9999,background:B.card,border:"1px solid "+B.border,borderRadius:6,boxShadow:"0 4px 12px rgba(0,0,0,0.15)",padding:"4px 0",minWidth:160,maxHeight:220,overflowY:"auto"}}>
-                  {(sl==="EVE"?QUICK_EVE:QUICK_AM_PM).map(opt=><div key={opt} onClick={(e)=>{e.stopPropagation();quickPick(key,opt);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:classify(opt).color,whiteSpace:"nowrap"}} onMouseEnter={e=>e.target.style.background=B.ice} onMouseLeave={e=>e.target.style.background="transparent"}>{opt}</div>)}
+            <td style={{...tdStyle,fontWeight:800,fontSize:8,color:B.textMuted,textAlign:"center",width:30}}>{sl}</td>
+            {dates.filter(d=>inRange(dayKey(d),selGroup.arr,selGroup.dep)).map(d=>{const s=dayKey(d),key=selGroup.id+"-"+s+"-"+sl,val=grid[key],cls=classify(val,s),isEd=editingCell===key,isQP=quickPickCell===key;
+              return<td key={key} onClick={(e)=>handleCellClick(key,sl,true,e)} onDoubleClick={()=>!readOnly&&startEdit(key,val)} style={{padding:0,borderLeft:"1px solid "+B.borderLight,verticalAlign:"top",cursor:"pointer",position:"relative",background:val?cls.bg:"#f8fafc",height:52,minWidth:100}}>
+                {isEd?<input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} style={{width:"100%",height:"100%",fontSize:10,padding:"5px 6px",border:"none",fontFamily:"inherit",background:B.card,color:B.text,boxSizing:"border-box"}}/>:
+                <div style={{color:cls.color,fontSize:10,fontWeight:700,padding:"5px 7px",lineHeight:1.3,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",wordBreak:"break-word",height:52,boxSizing:"border-box"}}>{val||""}</div>}
+                {isQP&&<div style={{position:"fixed",top:qpPos.top,left:qpPos.left,zIndex:9999,background:B.card,border:"1px solid "+B.border,borderRadius:6,boxShadow:"0 4px 12px rgba(0,0,0,0.15)",padding:"4px 0",minWidth:170,maxHeight:220,overflowY:"auto"}}>
+                  {(sl==="Eve"?QUICK_EVE:QUICK_AM_PM).map(opt=>{const oc=classify(opt);return<div key={opt} onClick={(e)=>{e.stopPropagation();quickPick(key,opt);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:B.text,display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap"}} onMouseEnter={e=>e.target.style.background=B.ice} onMouseLeave={e=>e.target.style.background="transparent"}><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:oc.bg,flexShrink:0}}/>{opt}</div>;})}
+
                   <div style={{borderTop:"1px solid "+B.border,marginTop:2,paddingTop:2}}>
                     <div onClick={(e)=>{e.stopPropagation();quickPick(key,undefined);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:B.textMuted}} onMouseEnter={e=>e.target.style.background=B.ice} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u2717"} Clear</div>
                     <div onClick={(e)=>{e.stopPropagation();setQuickPickCell(null);startEdit(key,val);}} style={{padding:"5px 12px",fontSize:10,fontWeight:600,cursor:"pointer",color:B.text}} onMouseEnter={e=>e.target.style.background=B.ice} onMouseLeave={e=>e.target.style.background="transparent"}>{"\u270f\ufe0f"} Custom text...</div>
