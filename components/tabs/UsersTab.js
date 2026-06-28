@@ -18,6 +18,8 @@ const ROLES = [
 ];
 
 const READ_ONLY_ROLES = ["teacher", "activity_leader", "sports_coordinator", "house_parent"];
+const MANAGER_ROLES = ["centre_manager", "course_director", "excursion_activity_manager", "safeguarding_welfare", "sports_coordinator"];
+const STAFF_ROLES = ["teacher", "activity_leader", "house_parent"];
 const ROLE_LABELS = Object.fromEntries(ROLES.map((r) => [r.value, r.label]));
 
 async function hashPassword(pw) {
@@ -289,77 +291,103 @@ export default function UsersTab({ centres = [], isSuperAdmin = false }) {
         </div>
       )}
 
-      <div style={{ padding: "12px 20px" }}>
+      <div style={{ padding: "12px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
         {loading ? (
           <div style={{ textAlign: "center", padding: 40, color: B.textMuted }}>Loading…</div>
         ) : users.length === 0 ? (
           <div style={{ textAlign: "center", padding: 40, color: B.textLight }}>No users yet. Add one above.</div>
-        ) : (
-          <div style={{ background: B.card, border: `1px solid ${B.border}`, borderRadius: 10, overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: B.ice }}>
-                  {["Name", "Username", "Email", "Role", "Centre", "Actions"].map((h) => (
-                    <th key={h} style={{ padding: "8px 14px", textAlign: "left", fontSize: 10, fontWeight: 800, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.6, borderBottom: `1px solid ${B.border}` }}>{h}</th>
-                  ))}
+        ) : [
+          { label: "Head Office",                 filter: (u) => u.role === "head_office" },
+          { label: "Managers",                    filter: (u) => MANAGER_ROLES.includes(u.role) },
+          { label: "Teachers & Activity Leaders", filter: (u) => STAFF_ROLES.includes(u.role) },
+        ].map(({ label, filter }) => {
+          const sectionUsers = users.filter(filter);
+          if (!sectionUsers.length) return null;
+          const byCentre = sectionUsers.reduce((acc, u) => {
+            const k = u.centre_id || "__ho";
+            acc[k] = acc[k] || [];
+            acc[k].push(u);
+            return acc;
+          }, {});
+          const centreKeys = Object.keys(byCentre);
+          const thStyle = { padding: "8px 14px", textAlign: "left", fontSize: 10, fontWeight: 800, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.6, borderBottom: `1px solid ${B.border}` };
+          const renderRow = (u) => (
+            <>
+              <tr key={u.id} style={{ borderBottom: `1px solid ${B.borderLight}` }}>
+                <td style={{ padding: "10px 14px", fontSize: 13, fontWeight: 700, color: B.text }}>{u.full_name}</td>
+                <td style={{ padding: "10px 14px", fontSize: 12, color: B.textMuted }}>{u.username || <span style={{ color: B.textLight, fontSize: 10 }}>—</span>}</td>
+                <td style={{ padding: "10px 14px", fontSize: 12, color: B.textMuted }}>{u.email || <span style={{ color: B.textLight, fontSize: 10 }}>—</span>}</td>
+                <td style={{ padding: "10px 14px", fontSize: 11 }}>
+                  <span style={{ background: READ_ONLY_ROLES.includes(u.role) ? B.warningBg : B.ice, color: READ_ONLY_ROLES.includes(u.role) ? B.warning : B.text, padding: "2px 8px", borderRadius: 10, fontWeight: 700, fontSize: 10 }}>
+                    {ROLE_LABELS[u.role] || u.role}
+                  </span>
+                </td>
+                <td style={{ padding: "10px 14px" }}>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => editId === u.id ? setEditId(null) : startEdit(u)} style={{ padding: "3px 8px", background: editId === u.id ? B.navy : B.ice, color: editId === u.id ? B.white : B.textMuted, border: "none", borderRadius: 4, cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 3 }}>
+                      {editId === u.id ? <><IcX /> Cancel</> : <><IcEdit /> Edit</>}
+                    </button>
+                    <button onClick={() => deleteUser(u.id, u.full_name)} style={{ padding: "3px 8px", background: B.dangerBg, color: B.danger, border: "none", borderRadius: 4, cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 3 }}>
+                      <IcTrash /> Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {editId === u.id && (
+                <tr key={`edit-${u.id}`} style={{ background: B.ice }}>
+                  <td colSpan={5} style={{ padding: "10px 14px" }}>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
+                      <Fld label="Full Name"><input value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} style={{ ...fi, minWidth: 160 }} autoFocus /></Fld>
+                      <Fld label="Username"><input value={editForm.username} onChange={(e) => setEditForm((p) => ({ ...p, username: e.target.value }))} style={{ ...fi, minWidth: 120 }} placeholder="e.g. jsmith" /></Fld>
+                      <Fld label="Role">
+                        <select value={editForm.role} onChange={(e) => setEditForm((p) => ({ ...p, role: e.target.value }))} style={{ ...fi, cursor: "pointer", minWidth: 180 }}>
+                          {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                        </select>
+                      </Fld>
+                      <Fld label="Centre">
+                        <select value={editForm.centreId} onChange={(e) => setEditForm((p) => ({ ...p, centreId: e.target.value }))} style={{ ...fi, cursor: "pointer", minWidth: 160 }}>
+                          <option value="">Head Office / All Centres</option>
+                          {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                      </Fld>
+                      {isSuperAdmin && <Fld label="New Password (optional)"><input type="password" value={editForm.password} onChange={(e) => setEditForm((p) => ({ ...p, password: e.target.value }))} placeholder="Leave blank to keep" style={{ ...fi, width: 160 }} /></Fld>}
+                      <button onClick={saveEdit} disabled={saving} style={{ padding: "6px 14px", background: B.navy, border: "none", color: B.white, borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit", height: 32, display: "flex", alignItems: "center", gap: 4 }}>
+                        <IcCheck /> {saving ? "Saving…" : "Save"}
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <>
-                    <tr key={u.id} style={{ borderBottom: `1px solid ${B.borderLight}` }}>
-                      <td style={{ padding: "10px 14px", fontSize: 13, fontWeight: 700, color: B.text }}>{u.full_name}</td>
-                      <td style={{ padding: "10px 14px", fontSize: 12, color: B.textMuted }}>{u.username || <span style={{ color: B.textLight, fontSize: 10 }}>—</span>}</td>
-                      <td style={{ padding: "10px 14px", fontSize: 12, color: B.textMuted }}>{u.email || <span style={{ color: B.textLight, fontSize: 10 }}>—</span>}</td>
-                      <td style={{ padding: "10px 14px", fontSize: 11 }}>
-                        <span style={{ background: READ_ONLY_ROLES.includes(u.role) ? B.warningBg : B.ice, color: READ_ONLY_ROLES.includes(u.role) ? B.warning : B.text, padding: "2px 8px", borderRadius: 10, fontWeight: 700, fontSize: 10 }}>
-                          {ROLE_LABELS[u.role] || u.role}
-                        </span>
-                        {READ_ONLY_ROLES.includes(u.role) && <span style={{ marginLeft: 6, fontSize: 9, color: B.textLight }}>View only</span>}
-                      </td>
-                      <td style={{ padding: "10px 14px", fontSize: 11, color: B.text }}>{centreLabel(u.centre_id)}</td>
-                      <td style={{ padding: "10px 14px" }}>
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <button onClick={() => editId === u.id ? setEditId(null) : startEdit(u)} style={{ padding: "3px 8px", background: editId === u.id ? B.navy : B.ice, color: editId === u.id ? B.white : B.textMuted, border: "none", borderRadius: 4, cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 3 }}>
-                            {editId === u.id ? <><IcX /> Cancel</> : <><IcEdit /> Edit</>}
-                          </button>
-                          <button onClick={() => deleteUser(u.id, u.full_name)} style={{ padding: "3px 8px", background: B.dangerBg, color: B.danger, border: "none", borderRadius: 4, cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 3 }}>
-                            <IcTrash /> Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    {editId === u.id && (
-                      <tr key={`edit-${u.id}`} style={{ background: B.ice }}>
-                        <td colSpan={6} style={{ padding: "10px 14px" }}>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
-                            <Fld label="Full Name"><input value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} style={{ ...fi, minWidth: 160 }} autoFocus /></Fld>
-                            <Fld label="Username"><input value={editForm.username} onChange={(e) => setEditForm((p) => ({ ...p, username: e.target.value }))} style={{ ...fi, minWidth: 120 }} placeholder="e.g. jsmith" /></Fld>
-                            <Fld label="Role">
-                              <select value={editForm.role} onChange={(e) => setEditForm((p) => ({ ...p, role: e.target.value }))} style={{ ...fi, cursor: "pointer", minWidth: 180 }}>
-                                {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                              </select>
-                            </Fld>
-                            <Fld label="Centre">
-                              <select value={editForm.centreId} onChange={(e) => setEditForm((p) => ({ ...p, centreId: e.target.value }))} style={{ ...fi, cursor: "pointer", minWidth: 160 }}>
-                                <option value="">Head Office / All Centres</option>
-                                {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                              </select>
-                            </Fld>
-                            {isSuperAdmin && <Fld label="New Password (optional)"><input type="password" value={editForm.password} onChange={(e) => setEditForm((p) => ({ ...p, password: e.target.value }))} placeholder="Leave blank to keep" style={{ ...fi, width: 160 }} /></Fld>}
-                            <button onClick={saveEdit} disabled={saving} style={{ padding: "6px 14px", background: B.navy, border: "none", color: B.white, borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit", height: 32, display: "flex", alignItems: "center", gap: 4 }}>
-                              <IcCheck /> {saving ? "Saving…" : "Save"}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+              )}
+            </>
+          );
+          return (
+            <div key={label} style={{ background: B.card, border: `1px solid ${B.border}`, borderRadius: 10, overflow: "hidden" }}>
+              <div style={{ background: B.navy, padding: "9px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ color: B.white, fontSize: 12, fontWeight: 800 }}>{label}</span>
+                <span style={{ background: "rgba(255,255,255,0.15)", color: B.white, padding: "1px 8px", borderRadius: 10, fontSize: 10, fontWeight: 700 }}>{sectionUsers.length}</span>
+              </div>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: B.ice }}>
+                    {["Name", "Username", "Email", "Role", "Actions"].map((h) => (
+                      <th key={h} style={thStyle}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {centreKeys.map((ck) => <>
+                    {centreKeys.length > 1 && (
+                      <tr key={`ch-${ck}`}><td colSpan={5} style={{ padding: "5px 14px", background: B.ice, fontSize: 10, fontWeight: 800, color: B.textMuted, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: `1px solid ${B.borderLight}`, borderTop: `1px solid ${B.border}` }}>
+                        {centreLabel(ck === "__ho" ? null : ck)}
+                      </td></tr>
                     )}
-                  </>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                    {byCentre[ck].map(renderRow)}
+                  </>)}
+                </tbody>
+              </table>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
