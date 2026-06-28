@@ -422,8 +422,8 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       </div>
     )}
 
-    {viewMode==="all" && <div style={{padding:"0 4px 16px",overflow:"auto",maxHeight:"calc(100vh - 260px)"}}>
-      <TableWrap><table style={{minWidth:1200,width:"100%",borderCollapse:"collapse",fontSize:10}}>
+    {viewMode==="all" && <div style={{margin:"0 4px 16px",overflow:"auto",maxHeight:"calc(100vh - 260px)",background:B.card,borderRadius:12,border:"1px solid "+B.border,boxShadow:"0 2px 12px rgba(28,48,72,0.07)"}}>
+      <table style={{minWidth:1200,width:"100%",borderCollapse:"collapse",fontSize:10}}>
         <thead style={{position:"sticky",top:0,zIndex:2}}>
           <tr>
             <th style={{...thStyle,width:100,maxWidth:100,overflow:"hidden",whiteSpace:"nowrap",position:"sticky",left:0,zIndex:1,background:B.bg,color:B.textMuted,backgroundImage:"none"}}>Agent</th>
@@ -495,7 +495,7 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
             </tr>
           ))}</tfoot>;
         })()}
-      </table></TableWrap>
+      </table>
       <div style={{padding:"8px 12px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
         {[["#bae6fd","Lessons"],["#fef08a","Excursions"],["#fbcfe8","Activities"],["#fda4af","Evening"],["#a7f3d0","Arrival"],["#fca5a5","Departure"],["#e2e8f0","Free time"]].map(([bg,label])=>(
           <span key={label} style={{display:"flex",alignItems:"center",gap:4,fontSize:9,color:B.textMuted}}>
