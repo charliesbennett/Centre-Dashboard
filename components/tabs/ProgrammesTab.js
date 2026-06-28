@@ -422,26 +422,26 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
       </div>
     )}
 
-    {viewMode==="all" && <div style={{padding:"0 4px 16px",overflowX:"auto"}}>
+    {viewMode==="all" && <div style={{padding:"0 4px 16px",overflow:"auto",maxHeight:"calc(100vh - 260px)"}}>
       <TableWrap><table style={{minWidth:1200,width:"100%",borderCollapse:"collapse",fontSize:10}}>
         <thead>
           <tr>
-            <th style={{...thStyle,width:100,maxWidth:100,overflow:"hidden",whiteSpace:"nowrap",position:"sticky",left:0,zIndex:2,background:B.bg,color:B.textMuted,backgroundImage:"none"}}>Agent</th>
-            <th style={{...thStyle,width:90,maxWidth:90,overflow:"hidden",whiteSpace:"nowrap",position:"sticky",left:100,zIndex:2,background:B.bg,color:B.textMuted,backgroundImage:"none"}}>Group</th>
-            <th style={{...thStyle,width:44,textAlign:"center"}}>Pax</th>
-            <th style={{...thStyle,width:44,textAlign:"center",fontSize:8}}>Wk1</th>
-            {dates.map(d=>{const s=dayKey(d),exc=excDays[s],we=isWeekend(d);return<th key={s} colSpan={slots.length} onClick={()=>toggleExc(s)} style={{...thStyle,textAlign:"center",borderLeft:"2px solid "+B.border,padding:"4px 2px",minWidth:306,cursor:"pointer",background:exc?"#fef3c7":we?"#fee2e2":B.ice}}>
+            <th style={{...thStyle,width:100,maxWidth:100,overflow:"hidden",whiteSpace:"nowrap",position:"sticky",left:0,top:0,zIndex:3,background:B.bg,color:B.textMuted,backgroundImage:"none"}}>Agent</th>
+            <th style={{...thStyle,width:90,maxWidth:90,overflow:"hidden",whiteSpace:"nowrap",position:"sticky",left:100,top:0,zIndex:3,background:B.bg,color:B.textMuted,backgroundImage:"none"}}>Group</th>
+            <th style={{...thStyle,width:44,textAlign:"center",position:"sticky",top:0,zIndex:1}}>Pax</th>
+            <th style={{...thStyle,width:44,textAlign:"center",fontSize:8,position:"sticky",top:0,zIndex:1}}>Wk1</th>
+            {dates.map(d=>{const s=dayKey(d),exc=excDays[s],we=isWeekend(d);return<th key={s} colSpan={slots.length} onClick={()=>toggleExc(s)} style={{...thStyle,textAlign:"center",borderLeft:"2px solid "+B.border,padding:"4px 2px",minWidth:306,cursor:"pointer",position:"sticky",top:0,zIndex:1,background:exc?"#fef3c7":we?"#fee2e2":B.ice}}>
               <div style={{fontSize:8,color:B.textMuted}}>{fmtDate(d)}</div>
               <div style={{fontWeight:800,fontSize:10,color:we?"#b91c1c":B.text}}>{dayName(d)}</div>
               {exc&&<div style={{fontSize:7,color:"#b45309",fontWeight:800,background:"#fde68a",borderRadius:3,padding:"1px 4px",display:"inline-block",marginTop:1}}>{exc==="Full"?"FULL EXC":"HALF EXC"}</div>}
             </th>;})}
           </tr>
           <tr>
-            <th style={{...thStyle,position:"sticky",left:0,zIndex:2,background:B.bg,backgroundImage:"none"}}></th>
-            <th style={{...thStyle,position:"sticky",left:100,zIndex:2,background:B.bg,backgroundImage:"none"}}></th>
-            <th style={thStyle}></th>
-            <th style={thStyle}></th>
-            {dates.map(d=>slots.map(sl=><th key={dayKey(d)+"-"+sl} style={{...thStyle,textAlign:"center",fontSize:9,padding:"3px 1px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,minWidth:sl==="Eve"?86:110}}>{sl}</th>))}
+            <th style={{...thStyle,position:"sticky",left:0,top:56,zIndex:3,background:B.bg,backgroundImage:"none"}}></th>
+            <th style={{...thStyle,position:"sticky",left:100,top:56,zIndex:3,background:B.bg,backgroundImage:"none"}}></th>
+            <th style={{...thStyle,position:"sticky",top:56,zIndex:1}}></th>
+            <th style={{...thStyle,position:"sticky",top:56,zIndex:1}}></th>
+            {dates.map(d=>slots.map(sl=><th key={dayKey(d)+"-"+sl} style={{...thStyle,textAlign:"center",fontSize:9,padding:"3px 1px",borderLeft:sl==="AM"?"2px solid "+B.border:"1px solid "+B.borderLight,minWidth:sl==="Eve"?86:110,position:"sticky",top:56,zIndex:1}}>{sl}</th>))}
           </tr>
         </thead>
         <tbody>
