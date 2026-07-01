@@ -14,9 +14,12 @@ body {
 }
 
 /* ── Scrollbars ──────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 5px; height: 5px; }
+/* Wide tables (Programmes, Rota, Excursions) end in a horizontal scrollbar right
+   at the bottom of the viewport — too thin here means missed clicks overshoot
+   past the window into the OS taskbar, so keep this comfortably grabbable. */
+::-webkit-scrollbar { width: 12px; height: 12px; }
 ::-webkit-scrollbar-track { background: #e6eef3; border-radius: 3px; }
-::-webkit-scrollbar-thumb { background: #94a9bd; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: #94a9bd; border-radius: 3px; border: 2px solid #e6eef3; }
 ::-webkit-scrollbar-thumb:hover { background: #5c7084; }
 
 /* ── Nav tab hover (can't do :hover in inline styles) ────────────────────── */
