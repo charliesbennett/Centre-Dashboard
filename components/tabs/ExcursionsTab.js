@@ -272,9 +272,16 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
         <ExcursionsImportModal
           groups={groups}
           centreName={centre}
+          existingBookings={excursions}
           onClose={() => setShowImport(false)}
-          onImported={(bookings) => {
-            setExcursions((p) => [...(p || []), ...bookings]);
+          onImported={({ bookings, coachAttachments }) => {
+            setExcursions((prev) => {
+              const withAttachments = (prev || []).map((e) => {
+                const toAdd = (coachAttachments || []).filter((a) => a.bookingId === e.id).map((a) => a.coach);
+                return toAdd.length > 0 ? { ...e, coaches: [...(e.coaches || []), ...toAdd] } : e;
+              });
+              return [...withAttachments, ...bookings];
+            });
             const newExcDays = { ...excDays };
             bookings.forEach((b) => {
               if (!newExcDays[b.date]) newExcDays[b.date] = b.dayPart === "Full" ? "Full" : "Half";
