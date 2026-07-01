@@ -4,24 +4,10 @@ import { uid, fmtDate, dayName, isWeekend, genDates, dayKey, inRange } from "@/l
 import { useB } from "@/lib/theme";
 import { Fld, StatusBadge, IconBtn, IcPlus, IcTrash, IcEdit, IcCheck, IcCopy, IcX, inputStyle, thStyle, tdStyle, btnNavy } from "@/components/ui";
 import ExcursionsImportModal from "@/components/ExcursionsImportModal";
+import { emptyBooking, bookingCounts, mergeBookingUpserts } from "@/lib/excursionBookings";
 
 const DAY_PARTS = ["Full", "AM Half", "PM Half"];
 const TRANSPORT_METHODS = ["Coach", "Walk", "Train", "Minibus", "Other"];
-
-const emptyBooking = (date) => ({
-  id: uid(), date, groupIds: [], attraction: "", dayPart: "Full",
-  transportMethod: "Coach", manualStudentCount: 0, manualLeaderCount: 0, staffCount: 0,
-  bookingRef: "", emailContact: "", bookingLink: "", notes: "", coaches: [],
-});
-
-// Headcounts for a booking: derived from linked groups, or manual counts if none linked
-function bookingCounts(booking, groups) {
-  const linked = (groups || []).filter((g) => (booking.groupIds || []).includes(g.id));
-  const stu = linked.length > 0 ? linked.reduce((s, g) => s + (g.stu || 0), 0) : (booking.manualStudentCount || 0);
-  const gl = linked.length > 0 ? linked.reduce((s, g) => s + (g.gl || 0), 0) : (booking.manualLeaderCount || 0);
-  const staff = booking.staffCount || 0;
-  return { stu, gl, staff, total: stu + gl + staff, linked };
-}
 
 export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, progEnd, excursions, setExcursions, centre, progGrid, settings, readOnly = false }) {
   const B = useB();
@@ -104,19 +90,7 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
   const applyResult = (newExcDays, bookingUpserts) => {
     setExcDays(newExcDays);
     if (bookingUpserts.length > 0) {
-      setExcursions((prev) => {
-        const updated = [...(prev || [])];
-        bookingUpserts.forEach(({ date, attraction, dayPart, groupIds }) => {
-          const idx = updated.findIndex((e) => e.date === date && e.attraction === attraction && e.dayPart === dayPart);
-          if (idx >= 0) {
-            const merged = [...new Set([...(updated[idx].groupIds || []), ...groupIds])];
-            updated[idx] = { ...updated[idx], groupIds: merged };
-          } else {
-            updated.push({ ...emptyBooking(date), attraction, dayPart, groupIds });
-          }
-        });
-        return updated;
-      });
+      setExcursions((prev) => mergeBookingUpserts(prev || [], bookingUpserts));
     }
   };
 
@@ -422,11 +396,14 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                         </div>
                       )}
 
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                      <div style={{ marginBottom: 8 }}>
                         <Fld label="Booking Ref + Time">
-                          <input disabled={readOnly} value={booking.bookingRef} onChange={(e) => updateBooking(booking.id, { bookingRef: e.target.value })}
-                            style={{ ...fi, width: 220 }} placeholder="e.g. #ABC-123 @ 10:30" />
+                          <textarea disabled={readOnly} value={booking.bookingRef} onChange={(e) => updateBooking(booking.id, { bookingRef: e.target.value })}
+                            rows={2} style={{ ...fi, width: "100%", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box" }} placeholder="e.g. #ABC-123 @ 10:30" />
                         </Fld>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
                         <Fld label="Email Contact">
                           <input disabled={readOnly} value={booking.emailContact} onChange={(e) => updateBooking(booking.id, { emailContact: e.target.value })}
                             style={{ ...fi, width: 160 }} placeholder="bookings@venue.com" />
@@ -443,8 +420,8 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
 
                       <div style={{ marginBottom: 8 }}>
                         <Fld label="Notes">
-                          <input disabled={readOnly} value={booking.notes} onChange={(e) => updateBooking(booking.id, { notes: e.target.value })}
-                            style={{ ...fi, width: "100%", boxSizing: "border-box" }} placeholder="Coach / booking notes..." />
+                          <textarea disabled={readOnly} value={booking.notes} onChange={(e) => updateBooking(booking.id, { notes: e.target.value })}
+                            rows={2} style={{ ...fi, width: "100%", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box" }} placeholder="Coach / booking notes..." />
                         </Fld>
                       </div>
 
