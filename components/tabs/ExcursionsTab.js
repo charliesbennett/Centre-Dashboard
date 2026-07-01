@@ -322,11 +322,13 @@ export default function ExcursionsTab({ excDays, setExcDays, groups, progStart, 
                   const counts = bookingCounts(booking, groups);
                   return (
                     <div key={booking.id} style={{ background: B.bg, border: "1px solid " + B.border, borderRadius: 8, padding: 10, marginBottom: 8 }}>
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 8 }}>
+                      <div style={{ marginBottom: 8 }}>
                         <Fld label="Attraction">
-                          <input disabled={readOnly} value={booking.attraction} onChange={(e) => updateBooking(booking.id, { attraction: e.target.value })}
-                            style={{ ...fi, width: 220 }} placeholder="e.g. Chester with Roman Tour" />
+                          <textarea disabled={readOnly} value={booking.attraction} onChange={(e) => updateBooking(booking.id, { attraction: e.target.value })}
+                            rows={2} style={{ ...fi, width: "100%", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box" }} placeholder="e.g. Chester with Roman Tour" />
                         </Fld>
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 8 }}>
                         <Fld label="Day Part">
                           <select disabled={readOnly} value={booking.dayPart} onChange={(e) => updateBooking(booking.id, { dayPart: e.target.value })}
                             style={{ ...fi, width: 95, cursor: "pointer" }}>
