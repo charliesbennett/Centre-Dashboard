@@ -26,10 +26,10 @@ export default function ProgrammesTab({ groups, progStart, progEnd, centre, excD
   const dates = useMemo(() => genDates(progStart, progEnd), [progStart, progEnd]);
   const isLondon = LONDON_CENTRES.includes(centre);
   const isMinistay = /mini[\s-]?stay/i.test(centre || "");
-  // Look up excursion destination for a date string ("Full Exc" / "Half Exc" fallback)
+  // Look up excursion attraction(s) for a date string ("Full Exc" / "Half Exc" fallback)
   const excDest = (dateStr, type) => {
-    const dest = excursions.find(e => e.date === dateStr)?.destination;
-    return dest || (type === "Full" ? "Full Exc" : "Half Exc");
+    const attractions = [...new Set(excursions.filter(e => e.date === dateStr && e.attraction).map(e => e.attraction))];
+    return attractions.length > 0 ? attractions.join(" / ") : (type === "Full" ? "Full Exc" : "Half Exc");
   };
   const slots = ["AM", "PM", "Eve"];
   const [viewMode, setViewMode] = useState("all");

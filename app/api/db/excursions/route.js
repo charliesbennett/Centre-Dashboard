@@ -1,7 +1,10 @@
 export const dynamic = "force-dynamic";
 import { getSupabaseServer } from "@/lib/supabaseServer";
 
-// Body: { toDelete: [id], toUpsert: [{id, centre_id, exc_date, destination, coaches, notes}] }
+// Body: { toDelete: [id], toUpsert: [{id, centre_id, exc_date, group_ids, attraction,
+//   day_part, transport_method, manual_student_count, manual_leader_count, staff_count,
+//   booking_ref, email_contact, booking_link, coaches, notes}] }
+// A date can now hold several bookings, so upsert conflicts on `id`, not the date.
 export async function POST(req) {
   const db = getSupabaseServer();
   const { toDelete, toUpsert } = await req.json();
@@ -12,7 +15,7 @@ export async function POST(req) {
 
   if ((toUpsert || []).length > 0) {
     const { error } = await db.from("excursions")
-      .upsert(toUpsert, { onConflict: "centre_id,exc_date" });
+      .upsert(toUpsert, { onConflict: "id" });
     if (error) return Response.json({ error: error.message }, { status: 500 });
   }
 

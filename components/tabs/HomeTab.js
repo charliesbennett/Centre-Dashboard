@@ -94,8 +94,8 @@ export function assembleBriefingData({ centreName, today, groups, staff, excursi
     .map((g) => ({ groupName: g.group || g.name || "", stu: g.stu || 0 }));
 
   const excursionsToday = (excursions || [])
-    .filter((e) => e.exc_date === today)
-    .map((e) => ({ destination: e.destination || "", coaches: e.coaches || [] }));
+    .filter((e) => e.date === today && e.attraction)
+    .map((e) => ({ destination: e.attraction, coaches: e.coaches || [] }));
 
   const slots = ["AM", "PM", "Eve"];
   const rotaBySlot = { AM: [], PM: [], Eve: [] };
@@ -129,7 +129,7 @@ export function generateBriefingHtml(data) {
   const arrivingItems = arriving.map((g) => `${g.groupName} — ${g.stu} student${g.stu !== 1 ? "s" : ""}`);
   const departingItems = departing.map((g) => `${g.groupName} — ${g.stu} student${g.stu !== 1 ? "s" : ""}`);
   const excItems = excursionsToday.map((e) =>
-    `${e.destination}${e.coaches && e.coaches.length ? " (coaches: " + e.coaches.join(", ") + ")" : ""}`
+    `${e.destination}${e.coaches && e.coaches.length ? " (coaches: " + e.coaches.map((c) => c.company).filter(Boolean).join(", ") + ")" : ""}`
   );
 
   const slotRows = ["AM", "PM", "Eve"].map((slot) => {

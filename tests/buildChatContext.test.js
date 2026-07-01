@@ -99,11 +99,11 @@ describe("buildChatContext", () => {
 
   it("includes excursion details", () => {
     const data = makeData({
-      excursions: [{ date: "2026-07-15", destination: "London Zoo", coaches: 2 }],
+      excursions: [{ date: "2026-07-15", attraction: "London Zoo", coaches: [{ company: "National Express" }] }],
     });
     const result = buildChatContext(data, CENTRE_NAME);
     expect(result).toContain("London Zoo");
-    expect(result).toContain("coaches: 2");
+    expect(result).toContain("coaches: National Express");
   });
 
   it("shows (none recorded) when no excursions", () => {

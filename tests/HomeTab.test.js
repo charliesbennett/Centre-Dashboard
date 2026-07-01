@@ -41,8 +41,8 @@ function assembleBriefingData({ centreName, today, groups, staff, excursions, ro
     .map((g) => ({ groupName: g.group || g.name || "", stu: g.stu || 0 }));
 
   const excursionsToday = (excursions || [])
-    .filter((e) => e.exc_date === today)
-    .map((e) => ({ destination: e.destination || "", coaches: e.coaches || [] }));
+    .filter((e) => e.date === today && e.attraction)
+    .map((e) => ({ destination: e.attraction, coaches: e.coaches || [] }));
 
   const slots = ["AM", "PM", "Eve"];
   const rotaBySlot = { AM: [], PM: [], Eve: [] };
@@ -108,8 +108,8 @@ describe("STORY-D4: assembleBriefingData", () => {
 
   it("returns excursionsToday for excursions matching today", () => {
     const excursions = [
-      { id: "e1", exc_date: TODAY, destination: "London", coaches: ["Coach A"] },
-      { id: "e2", exc_date: "2026-07-20", destination: "Bath", coaches: [] },
+      { id: "e1", date: TODAY, attraction: "London", coaches: ["Coach A"] },
+      { id: "e2", date: "2026-07-20", attraction: "Bath", coaches: [] },
     ];
     const result = assembleBriefingData({ centreName: "Test", today: TODAY, groups: [], staff: [], excursions, rotaGrid: {} });
     expect(result.excursionsToday).toHaveLength(1);
